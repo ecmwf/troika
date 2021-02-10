@@ -5,6 +5,7 @@ import logging
 import textwrap
 
 from . import log
+from . import VERSION
 from .config import get_config
 from .sites import get_site
 
@@ -92,6 +93,9 @@ def main(args=None, prog=None):
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Submit, monitor and kill jobs on remote systems",
         epilog=epilog)
+
+    parser.add_argument("-V", "--version", action="version",
+        version=("%(prog)s " + VERSION))
 
     parser.add_argument("-v", "--verbose", action="count", default=0,
         help="increase verbosity level (can be repeated)")
