@@ -21,7 +21,7 @@ class TrimurtiSite(Site):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script).resolve()
         args = [self._trimurti_path, user, self._host, script, output]
-        if dryrun:
+        if not dryrun:
             _logger.debug("Executing %s", " ".join(repr(str(arg)) for arg in args))
             subprocess.run(args, check=True)
         else:
