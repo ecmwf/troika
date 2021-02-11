@@ -4,7 +4,7 @@ import logging
 import pathlib
 import subprocess
 
-from ..site import Site
+from .base import Site
 
 _logger = logging.getLogger(__name__)
 

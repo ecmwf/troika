@@ -7,7 +7,7 @@ import textwrap
 from . import log
 from . import VERSION
 from .config import get_config
-from .sites import get_site
+from .site import get_site
 
 _logger = logging.getLogger(__name__)
 
