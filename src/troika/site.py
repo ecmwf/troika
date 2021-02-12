@@ -5,6 +5,7 @@ import inspect
 import logging
 import pkgutil
 
+from . import ConfigurationError, InvocationError
 from .sites.base import Site
 from . import sites
 
@@ -49,12 +50,29 @@ def _discover_sites():
 
 def get_site(config, name):
     """Create a `troika.site.Site` object from configuration"""
-    known_sites = _discover_sites()
-    _logger.debug("Available sites: %s", ", ".join(known_sites.keys()))
-    sites = config['sites']
-    site_config = sites[name]
-    tp = site_config['type']
-    cls = known_sites[tp]
+    known_types = _discover_sites()
+    _logger.debug("Available site types: %s", ", ".join(known_types.keys()))
+
+    try:
+        sites = config['sites']
+    except KeyError:
+        raise ConfigurationError(f"No 'sites' defined in configuration")
+
+    try:
+        site_config = sites[name]
+    except KeyError:
+        raise InvocationError(f"Unknown site {name!r}")
+
+    try:
+        tp = site_config['type']
+    except KeyError:
+        raise ConfigurationError(f"Site {name!r} has no 'type'")
+
+    try:
+        cls = known_types[tp]
+    except KeyError:
+        raise ConfigurationError(f"Site {name!r} has unknown type {tp!r}")
+
     site = cls(site_config)
     _logger.debug("Created %r for %s", site, name)
     return site

@@ -5,7 +5,7 @@ import logging
 import textwrap
 
 from . import log
-from . import VERSION
+from . import VERSION, ConfigurationError, InvocationError
 from .config import get_config
 from .site import get_site
 
@@ -140,6 +140,12 @@ def main(args=None, prog=None):
         config = get_config(args.config)
         site = get_site(config, args.site)
         return args.func(site, args)
+    except ConfigurationError as e:
+        _logger.critical("Configuration error: %s", e)
+        return 1
+    except InvocationError as e:
+        _logger.critical("%s", e)
+        return 1
     except:
         _logger.exception("Unhandled exception")
         return 1
