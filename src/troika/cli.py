@@ -129,7 +129,7 @@ def main(args=None, prog=None):
     parser_kill.set_defaults(func=kill)
     parser_monitor.add_argument("site", help="target site")
 
-    args = parser.parse_args()
+    args = parser.parse_args(args)
 
     if not hasattr(args, 'func'):
         parser.error("please specify an action")
