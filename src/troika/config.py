@@ -4,6 +4,8 @@ import logging
 import os
 import yaml
 
+from . import ConfigurationError, InvocationError
+
 _logger = logging.getLogger(__name__)
 
 def get_config(configfile=None):
@@ -20,7 +22,7 @@ def get_config(configfile=None):
     if configfile is None:
         configfile = os.environ.get("TROIKA_CONFIG_FILE")
         if configfile is None:
-            raise RuntimeError("No configuration file found")
+            raise InvocationError("No configuration file found")
 
     try:
         path = os.fspath(configfile)
@@ -33,4 +35,7 @@ def get_config(configfile=None):
                                    else repr(configfile)
     _logger.debug("Using configuration file %s", config_fname)
 
-    return yaml.safe_load(configfile)
+    try:
+        return yaml.safe_load(configfile)
+    except yaml.parser.ParserError as e:
+        raise ConfigurationError(str(e))
