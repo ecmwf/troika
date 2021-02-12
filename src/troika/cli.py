@@ -127,7 +127,7 @@ def main(args=None, prog=None):
 
     parser_kill = subparsers.add_parser("kill", help="kill a submitted job")
     parser_kill.set_defaults(func=kill)
-    parser_monitor.add_argument("site", help="target site")
+    parser_kill.add_argument("site", help="target site")
 
     args = parser.parse_args(args)
 
