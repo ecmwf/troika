@@ -31,18 +31,6 @@ def test_invalid_script(dummy_local_site, tmp_path):
         dummy_local_site.submit(script, "user", "output", dryrun=False)
 
 
-@pytest.fixture
-def sample_script(tmp_path):
-    script_path = tmp_path / "script.sh"
-    script_path.write_text(textwrap.dedent("""\
-        #!/usr/bin/env bash
-        echo "Script called!"
-        """))
-    script_path.chmod(script_path.stat().st_mode
-                      | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    return script_path
-
-
 def test_submit_dryrun(dummy_local_site, sample_script, tmp_path):
     output = tmp_path / "output.log"
     pid = dummy_local_site.submit(sample_script, "user", output, dryrun=True)
