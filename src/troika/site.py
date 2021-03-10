@@ -32,15 +32,19 @@ def _discover_sites():
     _logger.debug("Site search path: %r", path)
     discovered = {}
     for finder, name, ispkg in pkgutil.iter_modules(path):
-        _logger.debug("Loading module %r", prefix + name)
+        fullname = prefix + name
+        _logger.debug("Loading module %r", fullname)
         try:
-            mod = importlib.import_module(prefix + name)
+            mod = importlib.import_module(fullname)
         except:
             _logger.warning("Could not load %r", name, exc_info=True)
             continue
 
         for cname, cls in inspect.getmembers(mod, _is_site):
             tname = _site_type_name(cname, cls)
+            if cls.__module__ != fullname:
+                _logger.debug("Skipping site %r imported by %r", tname, fullname)
+                continue
             if tname in discovered:
                 _logger.warning("Site type %r is defined more than once", tname)
                 continue
