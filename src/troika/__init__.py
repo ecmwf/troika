@@ -11,3 +11,8 @@ class ConfigurationError(RuntimeError):
 class InvocationError(RuntimeError):
     """Exception raised in case of an invalid parameter"""
     pass
+
+
+class RunError(RuntimeError):
+    """Exception raised by runtime failures"""
+    pass

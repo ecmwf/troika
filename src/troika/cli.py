@@ -5,7 +5,7 @@ import logging
 import textwrap
 
 from . import log
-from . import VERSION, ConfigurationError, InvocationError
+from . import VERSION, ConfigurationError, InvocationError, RunError
 from .config import get_config
 from .site import get_site
 
@@ -144,6 +144,9 @@ def main(args=None, prog=None):
         _logger.critical("Configuration error: %s", e)
         return 1
     except InvocationError as e:
+        _logger.critical("%s", e)
+        return 1
+    except RunError as e:
         _logger.critical("%s", e)
         return 1
     except:
