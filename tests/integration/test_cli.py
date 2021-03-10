@@ -6,6 +6,7 @@ import textwrap
 import pytest
 
 import troika.cli
+from troika.utils import check_status
 
 
 @pytest.fixture
@@ -28,16 +29,6 @@ def test_submit_dryrun(tmp_path, config_file, sample_script):
     sts = troika.cli.main(args=args)
     assert sts == 0
     assert not output_file.exists()
-
-
-def check_status(sts):
-    if hasattr(os, "waitstatus_to_exitcode"):  # Python >=3.9
-        return os.waitstatus_to_exitcode(sts)
-    if os.WIFSIGNALED(sts):
-        return -os.WTERMSIG(sts)
-    if os.WIFEXITED(sts):
-        return os.WEXITSTATUS(sts)
-    raise ValueError(f"invalid wait status: {sts}")
 
 
 def test_submit(tmp_path, config_file, sample_script, caplog):

@@ -7,6 +7,7 @@ import pytest
 import troika
 from troika.site import get_site
 from troika.sites import local
+from troika.utils import check_status
 
 
 @pytest.fixture
@@ -36,16 +37,6 @@ def test_submit_dryrun(dummy_local_site, sample_script, tmp_path):
     pid = dummy_local_site.submit(sample_script, "user", output, dryrun=True)
     assert pid is None
     assert not output.exists()
-
-
-def check_status(sts):
-    if hasattr(os, "waitstatus_to_exitcode"):  # Python >=3.9
-        return os.waitstatus_to_exitcode(sts)
-    if os.WIFSIGNALED(sts):
-        return -os.WTERMSIG(sts)
-    if os.WIFEXITED(sts):
-        return os.WEXITSTATUS(sts)
-    raise ValueError(f"invalid wait status: {sts}")
 
 
 def test_submit(dummy_local_site, sample_script, tmp_path):
