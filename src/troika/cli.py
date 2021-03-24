@@ -26,7 +26,8 @@ def submit(site, args):
         Exit code
     """
 
-    site.submit(args.script, args.user, args.output, args.dryrun)
+    pp_script = site.preprocess(args.script, args.user, args.output)
+    site.submit(pp_script, args.user, args.output, args.dryrun)
 
     return 0
 

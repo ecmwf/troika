@@ -18,6 +18,27 @@ class Site:
     def __init__(self, config):
         pass
 
+    def preprocess(self, script, user, output):
+        """Preprocess a job script
+
+        The script, output and user are interpreted according to the site.
+
+        Parameters
+        ----------
+        script: path-like
+            Path to the job script
+        output: path-like
+            Path to the job output file
+        user:
+            Remote user name
+
+        Returns
+        -------
+        path-like:
+            Path to the preprocessed script
+        """
+        return script
+
     def submit(self, script, user, output, dryrun=False):
         """Submit a job
 

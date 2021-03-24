@@ -32,6 +32,12 @@ def test_invalid_script(dummy_local_site, tmp_path):
         dummy_local_site.submit(script, "user", "output", dryrun=False)
 
 
+def test_preprocess(dummy_local_site, sample_script, tmp_path):
+    output = tmp_path / "output.log"
+    pp_script = dummy_local_site.preprocess(sample_script, "user", output)
+    assert pp_script == sample_script
+
+
 def test_submit_dryrun(dummy_local_site, sample_script, tmp_path):
     output = tmp_path / "output.log"
     pid = dummy_local_site.submit(sample_script, "user", output, dryrun=True)

@@ -43,6 +43,12 @@ def sample_script(tmp_path):
     return script_path
 
 
+def test_preprocess(dummy_ssh_site, sample_script, tmp_path):
+    output = tmp_path / "output.log"
+    pp_script = dummy_ssh_site.preprocess(sample_script, "user", output)
+    assert pp_script == sample_script
+
+
 def test_submit_dryrun(dummy_ssh_site, sample_script, tmp_path):
     output = tmp_path / "output.log"
     pid = dummy_ssh_site.submit(sample_script, "user", output, dryrun=True)

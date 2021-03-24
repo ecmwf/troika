@@ -10,9 +10,13 @@ from troika.sites.base import Site
 def dummy_site():
     class DummySite(Site):
         def __init__(self, config):
+            self.preprocess_called = False
             self.submit_called = False
             self.monitor_called = False
             self.kill_called = False
+        def preprocess(self, script, user, output):
+            self.preprocess_called = True
+            return script
         def submit(self, script, user, output, dryrun=False):
             self.submit_called = True
         def monitor(self, dryrun=False):
@@ -91,6 +95,7 @@ def test_submit(dummy_site):
         output="output", dryrun=True)
     sts = troika.cli.submit(dummy_site, args)
     assert sts == 0
+    assert dummy_site.preprocess_called
     assert dummy_site.submit_called
 
 
