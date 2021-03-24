@@ -19,7 +19,7 @@ def _split_slurm_directive(arg):
     >>> _split_slurm_directive("--output=foo")
     ('--output', 'foo')
     >>> _split_slurm_directive("-J job")
-    ('-j', 'job')
+    ('-J', 'job')
     >>> _split_slurm_directive("--exclusive")
     ('--exclusive', None)
     """
@@ -27,7 +27,7 @@ def _split_slurm_directive(arg):
     if m is None:
         raise RunError(r"Malformed sbatch argument: {arg!r}")
     key, sep, val = m.groups()
-    if sep == "":
+    if sep is None:
         assert val == ""
         val = None
     return key, val
