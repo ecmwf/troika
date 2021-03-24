@@ -43,10 +43,131 @@ def sample_script(tmp_path):
     return script_path
 
 
-def test_preprocess(dummy_slurm_site, sample_script, tmp_path):
+@pytest.mark.parametrize("sin, sexp", [
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        echo "Hello, World!"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH --output=@OUTPUT@
+        echo "Hello, World!"
+        """,
+        id="add_output"),
+    pytest.param(
+        """\n\n
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+
+        echo "Hello, World!"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        echo "Hello, World!"
+        """,
+        id="blanks"),
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -n 1
+
+        set +x
+
+        #SBATCH -J hello
+
+        echo "Hello, World!"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -n 1
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        set +x
+
+
+        echo "Hello, World!"
+        """,
+        id="bubble"),
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH -e foo
+
+        echo "Hello, World!"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        echo "Hello, World!"
+        """,
+        id="drop_error"),
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --error=foo
+
+        echo "Hello, World!"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        echo "Hello, World!"
+        """,
+        id="drop_error2"),
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH -o foo
+
+        echo "Hello, World!"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        echo "Hello, World!"
+        """,
+        id="drop_output"),
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=foo
+
+        echo "Hello, World!"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        echo "Hello, World!"
+        """,
+        id="drop_output2"),
+])
+def test_preprocess(sin, sexp, dummy_slurm_site, tmp_path):
+    script = tmp_path / "script.sh"
+    pp_script_exp = tmp_path / "script.sh.pp"
     output = tmp_path / "output.log"
-    pp_script = dummy_slurm_site.preprocess(sample_script, "user", output)
-    assert pp_script == sample_script
+    script.write_text(textwrap.dedent(sin))
+    sexp = textwrap.dedent(sexp).replace("@OUTPUT@", str(output.resolve()))
+    pp_script = dummy_slurm_site.preprocess(script, "user", output)
+    assert pp_script == pp_script_exp
+    assert pp_script.exists()
+    assert pp_script.read_text() == sexp
 
 
 def test_submit_dryrun(dummy_slurm_site, sample_script, tmp_path):
