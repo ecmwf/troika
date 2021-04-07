@@ -34,10 +34,57 @@ def _split_slurm_directive(arg):
     return key, val
 
 
+_DIRECTIVE_RE = re.compile(r"^#\s*SBATCH\s+(.+)$")
+
+
+def _pp_blanks(script, user, output, sin):
+    """Remove blank lines at the top"""
+    first = True
+    for line in sin:
+        if first:
+            if line.isspace():
+                continue
+            first = False
+        yield line
+
+
+def _pp_output(script, user, output, sin):
+    """Set the output file"""
+    for line in sin:
+        m = _DIRECTIVE_RE.match(line)
+        if m is None:
+            yield line
+            continue
+        key, val = _split_slurm_directive(m.group(1))
+        if key in ["-o", "--output", "-e", "--error"]:
+            continue
+        yield line
+    yield f"#SBATCH --output={output!s}\n"
+
+
+def _pp_bubble(script, user, output, sin):
+    """Make sure all Slurm directives are at the top"""
+    with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+',
+            dir=script.parent, prefix=script.name) as tmp:
+        first = True
+        for line in sin:
+            if first:
+                first = False
+                if line.startswith("#!"):
+                    yield line
+                    continue
+            m = _DIRECTIVE_RE.match(line)
+            if m is None:
+                tmp.write(line)
+                continue
+            yield line
+        tmp.seek(0)
+        yield from tmp
+
+
 class SlurmSite(SSHSite):
     """Site managed using Slurm"""
 
-    DIRECTIVE_RE = re.compile(r"^#\s*SBATCH\s+(.+)$")
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
 
     def __init__(self, config):
@@ -61,30 +108,11 @@ class SlurmSite(SSHSite):
                 "overwriting", str(orig_script))
         with script.open(mode="r") as sin, \
                 tempfile.NamedTemporaryFile(mode='w+', delete=False,
-                    dir=script.parent, prefix=script.name) as sout, \
-                tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+',
-                    dir=script.parent, prefix=script.name) as tmp:
-            first = True
-            for line in sin:
-                if first and line.isspace():
-                    continue
-                if first and line.startswith("#!"):
-                    first = False
-                    sout.write(line)
-                    continue
-                first = False
-                m = self.DIRECTIVE_RE.match(line)
-                if m is None:
-                    tmp.write(line)
-                    continue
-                key, val = _split_slurm_directive(m.group(1))
-                if key in ["-o", "--output", "-e", "--error"]:
-                    continue
-                sout.write(line)
-            sout.write(f"#SBATCH --output={output!s}\n")
-            tmp.seek(0)
-            for line in tmp:
-                sout.write(line)
+                    dir=script.parent, prefix=script.name) as sout:
+            sin_pp = sin
+            for proc in [_pp_blanks, _pp_output, _pp_bubble]:
+                sin_pp = proc(script, user, output, sin_pp)
+            sout.writelines(sin_pp)
             new_script = pathlib.Path(sout.name)
         shutil.copymode(script, new_script)
         shutil.copy2(script, orig_script)
