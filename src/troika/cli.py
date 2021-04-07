@@ -102,6 +102,8 @@ def main(args=None, prog=None):
         help="increase verbosity level (can be repeated)")
     parser.add_argument("-q", "--quiet", action="count", default=0,
         help="decrease verbosity level (can be repeated)")
+    parser.add_argument("-l", "--logfile", default=None,
+        help="save log output to this file")
 
     parser.add_argument("-c", "--config", type=argparse.FileType("r"),
         default=None, help="path to the configuration file")
@@ -136,6 +138,8 @@ def main(args=None, prog=None):
         parser.error("please specify an action")
 
     logfile = log.get_logfile_path(args.action, getattr(args, 'script', None))
+    if args.logfile is not None:
+        logfile = args.logfile
     log.config(args.verbose - args.quiet, logfile)
 
     try:
