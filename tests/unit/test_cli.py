@@ -52,7 +52,7 @@ def dummy_actions(monkeypatch, dummy_site):
 
 
 def test_main_submit(dummy_actions, dummy_site):
-    args = ["submit", "-u", "user", "-o", "output", "site", "script"]
+    args = ["-l", "/dev/null", "submit", "-u", "user", "-o", "output", "site", "script"]
     sts = troika.cli.main(args=args)
     act_args = dummy_actions["submit"].args
     assert sts == 0
@@ -67,7 +67,7 @@ def test_main_submit(dummy_actions, dummy_site):
 
 
 def test_main_monitor(dummy_actions, dummy_site):
-    args = ["monitor", "site"]
+    args = ["-l", "/dev/null", "monitor", "site"]
     sts = troika.cli.main(args=args)
     act_args = dummy_actions["monitor"].args
     assert sts == 0
@@ -79,7 +79,7 @@ def test_main_monitor(dummy_actions, dummy_site):
 
 
 def test_main_kill(dummy_actions, dummy_site):
-    args = ["kill", "site"]
+    args = ["-l", "/dev/null", "kill", "site"]
     sts = troika.cli.main(args=args)
     act_args = dummy_actions["kill"].args
     assert sts == 0
