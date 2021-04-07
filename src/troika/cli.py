@@ -109,7 +109,7 @@ def main(args=None, prog=None):
         action="store_true", help="if true, do not execute, just report")
 
     subparsers = parser.add_subparsers(
-        metavar="action",
+        dest="action", metavar="action",
         help="perform this action, see `%(prog)s <action> --help` for details")
 
     parser_submit = subparsers.add_parser("submit", help="submit a new job")
@@ -135,7 +135,8 @@ def main(args=None, prog=None):
     if not hasattr(args, 'func'):
         parser.error("please specify an action")
 
-    log.config(args.verbose - args.quiet)
+    logfile = log.get_logfile_path(args.action, getattr(args, 'script', None))
+    log.config(args.verbose - args.quiet, logfile)
 
     try:
         config = get_config(args.config)
