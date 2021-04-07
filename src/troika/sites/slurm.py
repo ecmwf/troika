@@ -4,6 +4,7 @@ import logging
 import os
 import pathlib
 import re
+import shutil
 import tempfile
 
 from .. import RunError
@@ -54,14 +55,15 @@ class SlurmSite(SSHSite):
     def preprocess(self, script, user, output):
         """See `troika.sites.Site.preprocess`"""
         script = pathlib.Path(script)
-        pp_script = script.with_suffix(script.suffix + ".pp")
-        if pp_script.exists():
-            _logger.warning("Preprocessed script file %r already exists, " +
-                "overwriting", str(pp_script))
+        orig_script = script.with_suffix(script.suffix + ".orig")
+        if orig_script.exists():
+            _logger.warning("Backup script file %r already exists, " +
+                "overwriting", str(orig_script))
         with script.open(mode="r") as sin, \
-                pp_script.open(mode='w') as sout, \
+                tempfile.NamedTemporaryFile(mode='w+', delete=False,
+                    dir=script.parent, prefix=script.name) as sout, \
                 tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+',
-                    dir=pp_script.parent, prefix=pp_script.name) as tmp:
+                    dir=script.parent, prefix=script.name) as tmp:
             first = True
             for line in sin:
                 if first and line.isspace():
@@ -83,8 +85,13 @@ class SlurmSite(SSHSite):
             tmp.seek(0)
             for line in tmp:
                 sout.write(line)
-        _logger.debug("Preprocessed output written to %r", str(pp_script))
-        return pp_script
+            new_script = pathlib.Path(sout.name)
+        shutil.copymode(script, new_script)
+        shutil.copy2(script, orig_script)
+        new_script.replace(script)
+        _logger.debug("Preprocessing done. Original script saved to %r",
+            str(orig_script))
+        return script
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""

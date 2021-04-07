@@ -163,14 +163,16 @@ def sample_script(tmp_path):
 ])
 def test_preprocess(sin, sexp, dummy_slurm_site, tmp_path):
     script = tmp_path / "script.sh"
-    pp_script_exp = tmp_path / "script.sh.pp"
+    orig_script = tmp_path / "script.sh.orig"
     output = tmp_path / "output.log"
-    script.write_text(textwrap.dedent(sin))
+    sin = textwrap.dedent(sin)
+    script.write_text(sin)
     sexp = textwrap.dedent(sexp).replace("@OUTPUT@", str(output.resolve()))
     pp_script = dummy_slurm_site.preprocess(script, "user", output)
-    assert pp_script == pp_script_exp
-    assert pp_script.exists()
+    assert pp_script == script
     assert pp_script.read_text() == sexp
+    assert orig_script.exists()
+    assert orig_script.read_text() == sin
 
 
 def test_submit_dryrun(dummy_slurm_site, sample_script, tmp_path):
