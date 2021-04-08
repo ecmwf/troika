@@ -4,10 +4,10 @@ import logging
 import os
 import pathlib
 import re
-import shutil
 import tempfile
 
 from .. import RunError
+from ..preprocess import PreprocessMixin, remove_top_blank_lines
 from ..utils import check_status
 from .ssh import SSHSite
 
@@ -35,17 +35,6 @@ def _split_slurm_directive(arg):
 
 
 _DIRECTIVE_RE = re.compile(r"^#\s*SBATCH\s+(.+)$")
-
-
-def _pp_blanks(script, user, output, sin):
-    """Remove blank lines at the top"""
-    first = True
-    for line in sin:
-        if first:
-            if line.isspace():
-                continue
-            first = False
-        yield line
 
 
 def _pp_output(script, user, output, sin):
@@ -82,10 +71,12 @@ def _pp_bubble(script, user, output, sin):
         yield from tmp
 
 
-class SlurmSite(SSHSite):
+class SlurmSite(PreprocessMixin, SSHSite):
     """Site managed using Slurm"""
 
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
+
+    preprocessors = [remove_top_blank_lines, _pp_output, _pp_bubble]
 
     def __init__(self, config):
         super().__init__(config)
@@ -98,28 +89,6 @@ class SlurmSite(SSHSite):
             _logger.warn("Could not parse SLURM output %r", out)
             return None
         return int(match.group(1))
-
-    def preprocess(self, script, user, output):
-        """See `troika.sites.Site.preprocess`"""
-        script = pathlib.Path(script)
-        orig_script = script.with_suffix(script.suffix + ".orig")
-        if orig_script.exists():
-            _logger.warning("Backup script file %r already exists, " +
-                "overwriting", str(orig_script))
-        with script.open(mode="r") as sin, \
-                tempfile.NamedTemporaryFile(mode='w+', delete=False,
-                    dir=script.parent, prefix=script.name) as sout:
-            sin_pp = sin
-            for proc in [_pp_blanks, _pp_output, _pp_bubble]:
-                sin_pp = proc(script, user, output, sin_pp)
-            sout.writelines(sin_pp)
-            new_script = pathlib.Path(sout.name)
-        shutil.copymode(script, new_script)
-        shutil.copy2(script, orig_script)
-        new_script.replace(script)
-        _logger.debug("Preprocessing done. Original script saved to %r",
-            str(orig_script))
-        return script
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
