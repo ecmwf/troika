@@ -1,6 +1,7 @@
 """Command-line interface"""
 
 import argparse
+import getpass
 import logging
 import textwrap
 
@@ -89,6 +90,8 @@ def main(args=None, prog=None):
           TROIKA_CONFIG_FILE    path to the default configuration file
     """)
 
+    default_user = getpass.getuser()
+
     parser = argparse.ArgumentParser(
         prog=prog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -118,7 +121,7 @@ def main(args=None, prog=None):
     parser_submit.set_defaults(func=submit)
     parser_submit.add_argument("site", help="target site")
     parser_submit.add_argument("script", help="job script")
-    parser_submit.add_argument("-u", "--user", required=True,
+    parser_submit.add_argument("-u", "--user", default=default_user,
         help="remote user")
     parser_submit.add_argument("-o", "--output", required=True,
         help="job output file")
@@ -127,10 +130,14 @@ def main(args=None, prog=None):
             help="monitor a submitted job")
     parser_monitor.set_defaults(func=monitor)
     parser_monitor.add_argument("site", help="target site")
+    parser_monitor.add_argument("-u", "--user", default=default_user,
+        help="remote user")
 
     parser_kill = subparsers.add_parser("kill", help="kill a submitted job")
     parser_kill.set_defaults(func=kill)
     parser_kill.add_argument("site", help="target site")
+    parser_kill.add_argument("-u", "--user", default=getpass.getuser(),
+        help="remote user")
 
     args = parser.parse_args(args)
 
