@@ -1,7 +1,7 @@
 
 import pytest
 
-from troika import ConfigurationError
+from troika import ConfigurationError, InvocationError
 from troika.config import get_config
 
 
@@ -85,3 +85,8 @@ def test_arg_invalid_env_valid(tmp_path, monkeypatch):
     monkeypatch.setenv("TROIKA_CONFIG_FILE", str(cfile2.resolve()))
     with pytest.raises(ConfigurationError):
         get_config(cfile)
+
+
+def test_noconf():
+    with pytest.raises(InvocationError):
+        get_config()

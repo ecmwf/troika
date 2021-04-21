@@ -77,6 +77,27 @@ def sample_script(tmp_path):
         id="blanks"),
     pytest.param(
         """\
+        #SBATCH -n 1
+
+        set +x
+
+        #SBATCH -J hello
+
+        echo "Hello, World!"
+        """,
+        """\
+        #SBATCH -n 1
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        set +x
+
+
+        echo "Hello, World!"
+        """,
+        id="bubble"),
+    pytest.param(
+        """\
         #!/usr/bin/env bash
         #SBATCH -n 1
 
@@ -97,7 +118,7 @@ def sample_script(tmp_path):
 
         echo "Hello, World!"
         """,
-        id="bubble"),
+        id="bubble_shebang"),
     pytest.param(
         """\
         #!/usr/bin/env bash

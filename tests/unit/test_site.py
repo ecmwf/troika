@@ -35,6 +35,12 @@ def test_get_nosites(dummy_sites):
         get_site(cfg, "bar", "user")
 
 
+def test_get_notype(dummy_sites):
+    cfg = {"sites": {"bar": {"connection": "local"}}}
+    with pytest.raises(troika.ConfigurationError):
+        get_site(cfg, "bar", "user")
+
+
 def test_get_wrongtype(dummy_sites):
     cfg = {"sites": {"bar": {"type": "nonexistent", "connection": "local"}}}
     with pytest.raises(troika.ConfigurationError):
