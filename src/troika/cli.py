@@ -151,7 +151,7 @@ def main(args=None, prog=None):
 
     try:
         config = get_config(args.config)
-        site = get_site(config, args.site)
+        site = get_site(config, args.site, args.user)
         return args.func(site, args)
     except ConfigurationError as e:
         _logger.critical("Configuration error: %s", e)

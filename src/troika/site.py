@@ -6,6 +6,7 @@ import logging
 import pkgutil
 
 from . import ConfigurationError, InvocationError
+from .connection import get_connection
 from .sites.base import Site
 from . import sites
 
@@ -52,7 +53,7 @@ def _discover_sites():
     return discovered
 
 
-def get_site(config, name):
+def get_site(config, name, user):
     """Create a `troika.site.Site` object from configuration"""
     known_types = _discover_sites()
     _logger.debug("Available site types: %s", ", ".join(known_types.keys()))
@@ -77,6 +78,12 @@ def get_site(config, name):
     except KeyError:
         raise ConfigurationError(f"Site {name!r} has unknown type {tp!r}")
 
-    site = cls(site_config)
+    try:
+        conn_name = site_config['connection']
+    except KeyError:
+        raise ConfigurationError(f"Site {name!r} has no 'connection'")
+
+    conn = get_connection(conn_name, site_config, user)
+    site = cls(site_config, conn)
     _logger.debug("Created %r for %s", site, name)
     return site

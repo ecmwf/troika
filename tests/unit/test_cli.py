@@ -9,7 +9,7 @@ from troika.sites.base import Site
 @pytest.fixture
 def dummy_site():
     class DummySite(Site):
-        def __init__(self, config):
+        def __init__(self, config, connection):
             self.preprocess_called = False
             self.submit_called = False
             self.monitor_called = False
@@ -23,14 +23,14 @@ def dummy_site():
             self.monitor_called = True
         def kill(self, dryrun=False):
             self.kill_called = True
-    dummy = DummySite({})
+    dummy = DummySite({}, None)
     return dummy
 
 
 @pytest.fixture
 def dummy_actions(monkeypatch, dummy_site):
     monkeypatch.setattr(troika.cli, "get_config", lambda config: {})
-    monkeypatch.setattr(troika.cli, "get_site", lambda config, site: dummy_site)
+    monkeypatch.setattr(troika.cli, "get_site", lambda config, site, user: dummy_site)
 
     def make_dummy_action():
         def dummy_action(site, args):

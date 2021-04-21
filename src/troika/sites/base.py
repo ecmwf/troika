@@ -7,6 +7,9 @@ class Site:
     ----------
     config: dict
         Site configuration
+
+    connection: `troika.connection.Connection`
+        Connection object to interact with the site
     """
 
     #: Value for the 'type' key in the site configuration.
@@ -15,8 +18,8 @@ class Site:
     #: becomes ``foo``.
     __type_name__ = None
 
-    def __init__(self, config):
-        pass
+    def __init__(self, config, connection):
+        self._connection = connection
 
     def preprocess(self, script, user, output):
         """Preprocess a job script

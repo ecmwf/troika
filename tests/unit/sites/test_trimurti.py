@@ -4,6 +4,7 @@ import textwrap
 import pytest
 
 import troika
+from troika.connection import LocalConnection
 from troika.site import get_site
 from troika.sites import trimurti
 
@@ -21,12 +22,13 @@ def dummy_trimurti_conf(tmp_path):
         """))
     trimurti_path.chmod(trimurti_path.stat().st_mode
                         | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    return {"type": "trimurti", "host": "dummy", "trimurti_path": trimurti_path}
+    return {"type": "trimurti", "trimurti_host": "dummy",
+            "trimurti_path": trimurti_path, "connection": "local"}
 
 
 def test_get_site(dummy_trimurti_conf):
     global_config = {"sites": {"foo": dummy_trimurti_conf}}
-    site = get_site(global_config, "foo")
+    site = get_site(global_config, "foo", "user")
     assert isinstance(site, trimurti.TrimurtiSite)
     assert site._host == "dummy"
     assert dummy_trimurti_conf["trimurti_path"].samefile(site._trimurti_path)
@@ -34,14 +36,16 @@ def test_get_site(dummy_trimurti_conf):
 
 def test_invalid_trimurti_path(tmp_path):
     trimurti_path = tmp_path / "nonexistent"
-    conf = {"type": "trimurti", "host": "dummy", "trimurti_path": trimurti_path}
+    conf = {"type": "trimurti", "trimurti_host": "dummy", "trimurti_path": trimurti_path}
+    conn = LocalConnection(conf, "user")
     with pytest.raises(troika.ConfigurationError):
-        site = trimurti.TrimurtiSite(conf)
+        site = trimurti.TrimurtiSite(conf, conn)
 
 
 @pytest.fixture
 def dummy_trimurti_site(dummy_trimurti_conf):
-    return trimurti.TrimurtiSite(dummy_trimurti_conf)
+    conn = LocalConnection(dummy_trimurti_conf, "user")
+    return trimurti.TrimurtiSite(dummy_trimurti_conf, conn)
 
 
 def test_invalid_script(dummy_trimurti_site, tmp_path):

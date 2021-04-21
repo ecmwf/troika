@@ -6,10 +6,11 @@ import pathlib
 import re
 import tempfile
 
-from .. import RunError
+from .. import InvocationError, RunError
+from ..connection import SSHConnection
 from ..preprocess import PreprocessMixin, remove_top_blank_lines
 from ..utils import check_status
-from .ssh import SSHSite
+from .base import Site
 
 _logger = logging.getLogger(__name__)
 
@@ -71,17 +72,16 @@ def _pp_bubble(script, user, output, sin):
         yield from tmp
 
 
-class SlurmSite(PreprocessMixin, SSHSite):
+class SlurmSite(PreprocessMixin, Site):
     """Site managed using Slurm"""
 
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
 
     preprocessors = [remove_top_blank_lines, _pp_output, _pp_bubble]
 
-    def __init__(self, config):
-        super().__init__(config)
+    def __init__(self, config, connection):
+        super().__init__(config, connection)
         self._sbatch = config.get('sbatch_command', 'sbatch')
-        self._shell = [self._sbatch]
 
     def _parse_submit_output(self, out):
         match = self.SUBMIT_RE.search(out)
@@ -98,7 +98,14 @@ class SlurmSite(PreprocessMixin, SSHSite):
             _logger.warning("Submission output file %r already exists, " +
                 "overwriting", str(output))
 
-        pid = super().submit(script, user, sub_output, dryrun=dryrun)
+        if not script.exists():
+            raise InvocationError(f"Script file {str(script)!r} does not exist")
+        inpf = script.open(mode="rb")
+        outf = None
+        if not dryrun:
+            outf = sub_output.open(mode="wb")
+        pid = self._connection.execute([self._sbatch], stdin=inpf, stdout=outf,
+            dryrun=dryrun)
         if dryrun:
             return
 
@@ -118,4 +125,4 @@ class SlurmSite(PreprocessMixin, SSHSite):
         return jobid
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(host={self._host!r}, sbatch_command={self._sbatch!r})"
+        return f"{self.__class__.__name__}(connection={self._connection!r}, sbatch_command={self._sbatch!r})"

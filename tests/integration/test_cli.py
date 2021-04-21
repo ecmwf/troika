@@ -16,7 +16,8 @@ def config_file(tmp_path):
         ---
         sites:
             localhost:
-                type: local
+                type: direct
+                connection: local
         """))
     return cfg_path
 

@@ -5,6 +5,7 @@ import textwrap
 import pytest
 
 import troika
+from troika.connection import LocalConnection
 from troika.site import get_site
 from troika.sites import slurm
 
@@ -14,18 +15,19 @@ __doctests__ = [slurm]
 
 @pytest.fixture
 def dummy_slurm_conf(tmp_path):
-    return {"type": "slurm", "host": "localhost"}
+    return {"type": "slurm", "connection": "local"}
 
 
 def test_get_site(dummy_slurm_conf):
     global_config = {"sites": {"foo": dummy_slurm_conf}}
-    site = get_site(global_config, "foo")
+    site = get_site(global_config, "foo", "user")
     assert isinstance(site, slurm.SlurmSite)
 
 
 @pytest.fixture
 def dummy_slurm_site(dummy_slurm_conf):
-    return slurm.SlurmSite(dummy_slurm_conf)
+    conn = LocalConnection(dummy_slurm_conf, "user")
+    return slurm.SlurmSite(dummy_slurm_conf, conn)
 
 
 def test_invalid_script(dummy_slurm_site, tmp_path):
