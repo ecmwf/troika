@@ -2,6 +2,7 @@
 import pytest
 
 import troika
+from troika.config import Config
 from troika.site import get_site
 from troika.sites.base import Site
 import troika.sites.base
@@ -18,42 +19,42 @@ def dummy_sites(monkeypatch):
 
 
 def test_get_exist(dummy_sites):
-    cfg = {"sites": {"foo": {"type": "dummy", "connection": "local"}}}
+    cfg = Config({"sites": {"foo": {"type": "dummy", "connection": "local"}}})
     site = get_site(cfg, "foo", "user")
     assert isinstance(site, DummySite)
 
 
 def test_get_nonexistent(dummy_sites):
-    cfg = {"sites": {"foo": {"type": "dummy", "connection": "local"}}}
+    cfg = Config({"sites": {"foo": {"type": "dummy", "connection": "local"}}})
     with pytest.raises(troika.InvocationError):
         get_site(cfg, "unknown", "user")
 
 
 def test_get_nosites(dummy_sites):
-    cfg = {}
+    cfg = Config({})
     with pytest.raises(troika.ConfigurationError):
         get_site(cfg, "bar", "user")
 
 
 def test_get_notype(dummy_sites):
-    cfg = {"sites": {"bar": {"connection": "local"}}}
+    cfg = Config({"sites": {"bar": {"connection": "local"}}})
     with pytest.raises(troika.ConfigurationError):
         get_site(cfg, "bar", "user")
 
 
 def test_get_wrongtype(dummy_sites):
-    cfg = {"sites": {"bar": {"type": "nonexistent", "connection": "local"}}}
+    cfg = Config({"sites": {"bar": {"type": "nonexistent", "connection": "local"}}})
     with pytest.raises(troika.ConfigurationError):
         get_site(cfg, "bar", "user")
 
 
 def test_get_noconn(dummy_sites):
-    cfg = {"sites": {"bar": {"type": "dummy"}}}
+    cfg = Config({"sites": {"bar": {"type": "dummy"}}})
     with pytest.raises(troika.ConfigurationError):
         get_site(cfg, "bar", "user")
 
 
 def test_get_base():
-    cfg = {"sites": {"what": {"type": "base", "connection": "local"}}}
+    cfg = Config({"sites": {"what": {"type": "base", "connection": "local"}}})
     with pytest.raises(troika.ConfigurationError):
         get_site(cfg, "what", "user")

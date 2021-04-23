@@ -2,14 +2,32 @@
 import pytest
 
 from troika import ConfigurationError, InvocationError
-from troika.config import get_config
+from troika.config import get_config, Config
+
+
+def test_get_site_nosites():
+    cfg = Config({})
+    with pytest.raises(ConfigurationError):
+        cfg.get_site_config("foo")
+
+
+def test_get_site_exist():
+    cfg = Config({"sites": {"foo": {}}})
+    site_cfg = cfg.get_site_config("foo")
+    assert isinstance(site_cfg, dict)
+
+
+def test_get_site_nonexistent():
+    cfg = Config({"sites": {"foo": {}}})
+    with pytest.raises(KeyError):
+        cfg.get_site_config("bar")
 
 
 def test_arg_valid(tmp_path):
     cfile = tmp_path / "config.yaml"
     cfile.write_text("---\nfoo: bar")
     cfg = get_config(cfile)
-    assert isinstance(cfg, dict)
+    assert isinstance(cfg, Config)
     assert cfg.get("foo") == "bar"
 
 
@@ -17,7 +35,7 @@ def test_arg_valid_fileobj(tmp_path):
     cfile = tmp_path / "config.yaml"
     cfile.write_text("---\nfoo: bar")
     cfg = get_config(cfile.open())
-    assert isinstance(cfg, dict)
+    assert isinstance(cfg, Config)
     assert cfg.get("foo") == "bar"
 
 
@@ -39,7 +57,7 @@ def test_env_valid(tmp_path, monkeypatch):
     cfile.write_text("---\nfoo: spam")
     monkeypatch.setenv("TROIKA_CONFIG_FILE", str(cfile.resolve()))
     cfg = get_config()
-    assert isinstance(cfg, dict)
+    assert isinstance(cfg, Config)
     assert cfg.get("foo") == "spam"
 
 

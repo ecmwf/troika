@@ -59,12 +59,7 @@ def get_site(config, name, user):
     _logger.debug("Available site types: %s", ", ".join(known_types.keys()))
 
     try:
-        sites = config['sites']
-    except KeyError:
-        raise ConfigurationError(f"No 'sites' defined in configuration")
-
-    try:
-        site_config = sites[name]
+        site_config = config.get_site_config(name)
     except KeyError:
         raise InvocationError(f"Unknown site {name!r}")
 

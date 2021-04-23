@@ -5,6 +5,7 @@ import textwrap
 import pytest
 
 import troika
+from troika.config import Config
 from troika.connection import LocalConnection
 from troika.site import get_site
 from troika.sites import slurm
@@ -19,7 +20,7 @@ def dummy_slurm_conf(tmp_path):
 
 
 def test_get_site(dummy_slurm_conf):
-    global_config = {"sites": {"foo": dummy_slurm_conf}}
+    global_config = Config({"sites": {"foo": dummy_slurm_conf}})
     site = get_site(global_config, "foo", "user")
     assert isinstance(site, slurm.SlurmSite)
 

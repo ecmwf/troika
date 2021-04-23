@@ -3,6 +3,7 @@ import argparse
 import pytest
 
 import troika.cli
+from troika.config import Config
 from troika.sites.base import Site
 
 
@@ -29,7 +30,7 @@ def dummy_site():
 
 @pytest.fixture
 def dummy_actions(monkeypatch, dummy_site):
-    monkeypatch.setattr(troika.cli, "get_config", lambda config: {})
+    monkeypatch.setattr(troika.cli, "get_config", lambda config: Config({}))
     monkeypatch.setattr(troika.cli, "get_site", lambda config, site, user: dummy_site)
 
     def make_dummy_action():
