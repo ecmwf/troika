@@ -96,7 +96,7 @@ class SlurmSite(PreprocessMixin, Site):
         sub_output = script.with_suffix(script.suffix + ".sub")
         if sub_output.exists():
             _logger.warning("Submission output file %r already exists, " +
-                "overwriting", str(output))
+                "overwriting", str(sub_output))
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
