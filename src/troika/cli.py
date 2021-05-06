@@ -155,7 +155,9 @@ def main(args=None, prog=None):
         config = get_config(args.config)
         site = get_site(config, args.site, args.user)
         hooks.setup_hooks(config, args.site)
-        return args.func(site, args)
+        sts = args.func(site, args)
+        hooks.at_exit(args.action, site, args, sts, logfile)
+        return sts
     except ConfigurationError as e:
         _logger.critical("Configuration error: %s", e)
         return 1

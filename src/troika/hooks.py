@@ -121,6 +121,33 @@ def create_output_dir(site, output, dryrun=False):
         raise RunError(msg)
 
 
+@Hook.declare
+def at_exit(action, site, args, sts, logfile):
+    """Exit hook
+
+    Parameters
+    ----------
+    action: {"submit", "monitor", "kill"}
+        Action that was requested
+    site: `troika.sites.base.Site`
+        Selected site
+    args: `argparse.Namespace`-like
+        Command-line arguments
+    sts: int
+        Exit status
+    logfile: path-like
+        Path to the log file
+    """
+
+
+@at_exit.register
+def copy_submit_logfile(action, site, args, sts, logfile):
+    if action != "submit":
+        return
+    out_dir = pathlib.Path(args.output).parent
+    site._connection.sendfile(logfile, out_dir, dryrun=args.dryrun)
+
+
 def setup_hooks(config, site):
     """Set up the hooks according to site configuration
 
