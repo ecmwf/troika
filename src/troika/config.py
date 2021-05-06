@@ -69,5 +69,5 @@ def get_config(configfile=None):
 
     try:
         return Config(yaml.safe_load(configfile))
-    except yaml.parser.ParserError as e:
+    except yaml.YAMLError as e:
         raise ConfigurationError(str(e))
