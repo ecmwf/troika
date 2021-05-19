@@ -67,8 +67,9 @@ def kill(site, args):
         Exit code
     """
 
-    _logger.error("kill: not implemented")
-    return 1
+    site.kill(args.script, args.user, args.jobid, args.dryrun)
+
+    return 0
 
 
 def main(args=None, prog=None):
@@ -138,8 +139,11 @@ def main(args=None, prog=None):
     parser_kill = subparsers.add_parser("kill", help="kill a submitted job")
     parser_kill.set_defaults(func=kill)
     parser_kill.add_argument("site", help="target site")
+    parser_kill.add_argument("script", help="job script")
     parser_kill.add_argument("-u", "--user", default=getpass.getuser(),
         help="remote user")
+    parser_kill.add_argument("-j", "--jobid", default=None,
+        help="remote job ID")
 
     args = parser.parse_args(args)
 

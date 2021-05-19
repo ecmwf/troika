@@ -1,9 +1,11 @@
 """Direct execution site"""
 
 import logging
+import os
 import pathlib
+import signal
 
-from .. import InvocationError
+from .. import InvocationError, RunError
 from ..connection import LocalConnection
 from .base import Site
 
@@ -36,8 +38,44 @@ class DirectExecSite(Site):
         outf = None
         if not dryrun:
             outf = output.open(mode="wb")
-        return self._connection.execute(args, stdin=inpf, stdout=outf, detach=True,
+        proc = self._connection.execute(args, stdin=inpf, stdout=outf, detach=True,
             dryrun=dryrun)
+
+        if dryrun:
+            return
+
+        jid_output = script.with_suffix(script.suffix + ".jid")
+        if jid_output.exists():
+            _logger.warning("Job ID output file %r already exists, " +
+                "overwriting", str(jid_output))
+        jid_output.write_text(str(proc.pid) + "\n")
+
+        return proc
+
+    def kill(self, script, user, jid=None, dryrun=False):
+        """See `troika.sites.Site.kill`"""
+        script = pathlib.Path(script)
+
+        if jid is None:
+            jid_output = script.with_suffix(script.suffix + ".jid")
+            try:
+                jid = jid_output.read_text().strip()
+            except IOError as e:
+                raise RunError(f"Could not read the job id: {e!s}")
+        try:
+            jid = int(jid)
+        except ValueError:
+            raise RunError(f"Invalid job id: {jid!r}")
+
+        if dryrun:
+            _logger.info(f"Sending SIGTERM to process {jid}")
+            return
+
+        _logger.debug(f"Sending SIGTERM to process {jid}")
+        try:
+            os.kill(jid, signal.SIGTERM)
+        except ProcessLookupError:
+            raise RunError(f"Process ID {jid} not found")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(connection={self._connection!r}, use_shell={self._use_shell}, shell={self._shell!r})"

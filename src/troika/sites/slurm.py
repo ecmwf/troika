@@ -1,12 +1,13 @@
 """Slurm-managed site"""
 
+import io
 import logging
 import pathlib
 import re
 import tempfile
 
 from .. import InvocationError, RunError
-from ..connection import SSHConnection
+from ..connection import SSHConnection, PIPE
 from ..preprocess import PreprocessMixin, remove_top_blank_lines
 from .base import Site
 
@@ -80,6 +81,7 @@ class SlurmSite(PreprocessMixin, Site):
     def __init__(self, config, connection):
         super().__init__(config, connection)
         self._sbatch = config.get('sbatch_command', 'sbatch')
+        self._scancel = config.get('scancel_command', 'scancel')
 
     def _parse_submit_output(self, out):
         match = self.SUBMIT_RE.search(out)
@@ -119,7 +121,45 @@ class SlurmSite(PreprocessMixin, Site):
 
         jobid = self._parse_submit_output(sub_output.read_text())
         _logger.debug("Slurm job ID: %d", jobid)
+
+        jid_output = script.with_suffix(script.suffix + ".jid")
+        if jid_output.exists():
+            _logger.warning("Job ID output file %r already exists, " +
+                "overwriting", str(jid_output))
+        jid_output.write_text(str(jobid) + "\n")
+
         return jobid
+
+    def kill(self, script, user, jid=None, dryrun=False):
+        """See `troika.sites.Site.kill`"""
+        script = pathlib.Path(script)
+
+        if jid is None:
+            jid_output = script.with_suffix(script.suffix + ".jid")
+            try:
+                jid_s = jid_output.read_text().strip()
+            except IOError as e:
+                raise RunError(f"Could not read the job id: {e!s}")
+            try:
+                jid = int(jid_s)
+            except ValueError:
+                raise RunError(f"Invalid job id: {jid_s!r}")
+
+        proc = self._connection.execute([self._scancel, str(jid)], stdout=PIPE,
+            dryrun=dryrun)
+        if dryrun:
+            return
+
+        proc_stdout, _ = proc.communicate()
+        retcode = proc.returncode
+        if retcode != 0:
+            _logger.error("scancel output: %s", proc_stdout)
+            msg = "Kill "
+            if retcode > 0:
+                msg += f"failed with exit code {retcode}"
+            else:
+                msg += f"terminated by signal {-retcode}"
+            raise RunError(msg)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(connection={self._connection!r}, sbatch_command={self._sbatch!r})"

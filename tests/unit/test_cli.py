@@ -23,7 +23,7 @@ def dummy_site():
             self.submit_called = True
         def monitor(self, dryrun=False):
             self.monitor_called = True
-        def kill(self, dryrun=False):
+        def kill(self, script, user, jid=None, dryrun=False):
             self.kill_called = True
     dummy = DummySite({}, None)
     return dummy
@@ -82,7 +82,7 @@ def test_main_monitor(dummy_actions, dummy_site):
 
 
 def test_main_kill(dummy_actions, dummy_site):
-    args = ["-l", "/dev/null", "kill", "site"]
+    args = ["-l", "/dev/null", "kill", "-u", "user", "site", "script"]
     sts = troika.cli.main(args=args)
     act_args = dummy_actions["kill"].args
     assert sts == 0
@@ -110,9 +110,9 @@ def test_monitor(dummy_site):
     assert dummy_site.monitor_called
 
 
-@pytest.mark.xfail(reason="Not implemented")
 def test_kill(dummy_site):
-    args = argparse.Namespace(site="dummy", dryrun=True)
+    args = argparse.Namespace(site="dummy", script="script", user="user",
+        jobid="1234", dryrun=True)
     sts = troika.cli.kill(dummy_site, args)
     assert sts == 0
     assert dummy_site.kill_called

@@ -59,3 +59,22 @@ class Site:
             If True, do not submit, only report what would be done
         """
         raise NotImplementedError()
+
+    def kill(self, script, user, jid=None, dryrun=False):
+        """Kill a submitted or running job
+
+        The script and job ID are interpreted according to the site.
+        If no job ID is provided, it will be inferred.
+
+        Parameters
+        ----------
+        script: path-like
+            Path to the job script
+        user: str
+            Remote user name
+        jid: str or None
+            Job ID
+        dryrun: bool
+            If True, do not submit, only report what would be done
+        """
+        raise NotImplementedError()
