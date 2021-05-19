@@ -1,5 +1,4 @@
 
-import os
 import stat
 import textwrap
 import pytest
@@ -9,7 +8,6 @@ from troika.config import Config
 from troika.connection import LocalConnection
 from troika.site import get_site
 from troika.sites import direct
-from troika.utils import check_status
 
 
 @pytest.fixture
@@ -43,15 +41,15 @@ def test_preprocess(dummy_direct_site, sample_script, tmp_path):
 
 def test_submit_dryrun(dummy_direct_site, sample_script, tmp_path):
     output = tmp_path / "output.log"
-    pid = dummy_direct_site.submit(sample_script, "user", output, dryrun=True)
-    assert pid is None
+    proc = dummy_direct_site.submit(sample_script, "user", output, dryrun=True)
+    assert proc is None
     assert not output.exists()
 
 
 def test_submit(dummy_direct_site, sample_script, tmp_path):
     output = tmp_path / "output.log"
-    pid = dummy_direct_site.submit(sample_script, "user", output, dryrun=False)
-    _, sts = os.waitpid(pid, 0)
-    assert check_status(sts) == 0
+    proc = dummy_direct_site.submit(sample_script, "user", output, dryrun=False)
+    retcode = proc.wait()
+    assert retcode == 0
     assert output.exists()
     assert output.read_text().strip() == "Script called!"

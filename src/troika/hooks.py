@@ -1,11 +1,9 @@
 """Hook system to perform custom actions"""
 
 import logging
-import os
 import pathlib
 
 from . import ConfigurationError, RunError
-from .utils import check_status
 
 _logger = logging.getLogger(__name__)
 
@@ -107,11 +105,10 @@ def pre_submit(site, output, dryrun):
 def create_output_dir(site, output, dryrun=False):
     """Pre-submit hook to create the output directory"""
     out_dir = pathlib.Path(output).parent
-    pid = site._connection.execute(["mkdir", "-p", out_dir], dryrun=dryrun)
+    proc = site._connection.execute(["mkdir", "-p", out_dir], dryrun=dryrun)
     if dryrun:
         return
-    _, sts = os.waitpid(pid, 0)
-    retcode = check_status(sts)
+    retcode = proc.wait()
     if retcode != 0:
         msg = "Output directory creation "
         if retcode > 0:

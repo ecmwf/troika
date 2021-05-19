@@ -201,6 +201,6 @@ def test_preprocess(sin, sexp, dummy_slurm_site, tmp_path):
 
 def test_submit_dryrun(dummy_slurm_site, sample_script, tmp_path):
     output = tmp_path / "output.log"
-    pid = dummy_slurm_site.submit(sample_script, "user", output, dryrun=True)
-    assert pid is None
+    proc = dummy_slurm_site.submit(sample_script, "user", output, dryrun=True)
+    assert proc is None
     assert not output.exists()

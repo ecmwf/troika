@@ -6,7 +6,6 @@ import textwrap
 import pytest
 
 import troika.cli
-from troika.utils import check_status
 
 
 @pytest.fixture
@@ -46,6 +45,6 @@ def test_submit(tmp_path, config_file, sample_script, caplog):
     assert len(pid_rec) == 1
     pid = pid_rec[0].args[0]
     _, sts = os.waitpid(pid, 0)
-    assert check_status(sts) == 0
+    assert os.WIFEXITED(sts) and os.WEXITSTATUS(sts) == 0
     assert output_file.exists()
     assert output_file.read_text().strip() == "Script called!"

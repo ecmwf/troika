@@ -1,7 +1,6 @@
 """Slurm-managed site"""
 
 import logging
-import os
 import pathlib
 import re
 import tempfile
@@ -9,7 +8,6 @@ import tempfile
 from .. import InvocationError, RunError
 from ..connection import SSHConnection
 from ..preprocess import PreprocessMixin, remove_top_blank_lines
-from ..utils import check_status
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -104,13 +102,12 @@ class SlurmSite(PreprocessMixin, Site):
         outf = None
         if not dryrun:
             outf = sub_output.open(mode="wb")
-        pid = self._connection.execute([self._sbatch], stdin=inpf, stdout=outf,
+        proc = self._connection.execute([self._sbatch], stdin=inpf, stdout=outf,
             dryrun=dryrun)
         if dryrun:
             return
 
-        _, sts = os.waitpid(pid, 0)
-        retcode = check_status(sts)
+        retcode = proc.wait()
         if retcode != 0:
             msg = "Submission "
             if retcode > 0:

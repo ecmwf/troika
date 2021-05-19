@@ -7,7 +7,6 @@ import subprocess
 from subprocess import DEVNULL, STDOUT, PIPE
 
 from . import ConfigurationError, RunError
-from .utils import check_status
 
 _logger = logging.getLogger(__name__)
 
@@ -53,8 +52,8 @@ class Connection:
 
         Returns
         -------
-        int or None
-            Local process ID associated to the connection, if dryrun is False,
+        `subprocess.Popen` object or None
+            Local process object associated to the connection, if dryrun is False,
             else None
         """
         raise NotImplementedError
@@ -104,7 +103,7 @@ class LocalConnection(Connection):
         proc = subprocess.Popen(command, stdin=stdin, stdout=stdout,
             stderr=stderr, start_new_session=detach)
         _logger.debug("Child PID: %d", proc.pid)
-        return proc.pid
+        return proc
 
     def sendfile(self, src, dst, dryrun=False):
         """See `troika.connection.Connection.sendfile`"""
@@ -140,11 +139,10 @@ class SSHConnection(Connection):
         """See `troika.connection.Connection.sendfile`"""
         scp_args = [self.scp, '-v', '-o', 'StrictHostKeyChecking=no', src,
             f"{self.user}@{self.host}:{dst}"]
-        pid = self.parent.execute(scp_args, dryrun=dryrun)
+        proc = self.parent.execute(scp_args, dryrun=dryrun)
         if dryrun:
             return
-        _, sts = os.waitpid(pid, 0)
-        retcode = check_status(sts)
+        retcode = proc.wait()
         if retcode != 0:
             msg = "Copy "
             if retcode > 0:

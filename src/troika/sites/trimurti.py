@@ -1,12 +1,10 @@
 """Site accessed via trimurti"""
 
 import logging
-import os
 import pathlib
 import subprocess
 
 from .. import ConfigurationError, InvocationError, RunError
-from ..utils import check_status
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -40,12 +38,11 @@ class TrimurtiSite(Site):
         outf = None
         if not dryrun:
             outf = sub_output.open(mode="wb")
-        pid = self._connection.execute(args, stdout=outf, dryrun=dryrun)
+        proc = self._connection.execute(args, stdout=outf, dryrun=dryrun)
         if dryrun:
             return
 
-        _, sts = os.waitpid(pid, 0)
-        retcode = check_status(sts)
+        retcode = proc.wait()
         if retcode != 0:
             msg = "Submission "
             if retcode > 0:
