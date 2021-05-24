@@ -1,6 +1,4 @@
 
-import stat
-import textwrap
 import pytest
 
 import troika

@@ -31,7 +31,7 @@ class Config(UserDict):
         try:
             sites = self.data['sites']
         except KeyError:
-            raise ConfigurationError(f"No 'sites' defined in configuration")
+            raise ConfigurationError("No 'sites' defined in configuration")
 
         return sites[name]
 

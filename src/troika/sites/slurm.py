@@ -1,6 +1,5 @@
 """Slurm-managed site"""
 
-import io
 import logging
 import pathlib
 import re

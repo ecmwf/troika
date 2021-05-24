@@ -2,7 +2,6 @@
 
 import logging
 import pathlib
-import subprocess
 
 from .. import ConfigurationError, InvocationError, RunError
 from .base import Site

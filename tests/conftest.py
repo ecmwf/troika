@@ -1,7 +1,6 @@
 """Common definitions for tests"""
 
 import doctest
-import os
 import stat
 import textwrap
 import types

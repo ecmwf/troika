@@ -40,7 +40,7 @@ def test_invalid_trimurti_path(tmp_path):
     conf = {"type": "trimurti", "trimurti_host": "dummy", "trimurti_path": trimurti_path}
     conn = LocalConnection(conf, "user")
     with pytest.raises(troika.ConfigurationError):
-        site = trimurti.TrimurtiSite(conf, conn)
+        trimurti.TrimurtiSite(conf, conn)
 
 
 @pytest.fixture
