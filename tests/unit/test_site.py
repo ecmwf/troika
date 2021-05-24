@@ -15,7 +15,9 @@ class DummySite(Site):
 @pytest.fixture
 def dummy_sites(monkeypatch):
     fake_sites = {"dummy": DummySite}
-    monkeypatch.setattr("troika.site._discover_sites", lambda: fake_sites)
+    def fake_discover(package, base, attrname=""):
+        return fake_sites
+    monkeypatch.setattr("troika.site.discover", fake_discover)
 
 
 def test_get_exist(dummy_sites):

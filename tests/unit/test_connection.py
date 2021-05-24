@@ -3,16 +3,21 @@ import pytest
 
 import troika
 from troika import connection
+from troika.connections.base import Connection
+from troika.connections.local import LocalConnection
+from troika.connections.ssh import SSHConnection
 
 
-class DummyConnection(connection.Connection):
+class DummyConnection(Connection):
     pass
 
 
 @pytest.fixture
 def dummy_connections(monkeypatch):
     fake_connections = {"dummy": DummyConnection}
-    monkeypatch.setattr("troika.connection._CONNECTIONS", fake_connections)
+    def fake_discover(package, base, attrname=""):
+        return fake_connections
+    monkeypatch.setattr("troika.connection.discover", fake_discover)
 
 
 def test_get_exist(dummy_connections):
@@ -30,10 +35,10 @@ def test_get_nonexistent(dummy_connections):
 def test_get_local():
     cfg = {}
     conn = connection.get_connection("local", cfg, "user")
-    assert isinstance(conn, connection.LocalConnection)
+    assert isinstance(conn, LocalConnection)
 
 
 def test_get_ssh():
     cfg = {"host": "localhost"}
     conn = connection.get_connection("ssh", cfg, "user")
-    assert isinstance(conn, connection.SSHConnection)
+    assert isinstance(conn, SSHConnection)

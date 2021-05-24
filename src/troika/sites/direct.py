@@ -6,7 +6,6 @@ import pathlib
 import signal
 
 from .. import InvocationError, RunError
-from ..connection import LocalConnection
 from .base import Site
 
 _logger = logging.getLogger(__name__)

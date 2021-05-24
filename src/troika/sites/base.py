@@ -8,7 +8,7 @@ class Site:
     config: dict
         Site configuration
 
-    connection: `troika.connection.Connection`
+    connection: `troika.connections.base.Connection`
         Connection object to interact with the site
     """
 

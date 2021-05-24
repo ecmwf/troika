@@ -5,7 +5,7 @@ import pytest
 
 import troika
 from troika.config import Config
-from troika.connection import LocalConnection
+from troika.connections.local import LocalConnection
 from troika.site import get_site
 from troika.sites import trimurti
 

@@ -7,7 +7,7 @@ import re
 import tempfile
 
 from .. import InvocationError, RunError
-from ..connection import SSHConnection, PIPE
+from ..connection import PIPE
 from ..preprocess import PreprocessMixin, remove_top_blank_lines
 from .base import Site
 
