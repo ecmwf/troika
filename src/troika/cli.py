@@ -8,7 +8,7 @@ import textwrap
 from . import log
 from . import VERSION, ConfigurationError, InvocationError, RunError
 from .config import get_config
-from . import hooks
+from . import hook
 from .site import get_site
 
 _logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ def submit(site, args):
     """
 
     pp_script = site.preprocess(args.script, args.user, args.output)
-    hooks.pre_submit(site, args.output, args.dryrun)
+    hook.pre_submit(site, args.output, args.dryrun)
     site.submit(pp_script, args.user, args.output, args.dryrun)
 
     return 0
@@ -158,9 +158,9 @@ def main(args=None, prog=None):
     try:
         config = get_config(args.config)
         site = get_site(config, args.site, args.user)
-        hooks.setup_hooks(config, args.site)
+        hook.setup_hooks(config, args.site)
         sts = args.func(site, args)
-        hooks.at_exit(args.action, site, args, sts, logfile)
+        hook.at_exit(args.action, site, args, sts, logfile)
         return sts
     except ConfigurationError as e:
         _logger.critical("Configuration error: %s", e)

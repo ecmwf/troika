@@ -1,9 +1,8 @@
-"""Hook system to perform custom actions"""
+"""Base hook definitions"""
 
 import logging
-import pathlib
 
-from . import ConfigurationError, RunError
+from .. import ConfigurationError
 
 _logger = logging.getLogger(__name__)
 
@@ -101,23 +100,6 @@ def pre_submit(site, output, dryrun):
     """
 
 
-@pre_submit.register
-def create_output_dir(site, output, dryrun=False):
-    """Pre-submit hook to create the output directory"""
-    out_dir = pathlib.Path(output).parent
-    proc = site._connection.execute(["mkdir", "-p", out_dir], dryrun=dryrun)
-    if dryrun:
-        return
-    retcode = proc.wait()
-    if retcode != 0:
-        msg = "Output directory creation "
-        if retcode > 0:
-            msg += f"failed with exit code {retcode}"
-        else:
-            msg += f"terminated by signal {-retcode}"
-        raise RunError(msg)
-
-
 @Hook.declare
 def at_exit(action, site, args, sts, logfile):
     """Exit hook
@@ -135,29 +117,3 @@ def at_exit(action, site, args, sts, logfile):
     logfile: path-like
         Path to the log file
     """
-
-
-@at_exit.register
-def copy_submit_logfile(action, site, args, sts, logfile):
-    if action != "submit":
-        return
-    out_dir = pathlib.Path(args.output).parent
-    site._connection.sendfile(logfile, out_dir, dryrun=args.dryrun)
-
-
-def setup_hooks(config, site):
-    """Set up the hooks according to site configuration
-
-    Parameters
-    ----------
-    config: `troika.config.Config`
-        Configuration object
-    site: str
-        Site name
-    """
-    site_config = config.get_site_config(site)
-    for spec in Hook.registered_hooks.values():
-        req = site_config.get(spec.name, [])
-        spec.instantiate(req)
-        if req:
-            _logger.debug("Enabled %s hooks: %s", spec.name, ", ".join(req))

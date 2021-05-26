@@ -7,6 +7,41 @@ import pkgutil
 
 _logger = logging.getLogger(__name__)
 
+
+def discover_modules(package, what="plugin"):
+    """Discover plugin modules
+
+    Parameters
+    ----------
+    package: `types.ModuleType`
+        Namespace package containing the plugins
+    what: str
+        String describing what is supposed to be discovered
+
+    Yields
+    ------
+    (fullname, module)
+    fullname: str
+        Fully qualified module name
+    module: `types.ModuleType`
+        Imported module
+    """
+    path = package.__path__
+    prefix = package.__name__ + "."
+
+    _logger.debug(f"{what.capitalize()} search path: %r", path)
+
+    for finder, mname, ispkg in pkgutil.iter_modules(path):
+        fullname = prefix + mname
+        _logger.debug("Loading module %r", fullname)
+        try:
+            mod = importlib.import_module(fullname)
+        except:
+            _logger.warning("Could not load %r", fullname, exc_info=True)
+            continue
+        yield fullname, mod
+
+
 def _get_name(cname, cls, suffix, attrname="__plugin_name__"):
     # __dict__ vs. getattr: do not inherit the attribute from a parent class
     name = getattr(cls, "__dict__", {}).get(attrname, None)
@@ -43,32 +78,20 @@ def discover(package, base, attrname="__plugin_name__"):
     dict of str: type
         Discovered plugin classes
     """
-    path = package.__path__
-    prefix = package.__name__ + "."
-
-    name = base.__name__.capitalize()
+    what = base.__name__
 
     def pred(x):
         return inspect.isclass(x) and issubclass(x, base) and x is not base
 
-    _logger.debug(f"{name} search path: %r", path)
     discovered = {}
-    for finder, mname, ispkg in pkgutil.iter_modules(path):
-        fullname = prefix + mname
-        _logger.debug("Loading module %r", fullname)
-        try:
-            mod = importlib.import_module(fullname)
-        except:
-            _logger.warning("Could not load %r", mname, exc_info=True)
-            continue
-
+    for fullname, mod in discover_modules(package, what=what):
         for cname, cls in inspect.getmembers(mod, pred):
-            tname = _get_name(cname, cls, name.lower(), attrname=attrname)
+            tname = _get_name(cname, cls, what.lower(), attrname=attrname)
             if cls.__module__ != fullname:
-                _logger.debug(f"Skipping {name.lower()} %r imported by %r", tname, fullname)
+                _logger.debug(f"Skipping {what.lower()} %r imported by %r", tname, fullname)
                 continue
             if tname in discovered:
-                _logger.warning(f"{name} type %r is defined more than once", tname)
+                _logger.warning(f"{what.capitalize()} type %r is defined more than once", tname)
                 continue
             discovered[tname] = cls
     return discovered

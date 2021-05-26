@@ -32,7 +32,7 @@ def dummy_site():
 def dummy_actions(monkeypatch, dummy_site):
     monkeypatch.setattr(troika.cli, "get_config", lambda config: Config({}))
     monkeypatch.setattr(troika.cli, "get_site", lambda config, site, user: dummy_site)
-    monkeypatch.setattr(troika.cli.hooks, "setup_hooks", lambda config, site: None)
+    monkeypatch.setattr(troika.cli.hook, "setup_hooks", lambda config, site: None)
 
     def make_dummy_action():
         def dummy_action(site, args):
