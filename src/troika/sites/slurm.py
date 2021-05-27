@@ -7,7 +7,7 @@ import tempfile
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
-from ..preprocess import PreprocessMixin, remove_top_blank_lines
+from ..preprocess import PreprocessMixin, preprocess
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -36,7 +36,8 @@ def _split_slurm_directive(arg):
 _DIRECTIVE_RE = re.compile(r"^#\s*SBATCH\s+(.+)$")
 
 
-def _pp_output(script, user, output, sin):
+@preprocess.register
+def slurm_add_output(sin, script, user, output):
     """Set the output file"""
     for line in sin:
         m = _DIRECTIVE_RE.match(line)
@@ -50,7 +51,8 @@ def _pp_output(script, user, output, sin):
     yield f"#SBATCH --output={output!s}\n"
 
 
-def _pp_bubble(script, user, output, sin):
+@preprocess.register
+def slurm_bubble(sin, script, user, output):
     """Make sure all Slurm directives are at the top"""
     with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+',
             dir=script.parent, prefix=script.name) as tmp:
@@ -75,7 +77,7 @@ class SlurmSite(PreprocessMixin, Site):
 
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
 
-    preprocessors = [remove_top_blank_lines, _pp_output, _pp_bubble]
+    preprocessors = ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
 
     def __init__(self, config, connection):
         super().__init__(config, connection)

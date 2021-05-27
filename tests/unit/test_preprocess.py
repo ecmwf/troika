@@ -11,15 +11,19 @@ def make_pp_object(pp_funcs):
     return Preprocess()
 
 
-def drop2(script, user, output, sinput):
+@pp.preprocess.register
+def drop2(sinput, script, user, output):
     for i, x in enumerate(sinput):
         if i >= 2:
             yield x
 
-def delete(script, user, output, sinput):
+
+@pp.preprocess.register
+def delete(sinput, script, user, output):
     for x in sinput:
         if not x.startswith("deleteme"):
             yield x
+
 
 @pytest.mark.parametrize("sin, sexp, funcs", [
     pytest.param(
@@ -48,7 +52,7 @@ def delete(script, user, output, sinput):
         line3
         line4
         """,
-        [drop2],
+        ["drop2"],
         id="drop2"),
     pytest.param(
         """\
@@ -62,7 +66,7 @@ def delete(script, user, output, sinput):
         line2
         line4
         """,
-        [delete],
+        ["delete"],
         id="delete"),
     pytest.param(
         """\
@@ -77,7 +81,7 @@ def delete(script, user, output, sinput):
         line4
         line5
         """,
-        [drop2, delete],
+        ["drop2", "delete"],
         id="drop2, delete"),
     pytest.param(
         """\
@@ -91,7 +95,7 @@ def delete(script, user, output, sinput):
         line4
         line5
         """,
-        [delete, drop2],
+        ["delete", "drop2"],
         id="delete, drop2"),
 ])
 def test_mixin(sin, sexp, funcs, tmp_path):
@@ -173,4 +177,4 @@ def test_mixin(sin, sexp, funcs, tmp_path):
 def test_remove_top_blank_lines(sin, sexp):
     sin = textwrap.dedent(sin).splitlines(keepends=True)
     sexp = textwrap.dedent(sexp).splitlines(keepends=True)
-    assert list(pp.remove_top_blank_lines(None, None, None, sin)) == sexp
+    assert list(pp.remove_top_blank_lines(sin, None, None, None)) == sexp
