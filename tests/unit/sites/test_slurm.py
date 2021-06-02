@@ -6,6 +6,7 @@ import pytest
 import troika
 from troika.config import Config
 from troika.connections.local import LocalConnection
+from troika.hook import setup_hooks
 from troika.site import get_site
 from troika.sites import slurm
 
@@ -15,7 +16,11 @@ __doctests__ = [slurm]
 
 @pytest.fixture
 def dummy_slurm_conf(tmp_path):
-    return {"type": "slurm", "connection": "local"}
+    return {
+        "type": "slurm",
+        "connection": "local",
+        "preprocess": ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
+    }
 
 
 def test_get_site(dummy_slurm_conf):
@@ -184,13 +189,15 @@ def sample_script(tmp_path):
         """,
         id="drop_output2"),
 ])
-def test_preprocess(sin, sexp, dummy_slurm_site, tmp_path):
+def test_preprocess(sin, sexp, dummy_slurm_conf, dummy_slurm_site, tmp_path):
     script = tmp_path / "script.sh"
     orig_script = tmp_path / "script.sh.orig"
     output = tmp_path / "output.log"
     sin = textwrap.dedent(sin)
     script.write_text(sin)
     sexp = textwrap.dedent(sexp).replace("@OUTPUT@", str(output.resolve()))
+    global_config = Config({"sites": {"foo": dummy_slurm_conf}})
+    setup_hooks(global_config, "foo")
     pp_script = dummy_slurm_site.preprocess(script, "user", output)
     assert pp_script == script
     assert pp_script.read_text() == sexp

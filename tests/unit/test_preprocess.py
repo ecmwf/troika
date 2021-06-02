@@ -5,12 +5,6 @@ import pytest
 import troika.preprocess as pp
 
 
-def make_pp_object(pp_funcs):
-    class Preprocess(pp.PreprocessMixin):
-        preprocessors = pp_funcs
-    return Preprocess()
-
-
 @pp.preprocess.register
 def drop2(sinput, script, user, output):
     for i, x in enumerate(sinput):
@@ -98,19 +92,12 @@ def delete(sinput, script, user, output):
         ["delete", "drop2"],
         id="delete, drop2"),
 ])
-def test_mixin(sin, sexp, funcs, tmp_path):
-    script = tmp_path / "script.sh"
-    orig_script = tmp_path / "script.sh.orig"
-    output = tmp_path / "output.log"
+def test_hook(sin, sexp, funcs):
     sin = textwrap.dedent(sin)
-    script.write_text(sin)
     sexp = textwrap.dedent(sexp)
-    proc = make_pp_object(funcs)
-    pp_script = proc.preprocess(script, "user", output)
-    assert pp_script == script
-    assert pp_script.read_text() == sexp
-    assert orig_script.exists()
-    assert orig_script.read_text() == sin
+    pp.preprocess.instantiate(funcs)
+    sout = "".join(pp.preprocess(sin.splitlines(keepends=True), None, None, None))
+    assert sout == sexp
 
 
 @pytest.mark.parametrize("sin, sexp", [

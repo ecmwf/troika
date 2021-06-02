@@ -7,7 +7,7 @@ import tempfile
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
-from ..preprocess import PreprocessMixin, preprocess
+from ..preprocess import preprocess
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -72,12 +72,10 @@ def slurm_bubble(sin, script, user, output):
         yield from tmp
 
 
-class SlurmSite(PreprocessMixin, Site):
+class SlurmSite(Site):
     """Site managed using Slurm"""
 
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
-
-    preprocessors = ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
 
     def __init__(self, config, connection):
         super().__init__(config, connection)
