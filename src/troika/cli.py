@@ -49,8 +49,9 @@ def monitor(site, args):
         Exit code
     """
 
-    _logger.error("monitor: not implemented")
-    return 1
+    site.monitor(args.script, args.user, args.jobid, args.dryrun)
+
+    return 0
 
 
 def kill(site, args):
@@ -133,8 +134,11 @@ def main(args=None, prog=None):
             help="monitor a submitted job")
     parser_monitor.set_defaults(func=monitor)
     parser_monitor.add_argument("site", help="target site")
+    parser_monitor.add_argument("script", help="job script")
     parser_monitor.add_argument("-u", "--user", default=default_user,
         help="remote user")
+    parser_monitor.add_argument("-j", "--jobid", default=None,
+        help="remote job ID")
 
     parser_kill = subparsers.add_parser("kill", help="kill a submitted job")
     parser_kill.set_defaults(func=kill)

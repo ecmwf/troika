@@ -6,6 +6,7 @@ import pathlib
 import signal
 
 from .. import InvocationError, RunError
+from ..connection import PIPE
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -51,16 +52,36 @@ class DirectExecSite(Site):
 
         return proc
 
+    def monitor(self, script, user, jid=None, dryrun=False):
+        """See `troika.sites.Site.monitor`"""
+        script = pathlib.Path(script)
+
+        if jid is None:
+            jid = self._parse_jidfile(script)
+        try:
+            jid = int(jid)
+        except ValueError:
+            raise RunError(f"Invalid job id: {jid!r}")
+
+        proc = self._connection.execute(["ps", "-lyfp", str(jid)], stdout=PIPE,
+            dryrun=dryrun)
+        if dryrun:
+            return
+
+        proc_stdout, _ = proc.communicate()
+        stat_output = script.with_suffix(script.suffix + ".stat")
+        if stat_output.exists():
+            _logger.warning("Status file %r already exists, overwriting",
+                str(stat_output))
+        stat_output.write_bytes(proc_stdout)
+        _logger.info("Output written to %r", str(stat_output))
+
     def kill(self, script, user, jid=None, dryrun=False):
         """See `troika.sites.Site.kill`"""
         script = pathlib.Path(script)
 
         if jid is None:
-            jid_output = script.with_suffix(script.suffix + ".jid")
-            try:
-                jid = jid_output.read_text().strip()
-            except IOError as e:
-                raise RunError(f"Could not read the job id: {e!s}")
+            jid = self._parse_jidfile(script)
         try:
             jid = int(jid)
         except ValueError:
@@ -75,6 +96,14 @@ class DirectExecSite(Site):
             os.kill(jid, signal.SIGTERM)
         except ProcessLookupError:
             raise RunError(f"Process ID {jid} not found")
+
+    def _parse_jidfile(self, script):
+        script = pathlib.Path(script)
+        jid_output = script.with_suffix(script.suffix + ".jid")
+        try:
+            return jid_output.read_text().strip()
+        except IOError as e:
+            raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(connection={self._connection!r}, use_shell={self._use_shell}, shell={self._shell!r})"
