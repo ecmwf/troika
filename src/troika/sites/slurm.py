@@ -4,6 +4,7 @@ import logging
 import pathlib
 import re
 import tempfile
+import time
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
@@ -165,21 +166,37 @@ class SlurmSite(Site):
         except ValueError:
             raise RunError(f"Invalid job id: {jid!r}")
 
-        proc = self._connection.execute([self._scancel, str(jid)], stdout=PIPE,
-            dryrun=dryrun)
-        if dryrun:
-            return
+        seq = self._kill_sequence
+        if seq is None:
+            seq = [(0, None)]
 
-        proc_stdout, _ = proc.communicate()
-        retcode = proc.returncode
-        if retcode != 0:
-            _logger.error("scancel output: %s", proc_stdout)
-            msg = "Kill "
-            if retcode > 0:
-                msg += f"failed with exit code {retcode}"
-            else:
-                msg += f"terminated by signal {-retcode}"
-            raise RunError(msg)
+        first = True
+        for wait, sig in seq:
+            time.sleep(wait)
+
+            cmd = [self._scancel, str(jid)]
+            if sig is not None:
+                cmd.extend(["-s", str(int(sig))])
+            proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
+
+            if dryrun:
+                continue
+
+            proc_stdout, _ = proc.communicate()
+            retcode = proc.returncode
+            if retcode != 0:
+                if first:
+                    _logger.error("scancel output: %s", proc_stdout)
+                    msg = "Kill "
+                    if retcode > 0:
+                        msg += f"failed with exit code {retcode}"
+                    else:
+                        msg += f"terminated by signal {-retcode}"
+                    raise RunError(msg)
+                else:
+                    return
+
+            first = False
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)

@@ -29,6 +29,7 @@ class Site:
 
     def __init__(self, config, connection):
         self._connection = connection
+        self._kill_sequence = config.get('kill_sequence', None)
 
     def preprocess(self, script, user, output):
         """Preprocess a job script

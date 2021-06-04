@@ -4,9 +4,11 @@ import logging
 import os
 import pathlib
 import signal
+import time
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
+from ..utils import signal_name
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -87,15 +89,28 @@ class DirectExecSite(Site):
         except ValueError:
             raise RunError(f"Invalid job id: {jid!r}")
 
-        if dryrun:
-            _logger.info(f"Sending SIGTERM to process {jid}")
-            return
+        seq = self._kill_sequence
+        if seq is None:
+            seq = [(0, signal.SIGTERM)]
 
-        _logger.debug(f"Sending SIGTERM to process {jid}")
-        try:
-            os.kill(jid, signal.SIGTERM)
-        except ProcessLookupError:
-            raise RunError(f"Process ID {jid} not found")
+        first = True
+        for wait, sig in seq:
+            time.sleep(wait)
+
+            if dryrun:
+                _logger.info(f"Sending {signal_name(sig)} to process {jid}")
+                continue
+
+            _logger.debug(f"Sending {signal_name(sig)} to process {jid}")
+            try:
+                os.kill(jid, sig)
+            except ProcessLookupError:
+                if first:
+                    raise RunError(f"Process ID {jid} not found")
+                else:
+                    return
+
+            first = False
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)
