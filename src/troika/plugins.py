@@ -56,7 +56,7 @@ def _get_name(cname, cls, suffix, attrname="__plugin_name__"):
 def discover(package, base, attrname="__plugin_name__"):
     """Discover plugin classes
 
-    Plugin classes are discovered in a given namespace package, as instance of
+    Plugin classes are discovered in a given namespace package, deriving from
     a given base class. The base class itself is ignored, as are classes
     imported from another module (based on ``cls.__module__``). Each discovered
     class is identified by a name that is either the value of attribute

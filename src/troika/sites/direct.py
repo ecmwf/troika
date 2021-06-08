@@ -25,7 +25,7 @@ class DirectExecSite(Site):
         self._use_shell = config.get('use_shell', not connection.is_local())
 
     def submit(self, script, user, output, dryrun=False):
-        """See `troika.sites.Site.submit`"""
+        """See `troika.sites.base.Site.submit`"""
         script = pathlib.Path(script).resolve()
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
@@ -55,7 +55,7 @@ class DirectExecSite(Site):
         return proc
 
     def monitor(self, script, user, jid=None, dryrun=False):
-        """See `troika.sites.Site.monitor`"""
+        """See `troika.sites.base.Site.monitor`"""
         script = pathlib.Path(script)
 
         if jid is None:
@@ -79,7 +79,7 @@ class DirectExecSite(Site):
         _logger.info("Output written to %r", str(stat_output))
 
     def kill(self, script, user, jid=None, dryrun=False):
-        """See `troika.sites.Site.kill`"""
+        """See `troika.sites.base.Site.kill`"""
         script = pathlib.Path(script)
 
         if jid is None:

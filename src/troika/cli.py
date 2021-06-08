@@ -170,7 +170,7 @@ def main(args=None, prog=None):
         _logger.critical("Configuration error: %s", e)
         return 1
     except InvocationError as e:
-        _logger.critical("%s", e)
+        _logger.critical("Invocation error: %s", e)
         return 1
     except RunError as e:
         _logger.critical("%s", e)
