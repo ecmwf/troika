@@ -6,7 +6,7 @@ import pathlib
 import signal
 import time
 
-from .. import InvocationError, RunError
+from .. import ConfigurationError, InvocationError, RunError
 from ..connection import PIPE
 from ..utils import signal_name
 from .base import Site
@@ -21,22 +21,40 @@ class DirectExecSite(Site):
 
     def __init__(self, config, connection):
         super().__init__(config, connection)
-        self._shell = config.get('shell', ['bash', '-s'])
+        self._copy_script = config.get('copy_script', False)
+        self._shell = config.get('shell',
+            ['bash'] if self._copy_script else ['bash', '-s'])
         self._use_shell = config.get('use_shell', not connection.is_local())
+
+        if not (connection.is_local() or self._copy_script or self._use_shell):
+            raise ConfigurationError(
+                "copy_script and use_shell cannot both be False for a remote site")
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.base.Site.submit`"""
         script = pathlib.Path(script).resolve()
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
-        args = self._shell if self._use_shell else [script]
+
+        script_remote = script
+        if self._copy_script and not self._connection.is_local():
+            script_remote = pathlib.PurePath(output).parent / script.name
+            self._connection.sendfile(script, script_remote, dryrun=dryrun)
+
+        args = []
+        if self._use_shell:
+            args.extend(self._shell)
+        if self._copy_script or (self._connection.is_local() and not self._use_shell):
+            args.append(script_remote)
+
+        inpf = None
+        if self._use_shell and not self._copy_script:
+            inpf = script.open(mode="rb")
+
         output = pathlib.Path(output)
         if output.exists():
             _logger.warning("Output file %r already exists, overwriting",
                 str(output))
-        inpf = None
-        if self._use_shell:
-            inpf = script.open(mode="rb")
         outf = None
         if not dryrun:
             outf = output.open(mode="wb")

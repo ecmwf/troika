@@ -84,6 +84,7 @@ class SlurmSite(Site):
         self._sbatch = config.get('sbatch_command', 'sbatch')
         self._scancel = config.get('scancel_command', 'scancel')
         self._squeue = config.get('squeue_command', 'squeue')
+        self._copy_script = config.get('copy_script', False)
 
     def _parse_submit_output(self, out):
         match = self.SUBMIT_RE.search(out)
@@ -100,13 +101,23 @@ class SlurmSite(Site):
             _logger.warning("Submission output file %r already exists, " +
                 "overwriting", str(sub_output))
 
+        cmd = [self._sbatch]
+
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
-        inpf = script.open(mode="rb")
+        inpf = None
+        if self._copy_script:
+            script_remote = pathlib.PurePath(output).parent / script.name
+            self._connection.sendfile(script, script_remote, dryrun=dryrun)
+            cmd.append(script_remote)
+        else:
+            inpf = script.open(mode="rb")
+
         outf = None
         if not dryrun:
             outf = sub_output.open(mode="wb")
-        proc = self._connection.execute([self._sbatch], stdin=inpf, stdout=outf,
+
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf,
             dryrun=dryrun)
         if dryrun:
             return
