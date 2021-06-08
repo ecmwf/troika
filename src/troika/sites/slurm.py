@@ -148,17 +148,17 @@ class SlurmSite(Site):
         except ValueError:
             raise RunError(f"Invalid job id: {jid!r}")
 
-        proc = self._connection.execute([self._squeue, "-u", user, "-j", str(jid)],
-            stdout=PIPE, dryrun=dryrun)
-        if dryrun:
-            return
-
-        proc_stdout, _ = proc.communicate()
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
             _logger.warning("Status file %r already exists, overwriting",
                 str(stat_output))
-        stat_output.write_bytes(proc_stdout)
+        outf = None
+        if not dryrun:
+            outf = stat_output.open(mode="wb")
+
+        self._connection.execute([self._squeue, "-u", user, "-j", str(jid)],
+            stdout=outf, dryrun=dryrun)
+
         _logger.info("Output written to %r", str(stat_output))
 
     def kill(self, script, user, jid=None, dryrun=False):
