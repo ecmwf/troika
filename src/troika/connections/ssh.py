@@ -3,7 +3,7 @@
 from .base import Connection
 from .local import LocalConnection
 
-from .. import RunError
+from ..utils import check_retcode
 
 
 class SSHConnection(Connection):
@@ -36,10 +36,4 @@ class SSHConnection(Connection):
         if dryrun:
             return
         retcode = proc.wait()
-        if retcode != 0:
-            msg = "Copy "
-            if retcode > 0:
-                msg += f"failed with exit code {retcode}"
-            else:
-                msg += f"terminated by signal {-retcode}"
-            raise RunError(msg)
+        check_retcode(retcode, what="Copy")

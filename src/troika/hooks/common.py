@@ -2,7 +2,7 @@
 
 import pathlib
 
-from .. import RunError
+from ..utils import check_retcode
 from .base import pre_submit, at_exit
 
 
@@ -14,13 +14,7 @@ def create_output_dir(site, output, dryrun=False):
     if dryrun:
         return
     retcode = proc.wait()
-    if retcode != 0:
-        msg = "Output directory creation "
-        if retcode > 0:
-            msg += f"failed with exit code {retcode}"
-        else:
-            msg += f"terminated by signal {-retcode}"
-        raise RunError(msg)
+    check_retcode(retcode, what="Output directory creation")
 
 
 @at_exit.register

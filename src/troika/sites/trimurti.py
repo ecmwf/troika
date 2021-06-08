@@ -3,7 +3,8 @@
 import logging
 import pathlib
 
-from .. import ConfigurationError, InvocationError, RunError
+from .. import ConfigurationError, InvocationError
+from ..utils import check_retcode
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -42,14 +43,8 @@ class TrimurtiSite(Site):
             return
 
         retcode = proc.wait()
-        if retcode != 0:
-            msg = "Submission "
-            if retcode > 0:
-                msg += f"failed with exit code {retcode}"
-            else:
-                msg += f"terminated by signal {-retcode}"
-            msg += f", check {str(sub_output)!r}"
-            raise RunError(msg)
+        check_retcode(retcode, what="Submission",
+            suffix=f", check {str(sub_output)!r}")
 
     def __repr__(self):
         return f"{self.__class__.__name__}(connection={self._connection!r}, trimurti_path={str(self._trimurti_path)!r})"
