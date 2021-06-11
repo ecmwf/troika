@@ -14,63 +14,103 @@ from .site import get_site
 _logger = logging.getLogger(__name__)
 
 
-def submit(site, args):
-    """Main entry point for the 'submit' sub-command
+class Action:
+    """Command-line action
 
     Parameters
     ----------
-    site: `troika.site.Site`
     args: `argparse.Namespace`-like
-
-    Returns
-    -------
-    int
-        Exit code
     """
+    def __init__(self, args):
+        self.logfile = log.get_logfile_path(args.action, getattr(args, 'script', None))
+        if args.logfile is not None:
+            self.logfile = args.logfile
+        log.config(args.verbose - args.quiet, self.logfile)
+        self.args = args
 
-    pp_script = site.preprocess(args.script, args.user, args.output)
-    hook.pre_submit(site, args.output, args.dryrun)
-    site.submit(pp_script, args.user, args.output, args.dryrun)
+    def execute(self):
+        """Execute the action"""
+        try:
+            config = get_config(self.args.config)
+            return self.run(config)
+        except ConfigurationError as e:
+            _logger.critical("Configuration error: %s", e)
+            return 1
+        except InvocationError as e:
+            _logger.critical("Invocation error: %s", e)
+            return 1
+        except RunError as e:
+            _logger.critical("%s", e)
+            return 1
+        except:
+            _logger.exception("Unhandled exception")
+            return 1
 
-    return 0
+    def run(self, config):
+        """Main entry point for the action
+
+        Parameters
+        ----------
+        config: `troika.config.Config`
+
+        Returns
+        -------
+        int
+            Exit code
+        """
+        raise NotImplementedError
 
 
-def monitor(site, args):
-    """Main entry point for the 'monitor' sub-command
+class SiteAction(Action):
+    """Action linked to a site"""
 
-    Parameters
-    ----------
-    site: `troika.site.Site`
-    args: `argparse.Namespace`-like
+    def run(self, config):
+        """See `Action.run`"""
+        site = get_site(config, self.args.site, self.args.user)
+        hook.setup_hooks(config, self.args.site)
+        sts = self.site_run(site)
+        hook.at_exit(self.args.action, site, self.args, sts, self.logfile)
+        return sts
 
-    Returns
-    -------
-    int
-        Exit code
-    """
+    def site_run(self, site):
+        """Main entry point for the site action
 
-    site.monitor(args.script, args.user, args.jobid, args.dryrun)
+        Parameters
+        ----------
+        site: `troika.site.Site`
 
-    return 0
+        Returns
+        -------
+        int
+            Exit code
+        """
+        raise NotImplementedError
 
 
-def kill(site, args):
-    """Main entry point for the 'kill' sub-command
+class SubmitAction(SiteAction):
+    """Main entry point for the 'submit' sub-command"""
+    def site_run(self, site):
+        args = self.args
+        pp_script = site.preprocess(args.script, args.user, args.output)
+        hook.pre_submit(site, args.output, args.dryrun)
+        site.submit(pp_script, args.user, args.output, args.dryrun)
+        return 0
 
-    Parameters
-    ----------
-    site: `troika.site.Site`
-    args: `argparse.Namespace`-like
 
-    Returns
-    -------
-    int
-        Exit code
-    """
+class MonitorAction(SiteAction):
+    """Main entry point for the 'monitor' sub-command"""
+    def site_run(self, site):
+        args = self.args
+        site.monitor(args.script, args.user, args.jobid, args.dryrun)
+        return 0
 
-    site.kill(args.script, args.user, args.jobid, args.dryrun)
 
-    return 0
+class KillAction(SiteAction):
+    """Main entry point for the 'kill' sub-command"""
+    def site_run(self, site):
+        args = self.args
+        site.kill(args.script, args.user, args.jobid, args.dryrun)
+        return 0
 
 
 def main(args=None, prog=None):
@@ -122,7 +162,7 @@ def main(args=None, prog=None):
         help="perform this action, see `%(prog)s <action> --help` for details")
 
     parser_submit = subparsers.add_parser("submit", help="submit a new job")
-    parser_submit.set_defaults(func=submit)
+    parser_submit.set_defaults(act=SubmitAction)
     parser_submit.add_argument("site", help="target site")
     parser_submit.add_argument("script", help="job script")
     parser_submit.add_argument("-u", "--user", default=default_user,
@@ -132,7 +172,7 @@ def main(args=None, prog=None):
 
     parser_monitor = subparsers.add_parser("monitor",
             help="monitor a submitted job")
-    parser_monitor.set_defaults(func=monitor)
+    parser_monitor.set_defaults(act=MonitorAction)
     parser_monitor.add_argument("site", help="target site")
     parser_monitor.add_argument("script", help="job script")
     parser_monitor.add_argument("-u", "--user", default=default_user,
@@ -141,7 +181,7 @@ def main(args=None, prog=None):
         help="remote job ID")
 
     parser_kill = subparsers.add_parser("kill", help="kill a submitted job")
-    parser_kill.set_defaults(func=kill)
+    parser_kill.set_defaults(act=KillAction)
     parser_kill.add_argument("site", help="target site")
     parser_kill.add_argument("script", help="job script")
     parser_kill.add_argument("-u", "--user", default=getpass.getuser(),
@@ -151,30 +191,8 @@ def main(args=None, prog=None):
 
     args = parser.parse_args(args)
 
-    if not hasattr(args, 'func'):
+    if not hasattr(args, 'act'):
         parser.error("please specify an action")
 
-    logfile = log.get_logfile_path(args.action, getattr(args, 'script', None))
-    if args.logfile is not None:
-        logfile = args.logfile
-    log.config(args.verbose - args.quiet, logfile)
-
-    try:
-        config = get_config(args.config)
-        site = get_site(config, args.site, args.user)
-        hook.setup_hooks(config, args.site)
-        sts = args.func(site, args)
-        hook.at_exit(args.action, site, args, sts, logfile)
-        return sts
-    except ConfigurationError as e:
-        _logger.critical("Configuration error: %s", e)
-        return 1
-    except InvocationError as e:
-        _logger.critical("Invocation error: %s", e)
-        return 1
-    except RunError as e:
-        _logger.critical("%s", e)
-        return 1
-    except:
-        _logger.exception("Unhandled exception")
-        return 1
+    action = args.act(args)
+    return action.execute()

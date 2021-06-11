@@ -34,21 +34,24 @@ def dummy_actions(monkeypatch, dummy_site):
     monkeypatch.setattr(troika.cli, "get_site", lambda config, site, user: dummy_site)
     monkeypatch.setattr(troika.cli.hook, "setup_hooks", lambda config, site: None)
 
+
     def make_dummy_action():
-        def dummy_action(site, args):
-            dummy_action.called = True
-            dummy_action.site = site
-            dummy_action.args = args
-            return 0
-        dummy_action.called = False
-        dummy_action.site = None
-        dummy_action.args = None
-        return dummy_action
+        class DummyAction(troika.cli.SiteAction):
+            def site_run(self, site):
+                DummyAction.called = True
+                DummyAction.site = site
+                DummyAction.args = self.args
+                return 0
+        DummyAction.called = False
+        DummyAction.site = None
+        DummyAction.args = None
+        return DummyAction
 
     actions = {}
     for act in ["submit", "monitor", "kill"]:
         actions[act] = make_dummy_action()
-        monkeypatch.setattr(troika.cli, act, actions[act])
+        actname = act.capitalize() + "Action"
+        monkeypatch.setattr(troika.cli, actname, actions[act])
 
     return actions
 
@@ -92,26 +95,35 @@ def test_main_kill(dummy_actions, dummy_site):
     assert act_args.site == "site"
 
 
+def make_test_args(**kwargs):
+    args = dict(logfile="/dev/null", verbose=0, quiet=0)
+    args.update(kwargs)
+    return argparse.Namespace(**args)
+
+
 def test_submit(dummy_site):
-    args = argparse.Namespace(site="dummy", script="script", user="user",
-        output="output", dryrun=True)
-    sts = troika.cli.submit(dummy_site, args)
+    args = make_test_args(action="submit", site="dummy", script="script",
+        user="user", output="output", dryrun=True)
+    act = troika.cli.SubmitAction(args)
+    sts = act.site_run(dummy_site)
     assert sts == 0
     assert dummy_site.preprocess_called
     assert dummy_site.submit_called
 
 
 def test_monitor(dummy_site):
-    args = argparse.Namespace(site="dummy", script="script", user="user",
-        jobid="1234", dryrun=True)
-    sts = troika.cli.monitor(dummy_site, args)
+    args = make_test_args(action="monitor", site="dummy", script="script",
+        user="user", jobid="1234", dryrun=True)
+    act = troika.cli.MonitorAction(args)
+    sts = act.site_run(dummy_site)
     assert sts == 0
     assert dummy_site.monitor_called
 
 
 def test_kill(dummy_site):
-    args = argparse.Namespace(site="dummy", script="script", user="user",
-        jobid="1234", dryrun=True)
-    sts = troika.cli.kill(dummy_site, args)
+    args = make_test_args(action="kill", site="dummy", script="script",
+        user="user", jobid="1234", dryrun=True)
+    act = troika.cli.KillAction(args)
+    sts = act.site_run(dummy_site)
     assert sts == 0
     assert dummy_site.kill_called
