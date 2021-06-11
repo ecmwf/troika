@@ -9,7 +9,7 @@ from . import log
 from . import VERSION, ConfigurationError, InvocationError, RunError
 from .config import get_config
 from . import hook
-from .site import get_site
+from .site import get_site, list_sites
 
 _logger = logging.getLogger(__name__)
 
@@ -21,8 +21,14 @@ class Action:
     ----------
     args: `argparse.Namespace`-like
     """
+
+    #: If True, write the logs to a file
+    save_log = True
+
     def __init__(self, args):
-        self.logfile = log.get_logfile_path(args.action, getattr(args, 'script', None))
+        self.logfile = None
+        if self.save_log:
+            self.logfile = log.get_logfile_path(args.action, getattr(args, 'script', None))
         if args.logfile is not None:
             self.logfile = args.logfile
         log.config(args.verbose - args.quiet, self.logfile)
@@ -113,6 +119,21 @@ class KillAction(SiteAction):
         return 0
 
 
+class ListSitesAction(Action):
+    """Main entry point for the 'list-sites' sub-command"""
+
+    save_log = False
+
+    def run(self, config):
+        print("Available sites:")
+        print("{name:<28s} {tp:<15s} {conn:<15s}".format(
+            name="Name", tp="Type", conn="Connection"))
+        print("-" * 60)
+        for name, tp, conn in list_sites(config):
+            print(f"{name:<28s} {tp:<15s} {conn:<15s}")
+        return 0
+
+
 def main(args=None, prog=None):
     """Main entry point
 
@@ -188,6 +209,10 @@ def main(args=None, prog=None):
         help="remote user")
     parser_kill.add_argument("-j", "--jobid", default=None,
         help="remote job ID")
+
+    parser_listsites = subparsers.add_parser("list-sites",
+        help="list available sites")
+    parser_listsites.set_defaults(act=ListSitesAction)
 
     args = parser.parse_args(args)
 

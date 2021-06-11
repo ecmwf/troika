@@ -40,3 +40,32 @@ def get_site(config, name, user):
     site = cls(site_config, conn)
     _logger.debug("Created %r for %s", site, name)
     return site
+
+
+def list_sites(config):
+    """List available sites
+
+    Parameters
+    ----------
+    config: `troika.config.Config`
+        Configuration object
+
+    Yields
+    -------
+    ``(name, type, connection)``
+    """
+    try:
+        sites = config['sites']
+    except KeyError:
+        raise ConfigurationError("No 'sites' defined in configuration")
+
+    for name, site in sites.items():
+        try:
+            tp = site['type']
+        except KeyError:
+            raise ConfigurationError(f"Site {name!r} has no 'type'")
+        try:
+            conn = site['connection']
+        except KeyError:
+            raise ConfigurationError(f"Site {name!r} has no 'connection'")
+        yield name, tp, conn
