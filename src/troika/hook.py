@@ -4,7 +4,7 @@ import logging
 
 from . import hooks
 from .hooks.base import Hook
-from .hooks.base import pre_submit, at_exit  # re-export
+from .hooks.base import at_startup, pre_submit, at_exit  # re-export
 from .plugins import discover_modules
 
 _logger = logging.getLogger(__name__)

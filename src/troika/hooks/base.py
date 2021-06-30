@@ -44,9 +44,12 @@ class Hook:
         if self._impl is None:
             raise ValueError("Attempt to call a non-instantiated hook registry")
         _logger.debug("Executing %s hooks", self.name)
+        results = []
         for funcname, func in self._impl:
             _logger.debug("Calling hook function %s", funcname)
-            func(*args, **kwargs)
+            res = func(*args, **kwargs)
+            results.append(res)
+        return results
 
     def register(self, func, key=None):
         """Register a function for use as a hook
@@ -83,6 +86,30 @@ class Hook:
                 raise ConfigurationError(msg)
             hookfuncs.append((hookname, hookfunc))
         self._impl = hookfuncs
+
+
+@Hook.declare
+def at_startup(action, site, args):
+    """Exit hook
+
+    Parameters
+    ----------
+    action: {"submit", "monitor", "kill"}
+        Action that was requested
+    site: `troika.sites.base.Site`
+        Selected site
+    args: `argparse.Namespace`-like
+        Command-line arguments
+    sts: int
+        Exit status
+    logfile: path-like
+        Path to the log file
+
+    Returns
+    -------
+    bool
+        If True, interrupt the action
+    """
 
 
 @Hook.declare

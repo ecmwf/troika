@@ -1,9 +1,21 @@
 """Common hooks"""
 
+import logging
 import pathlib
 
 from ..utils import check_retcode
-from .base import pre_submit, at_exit
+from .base import at_startup, pre_submit, at_exit
+
+_logger = logging.getLogger(__name__)
+
+
+@at_startup.register
+def check_connection(action, site, args):
+    """Startup hook to check the connection works before doing anything"""
+    working = site.check_connection(dryrun=args.dryrun)
+    if not working:
+        _logger.error("Connection not working. Exiting.")
+        return True
 
 
 @pre_submit.register

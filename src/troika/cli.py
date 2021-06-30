@@ -85,6 +85,9 @@ class SiteAction(Action):
         """See `Action.run`"""
         site = get_site(config, self.args.site, self.args.user)
         hook.setup_hooks(config, self.args.site)
+        res = hook.at_startup(self.args.action, site, self.args)
+        if any(res):
+            return 1
         sts = self.site_run(site)
         hook.at_exit(self.args.action, site, self.args, sts, self.logfile)
         return sts
