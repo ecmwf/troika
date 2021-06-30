@@ -123,3 +123,22 @@ class Site:
             If True, do not kill, only report what would be done
         """
         raise NotImplementedError()
+
+    def check_connection(self, timeout=None, dryrun=False):
+        """Check whether the connection is working
+
+        Parameters
+        ----------
+        timeout: int
+            If set, consider the connection is not working if no response after
+            this number of seconds
+        dryrun: bool
+            If True, do not do anything but print the command that would be
+            executed
+
+        Returns
+        -------
+        bool
+            True if the connection is able to execute commands
+        """
+        return self._connection.checkstatus(timeout=timeout, dryrun=dryrun)

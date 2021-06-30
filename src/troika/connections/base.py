@@ -67,3 +67,26 @@ class Connection:
             executed
         """
         raise NotImplementedError
+
+    def checkstatus(self, timeout=None, dryrun=False):
+        """Check whether the connection is working
+
+        Parameters
+        ----------
+        timeout: int
+            If set, consider the connection is not working if no response after
+            this number of seconds
+        dryrun: bool
+            If True, do not do anything but print the command that would be
+            executed
+
+        Returns
+        -------
+        bool
+            True if the connection is able to execute commands
+        """
+        proc = self.execute(["true"], detach=False, dryrun=dryrun)
+        if dryrun:
+            return True
+        retcode = proc.wait(timeout)
+        return retcode == 0

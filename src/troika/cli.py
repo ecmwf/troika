@@ -3,6 +3,7 @@
 import argparse
 import getpass
 import logging
+import sys
 import textwrap
 
 from . import log
@@ -129,6 +130,21 @@ class KillAction(LimitedMixin, SiteAction):
         return 0
 
 
+class CheckConnectionAction(LimitedMixin, SiteAction):
+    """Main entry point for the 'check-connection' sub-command"""
+
+    save_log = False
+
+    def site_run(self, site):
+        args = self.args
+        working = site.check_connection(args.timeout, args.dryrun)
+        if working:
+            print("OK")
+            return 0
+        print("Connection failed", file=sys.stderr)
+        return 1
+
+
 class ListSitesAction(Action):
     """Main entry point for the 'list-sites' sub-command"""
 
@@ -219,6 +235,15 @@ def main(args=None, prog=None):
         help="remote user")
     parser_kill.add_argument("-j", "--jobid", default=None,
         help="remote job ID")
+
+    parser_checkconn = subparsers.add_parser("check-connection",
+        help="check whether the connection works")
+    parser_checkconn.set_defaults(act=CheckConnectionAction)
+    parser_checkconn.add_argument("site", help="target site")
+    parser_checkconn.add_argument("-u", "--user", default=default_user,
+        help="remote user")
+    parser_checkconn.add_argument("-t", "--timeout", default=None, type=int,
+        help="wait at most this number of seconds")
 
     parser_listsites = subparsers.add_parser("list-sites",
         help="list available sites")
