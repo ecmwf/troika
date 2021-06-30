@@ -10,6 +10,7 @@ from . import VERSION, ConfigurationError, InvocationError, RunError
 from .config import get_config
 from . import hook
 from .site import get_site, list_sites
+from .utils import ConcurrencyLimit
 
 _logger = logging.getLogger(__name__)
 
@@ -67,6 +68,15 @@ class Action:
         raise NotImplementedError
 
 
+class LimitedMixin:
+    """Add a concurrency limit to the action"""
+
+    def run(self, config):
+        limit = config.get("concurrency_limit", 0)
+        with ConcurrencyLimit(limit):
+            return super().run(config)
+
+
 class SiteAction(Action):
     """Action linked to a site"""
 
@@ -93,7 +103,7 @@ class SiteAction(Action):
         raise NotImplementedError
 
 
-class SubmitAction(SiteAction):
+class SubmitAction(LimitedMixin, SiteAction):
     """Main entry point for the 'submit' sub-command"""
     def site_run(self, site):
         args = self.args
@@ -103,7 +113,7 @@ class SubmitAction(SiteAction):
         return 0
 
 
-class MonitorAction(SiteAction):
+class MonitorAction(LimitedMixin, SiteAction):
     """Main entry point for the 'monitor' sub-command"""
     def site_run(self, site):
         args = self.args
@@ -111,7 +121,7 @@ class MonitorAction(SiteAction):
         return 0
 
 
-class KillAction(SiteAction):
+class KillAction(LimitedMixin, SiteAction):
     """Main entry point for the 'kill' sub-command"""
     def site_run(self, site):
         args = self.args
