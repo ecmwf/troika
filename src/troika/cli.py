@@ -74,7 +74,8 @@ class LimitedMixin:
 
     def run(self, config):
         limit = config.get("concurrency_limit", 0)
-        with ConcurrencyLimit(limit):
+        timeout = config.get("concurrency_timeout", None)
+        with ConcurrencyLimit(limit, timeout=timeout):
             return super().run(config)
 
 

@@ -1,11 +1,14 @@
 """Various utilities"""
 
 import getpass
+import logging
 import signal
 
-from posix_ipc import Semaphore, O_CREAT
+import posix_ipc as ipc
 
 from . import RunError
+
+_logger = logging.getLogger(__name__)
 
 
 def signal_name(sig):
@@ -79,18 +82,29 @@ class ConcurrencyLimit:
         Bind the limit to the given user
     mode: int, default: 0o600
         Permissions of the underlying semaphore
+    timeout: int or None, default: None
+        If not None, wait for that many seconds before failing. A value of 0
+        effectively means that the `__enter__` method will fail immediately if
+        the limit is reached
     """
-    def __init__(self, limit=0, user=None, mode=0o600):
+    def __init__(self, limit=0, user=None, mode=0o600, timeout=None):
         if user is None:
             user = getpass.getuser()
+        self.timeout = timeout
+        if timeout is not None and timeout > 0 and not ipc.SEMAPHORE_TIMEOUT_SUPPORTED:
+            _logger.warn("Concurrency limit timeout not supported on this platform")
         self.sem = None
         if limit > 0:
-            self.sem = Semaphore(f"/troika:{user}", flags=O_CREAT, mode=mode, initial_value=limit)
+            self.sem = ipc.Semaphore(f"/troika:{user}", flags=ipc.O_CREAT, mode=mode, initial_value=limit)
 
     def __enter__(self):
         if self.sem is not None:
-            return self.sem.__enter__()
+            try:
+                return self.sem.acquire(self.timeout)
+            except ipc.BusyError:
+                raise RunError("Too many processes running simultaneously")
 
     def __exit__(self, exc_type, exc_value, traceback):
         if self.sem is not None:
-            return self.sem.__exit__(exc_type, exc_value, traceback)
+            self.sem.release()
+            self.sem.close()
