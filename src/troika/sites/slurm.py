@@ -79,8 +79,8 @@ class SlurmSite(Site):
 
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
 
-    def __init__(self, config, connection):
-        super().__init__(config, connection)
+    def __init__(self, config, connection, global_config):
+        super().__init__(config, connection, global_config)
         self._sbatch = config.get('sbatch_command', 'sbatch')
         self._scancel = config.get('scancel_command', 'scancel')
         self._squeue = config.get('squeue_command', 'squeue')

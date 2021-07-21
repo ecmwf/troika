@@ -13,8 +13,8 @@ _logger = logging.getLogger(__name__)
 class TrimurtiSite(Site):
     """Site accessed via trimurti"""
 
-    def __init__(self, config, connection):
-        super().__init__(config, connection)
+    def __init__(self, config, connection, global_config):
+        super().__init__(config, connection, global_config)
         self._host = config['trimurti_host']
         self._trimurti_path = config['trimurti_path']
         if self._connection.is_local():

@@ -37,7 +37,7 @@ def get_site(config, name, user):
         raise ConfigurationError(f"Site {name!r} has no 'connection'")
 
     conn = get_connection(conn_name, site_config, user)
-    site = cls(site_config, conn)
+    site = cls(site_config, conn, config)
     _logger.debug("Created %r for %s", site, name)
     return site
 

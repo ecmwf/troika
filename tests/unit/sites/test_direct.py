@@ -22,7 +22,7 @@ def test_get_site(dummy_direct_conf):
 @pytest.fixture
 def dummy_direct_site(dummy_direct_conf):
     conn = LocalConnection(dummy_direct_conf, "user")
-    return direct.DirectExecSite(dummy_direct_conf, conn)
+    return direct.DirectExecSite(dummy_direct_conf, conn, Config({}))
 
 
 def test_invalid_script(dummy_direct_site, tmp_path):

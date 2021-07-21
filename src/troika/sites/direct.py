@@ -18,8 +18,8 @@ class DirectExecSite(Site):
 
     __type_name__ = "direct"
 
-    def __init__(self, config, connection):
-        super().__init__(config, connection)
+    def __init__(self, config, connection, global_config):
+        super().__init__(config, connection, global_config)
         self._copy_script = config.get('copy_script', False)
         self._shell = config.get('shell',
             ['bash'] if self._copy_script else ['bash', '-s'])

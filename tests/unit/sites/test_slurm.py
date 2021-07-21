@@ -32,7 +32,7 @@ def test_get_site(dummy_slurm_conf):
 @pytest.fixture
 def dummy_slurm_site(dummy_slurm_conf):
     conn = LocalConnection(dummy_slurm_conf, "user")
-    return slurm.SlurmSite(dummy_slurm_conf, conn)
+    return slurm.SlurmSite(dummy_slurm_conf, conn, Config({}))
 
 
 def test_invalid_script(dummy_slurm_site, tmp_path):

@@ -10,7 +10,7 @@ from troika.sites.base import Site
 @pytest.fixture
 def dummy_site():
     class DummySite(Site):
-        def __init__(self, config, connection):
+        def __init__(self, config, connection, global_config):
             self.preprocess_called = False
             self.submit_called = False
             self.monitor_called = False
@@ -24,7 +24,7 @@ def dummy_site():
             self.monitor_called = True
         def kill(self, script, user, jid=None, dryrun=False):
             self.kill_called = True
-    dummy = DummySite({}, None)
+    dummy = DummySite({}, None, Config({}))
     return dummy
 
 

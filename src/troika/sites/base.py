@@ -19,6 +19,9 @@ class Site:
 
     connection: `troika.connections.base.Connection`
         Connection object to interact with the site
+
+    global_config: `troika.config.Config`
+        Global configuration
     """
 
     #: Value for the 'type' key in the site configuration.
@@ -27,7 +30,7 @@ class Site:
     #: becomes ``foo``.
     __type_name__ = None
 
-    def __init__(self, config, connection):
+    def __init__(self, config, connection, global_config):
         self._connection = connection
         self._kill_sequence = config.get('kill_sequence', None)
 
