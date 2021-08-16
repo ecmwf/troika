@@ -9,9 +9,7 @@ import textwrap
 from . import log
 from . import VERSION, ConfigurationError, InvocationError, RunError
 from .config import get_config
-from . import hook
-from .site import get_site, list_sites
-from .utils import ConcurrencyLimit
+from .controller import Controller
 
 _logger = logging.getLogger(__name__)
 
@@ -40,7 +38,8 @@ class Action:
         """Execute the action"""
         try:
             config = get_config(self.args.config)
-            return self.run(config)
+            controller = Controller(config, self.args, self.logfile)
+            return self.run(config, controller)
         except ConfigurationError as e:
             _logger.critical("Configuration error: %s", e)
             return 1
@@ -54,12 +53,13 @@ class Action:
             _logger.exception("Unhandled exception")
             return 1
 
-    def run(self, config):
+    def run(self, config, controller):
         """Main entry point for the action
 
         Parameters
         ----------
         config: `troika.config.Config`
+        controller: `troika.controller.Controller`
 
         Returns
         -------
@@ -69,79 +69,38 @@ class Action:
         raise NotImplementedError
 
 
-class LimitedMixin:
-    """Add a concurrency limit to the action"""
-
-    def run(self, config):
-        limit = config.get("concurrency_limit", 0)
-        timeout = config.get("concurrency_timeout", None)
-        with ConcurrencyLimit(limit, timeout=timeout):
-            return super().run(config)
-
-
-class SiteAction(Action):
-    """Action linked to a site"""
-
-    def run(self, config):
-        """See `Action.run`"""
-        site = get_site(config, self.args.site, self.args.user)
-        hook.setup_hooks(config, self.args.site)
-        res = hook.at_startup(self.args.action, site, self.args)
-        if any(res):
-            return 1
-        sts = self.site_run(site)
-        hook.at_exit(self.args.action, site, self.args, sts, self.logfile)
-        return sts
-
-    def site_run(self, site):
-        """Main entry point for the site action
-
-        Parameters
-        ----------
-        site: `troika.site.Site`
-
-        Returns
-        -------
-        int
-            Exit code
-        """
-        raise NotImplementedError
-
-
-class SubmitAction(LimitedMixin, SiteAction):
+class SubmitAction(Action):
     """Main entry point for the 'submit' sub-command"""
-    def site_run(self, site):
+    def run(self, config, controller):
         args = self.args
-        pp_script = site.preprocess(args.script, args.user, args.output)
-        hook.pre_submit(site, args.output, args.dryrun)
-        site.submit(pp_script, args.user, args.output, args.dryrun)
+        controller.submit(args.script, args.user, args.output, args.dryrun)
         return 0
 
 
-class MonitorAction(LimitedMixin, SiteAction):
+class MonitorAction(Action):
     """Main entry point for the 'monitor' sub-command"""
-    def site_run(self, site):
+    def run(self, config, controller):
         args = self.args
-        site.monitor(args.script, args.user, args.jobid, args.dryrun)
+        controller.monitor(args.script, args.user, args.jobid, args.dryrun)
         return 0
 
 
-class KillAction(LimitedMixin, SiteAction):
+class KillAction(Action):
     """Main entry point for the 'kill' sub-command"""
-    def site_run(self, site):
+    def run(self, config, controller):
         args = self.args
-        site.kill(args.script, args.user, args.jobid, args.dryrun)
+        controller.kill(args.script, args.user, args.jobid, args.dryrun)
         return 0
 
 
-class CheckConnectionAction(LimitedMixin, SiteAction):
+class CheckConnectionAction(Action):
     """Main entry point for the 'check-connection' sub-command"""
 
     save_log = False
 
-    def site_run(self, site):
+    def run(self, config, controller):
         args = self.args
-        working = site.check_connection(args.timeout, args.dryrun)
+        working = controller.check_connection(args.timeout, args.dryrun)
         if working:
             print("OK")
             return 0
@@ -154,12 +113,12 @@ class ListSitesAction(Action):
 
     save_log = False
 
-    def run(self, config):
+    def run(self, config, controller):
         print("Available sites:")
         print("{name:<28s} {tp:<15s} {conn:<15s}".format(
             name="Name", tp="Type", conn="Connection"))
         print("-" * 60)
-        for name, tp, conn in list_sites(config):
+        for name, tp, conn in controller.list_sites():
             print(f"{name:<28s} {tp:<15s} {conn:<15s}")
         return 0
 

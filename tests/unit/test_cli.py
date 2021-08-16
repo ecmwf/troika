@@ -4,6 +4,8 @@ import pytest
 
 import troika.cli
 from troika.config import Config
+import troika.controller
+from troika.controller import Controller
 from troika.sites.base import Site
 
 
@@ -29,21 +31,31 @@ def dummy_site():
 
 
 @pytest.fixture
-def dummy_actions(monkeypatch, dummy_site):
-    monkeypatch.setattr(troika.cli, "get_config", lambda config: Config({}))
-    monkeypatch.setattr(troika.cli, "get_site", lambda config, site, user: dummy_site)
-    monkeypatch.setattr(troika.cli.hook, "setup_hooks", lambda config, site: None)
+def dummy_controller(dummy_site):
+    class DummyController(Controller):
+        def _get_site(self):
+            return dummy_site
 
+        def setup(self):
+            self.site = self._get_site()
+
+        def teardown(self, sts=0):
+            pass
+    return DummyController
+
+
+@pytest.fixture
+def dummy_actions(monkeypatch, dummy_controller):
+    monkeypatch.setattr(troika.cli, "get_config", lambda config: Config({}))
+    monkeypatch.setattr(troika.cli, "Controller", dummy_controller)
 
     def make_dummy_action():
-        class DummyAction(troika.cli.SiteAction):
-            def site_run(self, site):
+        class DummyAction(troika.cli.Action):
+            def run(self, config, controller):
                 DummyAction.called = True
-                DummyAction.site = site
                 DummyAction.args = self.args
                 return 0
         DummyAction.called = False
-        DummyAction.site = None
         DummyAction.args = None
         return DummyAction
 
@@ -64,7 +76,6 @@ def test_main_submit(dummy_actions, dummy_site):
     assert not dummy_actions["monitor"].called
     assert not dummy_actions["kill"].called
     assert dummy_actions["submit"].called
-    assert dummy_actions["submit"].site is dummy_site
     assert act_args.user == "user"
     assert act_args.output == "output"
     assert act_args.site == "site"
@@ -79,7 +90,6 @@ def test_main_monitor(dummy_actions, dummy_site):
     assert not dummy_actions["submit"].called
     assert not dummy_actions["kill"].called
     assert dummy_actions["monitor"].called
-    assert dummy_actions["monitor"].site is dummy_site
     assert act_args.site == "site"
 
 
@@ -91,7 +101,6 @@ def test_main_kill(dummy_actions, dummy_site):
     assert not dummy_actions["submit"].called
     assert not dummy_actions["monitor"].called
     assert dummy_actions["kill"].called
-    assert dummy_actions["kill"].site is dummy_site
     assert act_args.site == "site"
 
 
@@ -101,29 +110,35 @@ def make_test_args(**kwargs):
     return argparse.Namespace(**args)
 
 
-def test_submit(dummy_site):
+def test_submit(dummy_controller, dummy_site):
     args = make_test_args(action="submit", site="dummy", script="script",
         user="user", output="output", dryrun=True)
+    cfg = Config({})
+    ctl = dummy_controller(cfg, args, None)
     act = troika.cli.SubmitAction(args)
-    sts = act.site_run(dummy_site)
+    sts = act.run(cfg, ctl)
     assert sts == 0
     assert dummy_site.preprocess_called
     assert dummy_site.submit_called
 
 
-def test_monitor(dummy_site):
+def test_monitor(dummy_controller, dummy_site):
     args = make_test_args(action="monitor", site="dummy", script="script",
         user="user", jobid="1234", dryrun=True)
+    cfg = Config({})
+    ctl = dummy_controller(cfg, args, None)
     act = troika.cli.MonitorAction(args)
-    sts = act.site_run(dummy_site)
+    sts = act.run(cfg, ctl)
     assert sts == 0
     assert dummy_site.monitor_called
 
 
-def test_kill(dummy_site):
+def test_kill(dummy_controller, dummy_site):
     args = make_test_args(action="kill", site="dummy", script="script",
         user="user", jobid="1234", dryrun=True)
+    cfg = Config({})
+    ctl = dummy_controller(cfg, args, None)
     act = troika.cli.KillAction(args)
-    sts = act.site_run(dummy_site)
+    sts = act.run(cfg, ctl)
     assert sts == 0
     assert dummy_site.kill_called
