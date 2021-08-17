@@ -95,7 +95,8 @@ class ConcurrencyLimit:
             _logger.warn("Concurrency limit timeout not supported on this platform")
         self.sem = None
         if limit > 0:
-            self.sem = ipc.Semaphore(f"/troika:{user}", flags=ipc.O_CREAT, mode=mode, initial_value=limit)
+            self.sem = ipc.Semaphore(f"/troika:{user}:{limit}",
+                flags=ipc.O_CREAT, mode=mode, initial_value=limit)
 
     def __enter__(self):
         if self.sem is not None:
