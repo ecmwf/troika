@@ -53,7 +53,7 @@ def _get_name(cname, cls, suffix, attrname="__plugin_name__"):
     return name
 
 
-def discover(package, base, attrname="__plugin_name__"):
+def discover(package, base, attrname="__plugin_name__", allow_base=False):
     """Discover plugin classes
 
     Plugin classes are discovered in a given namespace package, deriving from
@@ -71,7 +71,9 @@ def discover(package, base, attrname="__plugin_name__"):
     base: type
         Base class for the plugins
     attrname: str
-        Name of the attribute that conains the name for the plugin
+        Name of the attribute that contains the name for the plugin
+    allow_base: bool
+        If True, allow usage of the base class
 
     Returns
     -------
@@ -81,7 +83,9 @@ def discover(package, base, attrname="__plugin_name__"):
     what = base.__name__
 
     def pred(x):
-        return inspect.isclass(x) and issubclass(x, base) and x is not base
+        return (inspect.isclass(x)
+                and issubclass(x, base)
+                and (allow_base or x is not base))
 
     discovered = {}
     for fullname, mod in discover_modules(package, what=what):

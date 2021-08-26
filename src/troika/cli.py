@@ -8,7 +8,7 @@ import textwrap
 from . import log
 from . import VERSION, ConfigurationError, InvocationError, RunError
 from .config import get_config
-from .controller import Controller
+from .controller import get_controller
 
 _logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class Action:
         """Execute the action"""
         try:
             config = get_config(self.args.config)
-            controller = Controller(config, self.args, self.logfile)
+            controller = get_controller(config, self.args, self.logfile)
             return self.run(config, controller)
         except ConfigurationError as e:
             _logger.critical("Configuration error: %s", e)
