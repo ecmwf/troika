@@ -56,20 +56,29 @@ def slurm_add_output(sin, script, user, output):
 @preprocess.register
 def slurm_bubble(sin, script, user, output):
     """Make sure all Slurm directives are at the top"""
+    directives = []
     with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+',
             dir=script.parent, prefix=script.name) as tmp:
         first = True
         for line in sin:
+            if line.isspace():
+                tmp.write(line)
+                continue
+
+            m = _DIRECTIVE_RE.match(line)
+            if m is not None:
+                directives.append(line)
+                continue
+
             if first:
                 first = False
                 if line.startswith("#!"):
                     yield line
                     continue
-            m = _DIRECTIVE_RE.match(line)
-            if m is None:
-                tmp.write(line)
-                continue
-            yield line
+
+            tmp.write(line)
+
+        yield from directives
         tmp.seek(0)
         yield from tmp
 
