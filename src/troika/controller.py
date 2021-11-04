@@ -4,7 +4,6 @@ from contextlib import ExitStack
 
 from . import hook
 from . import site
-from .utils import ConcurrencyLimit
 
 class Controller:
     """Main controller
@@ -17,7 +16,6 @@ class Controller:
         self.args = args
         self.logfile = logfile
         self.site = None
-        self.limit = ExitStack()
 
     def submit(self, script, user, output, dryrun=False):
         """Process a 'submit' command
@@ -35,12 +33,11 @@ class Controller:
         dryrun: bool
             If True, do not submit, only report what would be done
         """
-        with self.limit:
-            self.setup()
-            pp_script = self.site.preprocess(script, user, output)
-            hook.pre_submit(self.site, output, dryrun)
-            self.site.submit(pp_script, user, output, dryrun)
-            self.teardown()
+        self.setup()
+        pp_script = self.site.preprocess(script, user, output)
+        hook.pre_submit(self.site, output, dryrun)
+        self.site.submit(pp_script, user, output, dryrun)
+        self.teardown()
 
     def monitor(self, script, user, jid=None, dryrun=False):
         """Process a 'monitor' command
@@ -59,10 +56,9 @@ class Controller:
         dryrun: bool
             If True, do not do anything, only report what would be done
         """
-        with self.limit:
-            self.setup()
-            self.site.monitor(script, user, jid, dryrun)
-            self.teardown()
+        self.setup()
+        self.site.monitor(script, user, jid, dryrun)
+        self.teardown()
 
     def kill(self, script, user, jid=None, dryrun=False):
         """Process a 'kill' command
@@ -81,10 +77,9 @@ class Controller:
         dryrun: bool
             If True, do not kill, only report what would be done
         """
-        with self.limit:
-            self.setup()
-            self.site.kill(script, user, jid, dryrun)
-            self.teardown()
+        self.setup()
+        self.site.kill(script, user, jid, dryrun)
+        self.teardown()
 
     def check_connection(self, timeout=None, dryrun=False):
         """Process a 'check-connection' command
@@ -103,11 +98,10 @@ class Controller:
         bool
             True if the connection is able to execute commands
         """
-        with self.limit:
-            self.setup()
-            working = self.site.check_connection(timeout=timeout, dryrun=dryrun)
-            self.teardown(0 if working else 1)
-            return working
+        self.setup()
+        working = self.site.check_connection(timeout=timeout, dryrun=dryrun)
+        self.teardown(0 if working else 1)
+        return working
 
     def list_sites(self):
         """Process a 'list-sites' command
@@ -119,10 +113,6 @@ class Controller:
         yield from site.list_sites(self.config)
 
     def setup(self):
-        limit = self.config.get("concurrency_limit", 0)
-        timeout = self.config.get("concurrency_timeout", None)
-        self.limit.enter_context(ConcurrencyLimit(limit, timeout=timeout))
-
         self.site = self._get_site()
         hook.setup_hooks(self.config, self.args.site)
         res = hook.at_startup(self.args.action, self.site, self.args)

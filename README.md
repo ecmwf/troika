@@ -7,7 +7,6 @@ Submit, monitor and kill jobs on local and remote hosts
 ## Requirements
 
 * Python 3.6 or higher
-* `posix-ipc` (https://pypi.org/project/posix-ipc/)
 * `pyyaml` (https://pypi.org/project/PyYAML/)
 * For testing: `pytest` (https://pypi.org/project/pytest/)
 
