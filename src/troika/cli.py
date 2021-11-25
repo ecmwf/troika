@@ -1,7 +1,6 @@
 """Command-line interface"""
 
 import argparse
-import getpass
 import logging
 import sys
 import textwrap
@@ -144,8 +143,6 @@ def main(args=None, prog=None):
           TROIKA_CONFIG_FILE    path to the default configuration file
     """)
 
-    default_user = getpass.getuser()
-
     parser = argparse.ArgumentParser(
         prog=prog,
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -175,7 +172,7 @@ def main(args=None, prog=None):
     parser_submit.set_defaults(act=SubmitAction)
     parser_submit.add_argument("site", help="target site")
     parser_submit.add_argument("script", help="job script")
-    parser_submit.add_argument("-u", "--user", default=default_user,
+    parser_submit.add_argument("-u", "--user", default=None,
         help="remote user")
     parser_submit.add_argument("-o", "--output", required=True,
         help="job output file")
@@ -185,7 +182,7 @@ def main(args=None, prog=None):
     parser_monitor.set_defaults(act=MonitorAction)
     parser_monitor.add_argument("site", help="target site")
     parser_monitor.add_argument("script", help="job script")
-    parser_monitor.add_argument("-u", "--user", default=default_user,
+    parser_monitor.add_argument("-u", "--user", default=None,
         help="remote user")
     parser_monitor.add_argument("-j", "--jobid", default=None,
         help="remote job ID")
@@ -194,7 +191,7 @@ def main(args=None, prog=None):
     parser_kill.set_defaults(act=KillAction)
     parser_kill.add_argument("site", help="target site")
     parser_kill.add_argument("script", help="job script")
-    parser_kill.add_argument("-u", "--user", default=getpass.getuser(),
+    parser_kill.add_argument("-u", "--user", default=None,
         help="remote user")
     parser_kill.add_argument("-j", "--jobid", default=None,
         help="remote job ID")
@@ -203,7 +200,7 @@ def main(args=None, prog=None):
         help="check whether the connection works")
     parser_checkconn.set_defaults(act=CheckConnectionAction)
     parser_checkconn.add_argument("site", help="target site")
-    parser_checkconn.add_argument("-u", "--user", default=default_user,
+    parser_checkconn.add_argument("-u", "--user", default=None,
         help="remote user")
     parser_checkconn.add_argument("-t", "--timeout", default=None, type=int,
         help="wait at most this number of seconds")
