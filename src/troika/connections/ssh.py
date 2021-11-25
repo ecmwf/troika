@@ -15,6 +15,8 @@ class SSHConnection(Connection):
         self.ssh = config.get('ssh_command', 'ssh')
         self.scp = config.get('scp_command', 'scp')
         self.host = config['host']
+        if self.user is None:
+            self.user = config.get('user', None)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(host={self.host!r}, user={self.user!r})"
@@ -22,8 +24,10 @@ class SSHConnection(Connection):
     def execute(self, command, stdin=None, stdout=None, stderr=None,
             detach=False, dryrun=False):
         """See `Connection.execute`"""
-        ssh_args = [self.ssh, '-v', '-o', 'StrictHostKeyChecking=no',
-            '-l', self.user, self.host]
+        ssh_args = [self.ssh, '-v', '-o', 'StrictHostKeyChecking=no']
+        if self.user is not None:
+            ssh_args.extend(['-l', self.user])
+        ssh_args.append(self.host)
         args = ssh_args + command
         return self.parent.execute(args, stdin=stdin, stdout=stdout,
             stderr=stderr, detach=detach, dryrun=dryrun)
