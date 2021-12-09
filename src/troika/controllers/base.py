@@ -3,6 +3,7 @@
 from contextlib import ExitStack
 
 from .. import hook
+from ..parser import Parser
 from .. import site
 
 
@@ -20,6 +21,7 @@ class Controller:
         self.args = args
         self.logfile = logfile
         self.site = None
+        self.script_data = None
 
     def __repr__(self):
         return "Controller"
@@ -40,7 +42,7 @@ class Controller:
         dryrun: bool
             If True, do not submit, only report what would be done
         """
-        self.setup()
+        self.setup(parse_script=script)
         pp_script = self.site.preprocess(script, user, output)
         hook.pre_submit(self.site, output, dryrun)
         self.site.submit(pp_script, user, output, dryrun)
@@ -119,7 +121,9 @@ class Controller:
         """
         yield from site.list_sites(self.config)
 
-    def setup(self):
+    def setup(self, parse_script=None):
+        if parse_script is not None:
+            self.parse_script(parse_script)
         self.site = self._get_site()
         hook.setup_hooks(self.config, self.args.site)
         res = hook.at_startup(self.args.action, self.site, self.args)
@@ -128,6 +132,13 @@ class Controller:
 
     def teardown(self, sts=0):
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
+
+    def parse_script(self, script):
+        parser = Parser(str(script))
+        with open(script, 'rb') as f:
+            for line in f:
+                parser.feed(line)
+        self.script_data = parser.data
 
     def _get_site(self):
         return site.get_site(self.config, self.args.site, self.args.user)

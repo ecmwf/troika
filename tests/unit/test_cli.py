@@ -36,7 +36,7 @@ def dummy_controller(dummy_site):
         def _get_site(self):
             return dummy_site
 
-        def setup(self):
+        def setup(self, parse_script=None):
             self.site = self._get_site()
 
         def teardown(self, sts=0):
