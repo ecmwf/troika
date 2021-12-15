@@ -15,7 +15,7 @@ def drop2(sinput, script, user, output):
 @pp.preprocess.register
 def delete(sinput, script, user, output):
     for x in sinput:
-        if not x.startswith("deleteme"):
+        if not x.startswith(b"deleteme"):
             yield x
 
 
@@ -93,10 +93,10 @@ def delete(sinput, script, user, output):
         id="delete, drop2"),
 ])
 def test_hook(sin, sexp, funcs):
-    sin = textwrap.dedent(sin)
-    sexp = textwrap.dedent(sexp)
+    sin = textwrap.dedent(sin).encode('utf-8')
+    sexp = textwrap.dedent(sexp).encode('utf-8')
     pp.preprocess.instantiate(funcs)
-    sout = "".join(pp.preprocess(sin.splitlines(keepends=True), None, None, None))
+    sout = b"".join(pp.preprocess(sin.splitlines(keepends=True), None, None, None))
     assert sout == sexp
 
 
@@ -162,6 +162,6 @@ def test_hook(sin, sexp, funcs):
         id="top+middle"),
 ])
 def test_remove_top_blank_lines(sin, sexp):
-    sin = textwrap.dedent(sin).splitlines(keepends=True)
-    sexp = textwrap.dedent(sexp).splitlines(keepends=True)
+    sin = textwrap.dedent(sin).encode('utf-8').splitlines(keepends=True)
+    sexp = textwrap.dedent(sexp).encode('utf-8').splitlines(keepends=True)
     assert list(pp.remove_top_blank_lines(sin, None, None, None)) == sexp
