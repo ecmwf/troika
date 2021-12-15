@@ -58,8 +58,8 @@ class Site:
         if orig_script.exists():
             _logger.warning("Backup script file %r already exists, " +
                 "overwriting", str(orig_script))
-        with script.open(mode="r") as sin, \
-                tempfile.NamedTemporaryFile(mode='w+', delete=False,
+        with script.open(mode="rb") as sin, \
+                tempfile.NamedTemporaryFile(mode='w+b', delete=False,
                     dir=script.parent, prefix=script.name) as sout:
             sin_pp = pp.preprocess(sin, script, user, output)
             sout.writelines(sin_pp)

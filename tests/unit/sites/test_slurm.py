@@ -213,6 +213,21 @@ def sample_script(tmp_path):
         echo "Hello, World!"
         """,
         id="drop_output2"),
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+
+        echo "\xfc\xaa"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        echo "\xfc\xaa"
+        """,
+        id="invalid_utf8"),
 ])
 def test_preprocess(sin, sexp, dummy_slurm_conf, dummy_slurm_site, tmp_path):
     script = tmp_path / "script.sh"
@@ -228,6 +243,41 @@ def test_preprocess(sin, sexp, dummy_slurm_conf, dummy_slurm_site, tmp_path):
     assert pp_script.read_text() == sexp
     assert orig_script.exists()
     assert orig_script.read_text() == sin
+
+
+@pytest.mark.parametrize("sin, sexp, garbage", [
+    pytest.param(
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+
+        echo "@GARBAGE@"
+        """,
+        """\
+        #!/usr/bin/env bash
+        #SBATCH -J hello
+        #SBATCH --output=@OUTPUT@
+
+        echo "@GARBAGE@"
+        """,
+        b"\xfc\xaa",
+        id="invalid_utf8"),
+])
+def test_preprocess_bin(sin, sexp, garbage, dummy_slurm_conf, dummy_slurm_site, tmp_path):
+    script = tmp_path / "script.sh"
+    orig_script = tmp_path / "script.sh.orig"
+    output = tmp_path / "output.log"
+    sin = textwrap.dedent(sin).encode('utf-8').replace(b"@GARBAGE@", garbage)
+    script.write_bytes(sin)
+    sexp = textwrap.dedent(sexp).replace("@OUTPUT@", str(output.resolve()))
+    sexp = sexp.encode('utf-8').replace(b"@GARBAGE@", garbage)
+    global_config = Config({"sites": {"foo": dummy_slurm_conf}})
+    setup_hooks(global_config, "foo")
+    pp_script = dummy_slurm_site.preprocess(script, "user", output)
+    assert pp_script == script
+    assert pp_script.read_bytes() == sexp
+    assert orig_script.exists()
+    assert orig_script.read_bytes() == sin
 
 
 def test_submit_dryrun(dummy_slurm_site, sample_script, tmp_path):
