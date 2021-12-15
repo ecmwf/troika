@@ -18,24 +18,24 @@ _logger = logging.getLogger(__name__)
 def _split_slurm_directive(arg):
     """Split the argument of a Slurm directive
 
-    >>> _split_slurm_directive("--output=foo")
-    ('--output', 'foo')
-    >>> _split_slurm_directive("-J job")
-    ('-J', 'job')
-    >>> _split_slurm_directive("--exclusive")
-    ('--exclusive', None)
+    >>> _split_slurm_directive(b"--output=foo")
+    (b'--output', b'foo')
+    >>> _split_slurm_directive(b"-J job")
+    (b'-J', b'job')
+    >>> _split_slurm_directive(b"--exclusive")
+    (b'--exclusive', None)
     """
-    m = re.match(r"([^\s=]+)(=|\s+)?(.*)?$", arg)
+    m = re.match(rb"([^\s=]+)(=|\s+)?(.*)?$", arg)
     if m is None:
         raise RunError(r"Malformed sbatch argument: {arg!r}")
     key, sep, val = m.groups()
     if sep is None:
-        assert val == ""
+        assert val == b""
         val = None
     return key, val
 
 
-_DIRECTIVE_RE = re.compile(r"^#\s*SBATCH\s+(.+)$")
+_DIRECTIVE_RE = re.compile(rb"^#\s*SBATCH\s+(.+)$")
 
 
 @preprocess.register
@@ -47,17 +47,17 @@ def slurm_add_output(sin, script, user, output):
             yield line
             continue
         key, val = _split_slurm_directive(m.group(1))
-        if key in ["-o", "--output", "-e", "--error"]:
+        if key in [b"-o", b"--output", b"-e", b"--error"]:
             continue
         yield line
-    yield f"#SBATCH --output={output!s}\n"
+    yield b"#SBATCH --output=" + bytes(output) + b"\n"
 
 
 @preprocess.register
 def slurm_bubble(sin, script, user, output):
     """Make sure all Slurm directives are at the top"""
     directives = []
-    with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+',
+    with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
             dir=script.parent, prefix=script.name) as tmp:
         first = True
         for line in sin:
@@ -72,7 +72,7 @@ def slurm_bubble(sin, script, user, output):
 
             if first:
                 first = False
-                if line.startswith("#!"):
+                if line.startswith(b"#!"):
                     yield line
                     continue
 

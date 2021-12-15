@@ -32,7 +32,7 @@ def preprocess(script_in, script_path, user, output):
 
     Parameters
     ----------
-    script_in: Iterable[str]
+    script_in: Iterable[bytes]
         Iterator over the lines of the script
     script_path: `pathlib.Path`
         Path to the original script
