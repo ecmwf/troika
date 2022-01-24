@@ -1,9 +1,10 @@
 """Base controller class"""
 
-from contextlib import ExitStack
+import pathlib
+import tempfile
 
 from .. import hook
-from ..parser import Parser
+from ..parser import DirectiveParser, MultiParser, ParseError
 from .. import site
 
 
@@ -21,7 +22,7 @@ class Controller:
         self.args = args
         self.logfile = logfile
         self.site = None
-        self.script_data = None
+        self.script_data = {}
 
     def __repr__(self):
         return "Controller"
@@ -134,11 +135,30 @@ class Controller:
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
 
     def parse_script(self, script):
-        parser = Parser(str(script))
-        with open(script, 'rb') as f:
-            for line in f:
-                parser.feed(line)
-        self.script_data = parser.data
+        parsers = [('directives', DirectiveParser())]
+        native = self.site.get_native_parser()
+        if native is not None:
+            parsers.append(('native', native))
+        parsers.append(('shebang', ShebangParser()))
+        parser = MultiParser(parsers)
+        body = self.run_parser(script, parser)
+        self.script_data.update(parser.data)
+        self.script_data['body'] = body
+
+    def run_parser(self, script, parser):
+        script = pathlib.Path(script)
+        stmp = tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
+            dir=script.parent, prefix=script.name)
+        with open(script, 'rb') as sin:
+            try:
+                for lineno, line in enumerate(sin, start=1):
+                    drop = parser.feed(line)
+                    if not drop:
+                        stmp.write(line)
+            except ParseError as e:
+                raise ParseError(f"in {script!s}, line {lineno} {e!s}") from e
+        stmp.seek(0)
+        return stmp
 
     def _get_site(self):
         return site.get_site(self.config, self.args.site, self.args.user)

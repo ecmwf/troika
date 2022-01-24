@@ -9,6 +9,7 @@ import time
 from .. import InvocationError, RunError
 from ..connection import PIPE
 from ..preprocess import preprocess
+from ..parser import BaseParser, ParseError
 from ..utils import check_retcode
 from .base import Site
 
@@ -27,7 +28,7 @@ def _split_slurm_directive(arg):
     """
     m = re.match(rb"([^\s=]+)(=|\s+)?(.*)?$", arg)
     if m is None:
-        raise RunError(r"Malformed sbatch argument: {arg!r}")
+        raise ParseError(r"Malformed sbatch argument: {arg!r}")
     key, sep, val = m.groups()
     if sep is None:
         assert val == b""
@@ -81,6 +82,47 @@ def slurm_bubble(sin, script, user, output):
         yield from directives
         tmp.seek(0)
         yield from tmp
+
+
+class SlurmDirectiveParser(BaseParser):
+    """Parser that processes a script to extract Slurm directives
+
+    Parameters
+    ----------
+    drop_keys: Iterable[bytes]
+        Directives to ignore, e.g. ``[b'-o', b'--output']``
+
+    Members
+    -------
+    data: collections.OrderedDict[bytes, (bytes or None, bytes)]
+        Directives that have been parsed. The first item of the dict value is
+        the parsed value, if any, and the second is the full line, including
+        the line terminator.
+    """
+
+    DIRECTIVE_RE = _DIRECTIVE_RE
+
+    def __init__(self, drop_keys=None):
+        super().__init__()
+        self.data = OrderedDict()
+        if drop_keys is None:
+            drop_keys = []
+        self.drop_keys = set(drop_keys)
+
+    def feed(self, line):
+        """Process the given line
+
+        See ``BaseParser.feed``
+        """
+        m = self.DIRECTIVE_RE.match(line)
+        if m is None:
+            return False
+
+        key, value = _split_slurm_directive(m.group(1))
+        if key not in self.drop_keys:
+            self.data[key] = (value, line)
+
+        return True
 
 
 class SlurmSite(Site):
@@ -207,6 +249,10 @@ class SlurmSite(Site):
                     return
 
             first = False
+
+    def get_native_parser(self):
+        """See `troika.sites.Site.get_native_parser`"""
+        return SlurmDirectiveParser(drop_keys=[b'-o', b'--output', b'-e', b'--error'])
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)

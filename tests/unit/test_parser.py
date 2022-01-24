@@ -2,7 +2,7 @@
 import pytest
 import textwrap
 
-from troika.parser import Parser, ParseError
+from troika.parser import DirectiveParser, ParseError
 
 
 @pytest.mark.parametrize("script, expect", [
@@ -68,7 +68,7 @@ from troika.parser import Parser, ParseError
 ])
 def test_parse(script, expect):
     lines = textwrap.dedent(script).encode('ascii').splitlines()
-    parser = Parser()
+    parser = DirectiveParser()
     for line in lines:
         parser.feed(line)
     params = parser.data
@@ -103,7 +103,7 @@ def test_parse(script, expect):
 ])
 def test_parse_error(script, errline):
     lines = textwrap.dedent(script).encode('ascii').splitlines()
-    parser = Parser()
+    parser = DirectiveParser()
     with pytest.raises(ParseError,
             match=f".*line {errline}, Invalid key-value pair:.*"):
         for line in lines:

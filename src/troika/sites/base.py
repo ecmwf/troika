@@ -145,3 +145,13 @@ class Site:
             True if the connection is able to execute commands
         """
         return self._connection.checkstatus(timeout=timeout, dryrun=dryrun)
+
+    def get_native_parser(self):
+        """Create a `troika.parser.Parser` for native directives
+
+        Returns
+        -------
+        `troika.parser.Parser` or None
+            Directive parser, if any
+        """
+        return None

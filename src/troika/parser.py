@@ -11,6 +11,7 @@ and underscores, and do not start with a number. Whitespace is removed around
 the equals sign and at the end the value.
 """
 
+from collections import OrderedDict
 import re
 
 from . import RunError
@@ -18,47 +19,24 @@ from . import RunError
 
 class ParseError(RunError):
     """Exception raised during script parsing"""
-    def __init__(self, msg, fname=None, line=None):
-        full_msg = ""
-        if fname is not None:
-            full_msg += f"in {fname}, "
-        if line is not None:
-            full_msg += f"line {line}, "
-        full_msg += msg
-        super().__init__(full_msg)
-        self.fname = fname
-        self.line = line
+    def __init__(self, msg):
+        super().__init__()
 
 
-class Parser:
-    """Simple parser that processes a script to extract directives
+class BaseParser:
+    """Base parser class
 
-    Usage
-    -----
-    Parse a script::
-
-        script = open("myscript", "rb")
-        parser = Parser(script.name)
-        for line in script:
-            parser.feed(line)
-        data = parser.data
-
-    Parameters
-    ----------
-    scriptname: str or None
-        Name of the script, for error reporting (omitted if None)
+    Members
+    -------
+    data: object
+        Output data
     """
 
-    DIRECTIVE_RE = re.compile(rb"^#\s*troika\s+(.+?)\s*$", re.I)
-    KEYVAL_RE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
-
-    def __init__(self, scriptname=None):
-        self.scriptname = scriptname
-        self.line = 0
-        self.data = {}
+    def __init__(self):
+        self.data = None
 
     def feed(self, line):
-        """Process the given line
+        """Feed a line to be processed
 
         Parameters
         ----------
@@ -68,10 +46,42 @@ class Parser:
         Returns
         -------
         bool
-            True if a valid directive has been found
+            True if the line can be dropped from the script body
         """
-        self.line += 1
+        raise NotImplementedError
 
+
+class DirectiveParser(BaseParser):
+    """Parser that processes a script to extract directives
+
+    Usage
+    -----
+    Parse a script::
+
+        script = open("myscript", "rb")
+        parser = Parser()
+        for line in script:
+            parser.feed(line)
+        data = parser.data
+
+    Members
+    -------
+    data: collections.OrderedDict[str, bytes]
+        Directives that have been parsed
+    """
+
+    DIRECTIVE_RE = re.compile(rb"^#\s*troika\s+(.+?)\s*$", re.I)
+    KEYVAL_RE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
+
+    def __init__(self):
+        super().__init__()
+        self.data = OrderedDict()
+
+    def feed(self, line):
+        """Process the given line
+
+        See ``BaseParser.feed``
+        """
         dm = self.DIRECTIVE_RE.match(line)
         if dm is None:
             return False
@@ -79,7 +89,7 @@ class Parser:
         kv = dm.group(1)
         kvm = self.KEYVAL_RE.match(kv)
         if kvm is None:
-            raise ParseError(f"Invalid key-value pair: {kv}", self.scriptname, self.line)
+            raise ParseError(f"Invalid key-value pair: {kv}")
 
         key, value = kvm.groups()
         self.data[key.decode('ascii')] = value
@@ -87,24 +97,65 @@ class Parser:
         return True
 
 
-def parse_script(script):
-    """Parse the given script
+class ShebangParser(BaseParser):
+    """Parser that extract the 'shebang' line
+
+    The 'shebang' line, if present, must start with '#!' and be the first
+    non-blank line fed to the parser.
+
+    Members
+    -------
+    data: bytes or None
+        Shebang line, if found, None otherwise
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.done = False
+
+    def feed(self, line):
+        """Process the given line
+
+        See ``BaseParser.feed``
+        """
+        if self.done:
+            return False
+        if line.isspace():
+            return False
+        self.done = True
+        if line.startswith(b'#!'):
+            self.data = line
+            return True
+        return False
+
+
+class MultiParser(BaseParser):
+    """Composition of multiple parsers
+
+    A line fed to this parser is fed to each subparser in order, until the
+    first True return value.
 
     Parameters
     ----------
-    script: file-like
-        Input script
-
-    Returns
-    -------
-    dict
-        Key-value pairs defined in the script
+    parsers: [(str, BaseParser)]
+        Sub-parsers with labels
     """
 
-    sname = getattr(script, "name", None)
-    parser = Parser(sname)
+    def __init__(self, parsers):
+        super().__init__()
+        self.parsers = parsers
 
-    for line in script:
-        parser.feed(line)
+    def feed(self, line):
+        """Process the given line
 
-    return parser.data
+        See ``BaseParser.feed``
+        """
+        for _, parser in self.parsers:
+            drop = parser.feed(line)
+            if drop:
+                return True
+        return False
+
+    @property
+    def data(self):
+        return {label: parser.data for label, parser in self.parsers}
