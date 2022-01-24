@@ -128,6 +128,11 @@ class SlurmDirectiveParser(BaseParser):
 class SlurmSite(Site):
     """Site managed using Slurm"""
 
+
+    directive_prefix = b"#SBATCH "
+    directive_translate = {"output_file": b"--output=%s"}
+
+
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
 
     def __init__(self, config, connection, global_config):

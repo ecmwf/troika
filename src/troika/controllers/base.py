@@ -1,11 +1,15 @@
 """Base controller class"""
 
+import logging
 import pathlib
 import tempfile
 
 from .. import hook
+from ..generator import Generator
 from ..parser import DirectiveParser, MultiParser, ParseError
 from .. import site
+
+_logger = logging.getLogger(__name__)
 
 
 class Controller:
@@ -159,6 +163,32 @@ class Controller:
                 raise ParseError(f"in {script!s}, line {lineno} {e!s}") from e
         stmp.seek(0)
         return stmp
+
+    def generate_script(self, script, user, output):
+        directive_prefix = self.site.directive_prefix
+        directive_translate = self.site.directive_translate
+        generator = Generator(directive_prefix, directive_translate)
+        self.script_data['directives']['output_file'] = output
+        self.run_generator(script, generator)
+
+    def run_generator(self, script, generator):
+        script = pathlib.Path(script)
+        orig_script = script.with_suffix(script.suffix + ".orig")
+        if orig_script.exists():
+            _logger.warning("Backup script file %r already exists, " +
+                "overwriting", str(orig_script))
+        with tempfile.NamedTemporaryFile(mode='w+b', delete=False,
+                    dir=script.parent, prefix=script.name) as sout:
+            sout.writelines(generator.generate(script_data))
+            for line in self.script_data['body']:
+                sout.write(line)
+            new_script = pathlib.Path(sout.name)
+        shutil.copymode(script, new_script)
+        shutil.copy2(script, orig_script)
+        new_script.replace(script)
+        _logger.debug("Script generated. Original script saved to %r",
+            str(orig_script))
+        return script
 
     def _get_site(self):
         return site.get_site(self.config, self.args.site, self.args.user)

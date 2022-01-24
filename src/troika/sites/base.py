@@ -30,6 +30,16 @@ class Site:
     #: becomes ``foo``.
     __type_name__ = None
 
+
+    #: Prefix for the generated directives, e.g. b"#SBATCH ". If `None`, no
+    #: directives will be generated
+    directive_prefix = None
+
+    #: Directive translation table (str -> bytes). Values are formatted using
+    #: the % operator
+    directive_translate = {}
+
+
     def __init__(self, config, connection, global_config):
         self._connection = connection
         self._kill_sequence = config.get('kill_sequence', None)
