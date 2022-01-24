@@ -3,12 +3,10 @@
 import logging
 import pathlib
 import re
-import tempfile
 import time
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
-from ..preprocess import preprocess
 from ..parser import BaseParser, ParseError
 from ..utils import check_retcode
 from .base import Site
@@ -36,54 +34,6 @@ def _split_slurm_directive(arg):
     return key, val
 
 
-_DIRECTIVE_RE = re.compile(rb"^#\s*SBATCH\s+(.+)$")
-
-
-@preprocess.register
-def slurm_add_output(sin, script, user, output):
-    """Set the output file"""
-    for line in sin:
-        m = _DIRECTIVE_RE.match(line)
-        if m is None:
-            yield line
-            continue
-        key, val = _split_slurm_directive(m.group(1))
-        if key in [b"-o", b"--output", b"-e", b"--error"]:
-            continue
-        yield line
-    yield b"#SBATCH --output=" + bytes(output) + b"\n"
-
-
-@preprocess.register
-def slurm_bubble(sin, script, user, output):
-    """Make sure all Slurm directives are at the top"""
-    directives = []
-    with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
-            dir=script.parent, prefix=script.name) as tmp:
-        first = True
-        for line in sin:
-            if line.isspace():
-                tmp.write(line)
-                continue
-
-            m = _DIRECTIVE_RE.match(line)
-            if m is not None:
-                directives.append(line)
-                continue
-
-            if first:
-                first = False
-                if line.startswith(b"#!"):
-                    yield line
-                    continue
-
-            tmp.write(line)
-
-        yield from directives
-        tmp.seek(0)
-        yield from tmp
-
-
 class SlurmDirectiveParser(BaseParser):
     """Parser that processes a script to extract Slurm directives
 
@@ -100,7 +50,7 @@ class SlurmDirectiveParser(BaseParser):
         the line terminator.
     """
 
-    DIRECTIVE_RE = _DIRECTIVE_RE
+    DIRECTIVE_RE = re.compile(rb"^#\s*SBATCH\s+(.+)$")
 
     def __init__(self, drop_keys=None):
         super().__init__()

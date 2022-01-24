@@ -1,13 +1,5 @@
 """Base site class"""
 
-import logging
-import pathlib
-import shutil
-import tempfile
-
-from .. import preprocess as pp
-
-_logger = logging.getLogger(__name__)
 
 class Site:
     """Base site class
@@ -43,43 +35,6 @@ class Site:
     def __init__(self, config, connection, global_config):
         self._connection = connection
         self._kill_sequence = config.get('kill_sequence', None)
-
-    def preprocess(self, script, user, output):
-        """Preprocess a job script
-
-        The script, output and user are interpreted according to the site.
-
-        Parameters
-        ----------
-        script: path-like
-            Path to the job script
-        output: path-like
-            Path to the job output file
-        user:
-            Remote user name
-
-        Returns
-        -------
-        path-like:
-            Path to the preprocessed script
-        """
-        script = pathlib.Path(script)
-        orig_script = script.with_suffix(script.suffix + ".orig")
-        if orig_script.exists():
-            _logger.warning("Backup script file %r already exists, " +
-                "overwriting", str(orig_script))
-        with script.open(mode="rb") as sin, \
-                tempfile.NamedTemporaryFile(mode='w+b', delete=False,
-                    dir=script.parent, prefix=script.name) as sout:
-            sin_pp = pp.preprocess(sin, script, user, output)
-            sout.writelines(sin_pp)
-            new_script = pathlib.Path(sout.name)
-        shutil.copymode(script, new_script)
-        shutil.copy2(script, orig_script)
-        new_script.replace(script)
-        _logger.debug("Preprocessing done. Original script saved to %r",
-            str(orig_script))
-        return script
 
     def submit(self, script, user, output, dryrun=False):
         """Submit a job

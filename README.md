@@ -48,7 +48,6 @@ sites:
         copy_script: true    # if false, the script will be piped through ssh
         at_startup: ["check_connection"]
         pre_submit: ["create_output_dir"]
-        preprocess: ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
         at_exit: ["copy_submit_logfile"]
 ```
 

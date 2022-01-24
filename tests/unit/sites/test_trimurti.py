@@ -55,12 +55,6 @@ def test_invalid_script(dummy_trimurti_site, tmp_path):
         dummy_trimurti_site.submit(script, "user", "output", dryrun=False)
 
 
-def test_preprocess(dummy_trimurti_site, sample_script, tmp_path):
-    output = tmp_path / "output.log"
-    pp_script = dummy_trimurti_site.preprocess(sample_script, "user", output)
-    assert pp_script == sample_script
-
-
 def test_submit_dryrun(dummy_trimurti_site, tmp_path):
     logfile_path = tmp_path / "trimurti_output.log"
     script = tmp_path / "dummy_script.sh"

@@ -48,7 +48,7 @@ class Controller:
             If True, do not submit, only report what would be done
         """
         self.setup(parse_script=script)
-        pp_script = self.site.preprocess(script, user, output)
+        pp_script = self.generate_script(script, user, output)
         hook.pre_submit(self.site, output, dryrun)
         self.site.submit(pp_script, user, output, dryrun)
         self.teardown()

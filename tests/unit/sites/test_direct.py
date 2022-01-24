@@ -31,12 +31,6 @@ def test_invalid_script(dummy_direct_site, tmp_path):
         dummy_direct_site.submit(script, "user", "output", dryrun=False)
 
 
-def test_preprocess(dummy_direct_site, sample_script, tmp_path):
-    output = tmp_path / "output.log"
-    pp_script = dummy_direct_site.preprocess(sample_script, "user", output)
-    assert pp_script == sample_script
-
-
 def test_submit_dryrun(dummy_direct_site, sample_script, tmp_path):
     output = tmp_path / "output.log"
     proc = dummy_direct_site.submit(sample_script, "user", output, dryrun=True)

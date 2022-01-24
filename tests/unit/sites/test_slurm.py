@@ -19,7 +19,6 @@ def dummy_slurm_conf(tmp_path):
     return {
         "type": "slurm",
         "connection": "local",
-        "preprocess": ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
     }
 
 
