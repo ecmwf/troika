@@ -1,6 +1,7 @@
 """Slurm-managed site"""
 
 import logging
+import os
 import pathlib
 import re
 import tempfile
@@ -50,7 +51,7 @@ def slurm_add_output(sin, script, user, output):
         if key in [b"-o", b"--output", b"-e", b"--error"]:
             continue
         yield line
-    yield b"#SBATCH --output=" + bytes(output) + b"\n"
+    yield b"#SBATCH --output=" + os.fsencode(output) + b"\n"
 
 
 @preprocess.register
