@@ -285,3 +285,16 @@ def test_submit_dryrun(dummy_slurm_site, sample_script, tmp_path):
     proc = dummy_slurm_site.submit(sample_script, "user", output, dryrun=True)
     assert proc is None
     assert not output.exists()
+
+
+@pytest.mark.parametrize("path_type", [
+    pytest.param((lambda x: x), id="path"),
+    pytest.param(str, id="str"),
+    pytest.param(bytes, id="bytes"),
+])
+def test_output_path_type(path_type, dummy_slurm_conf, dummy_slurm_site, sample_script, tmp_path):
+    output = path_type(tmp_path / "output.log")
+    global_config = Config({"sites": {"foo": dummy_slurm_conf}})
+    setup_hooks(global_config, "foo")
+    pp_script = dummy_slurm_site.preprocess(sample_script, "user", output)
+    assert pp_script == sample_script
