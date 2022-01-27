@@ -1,6 +1,7 @@
 """Base controller class"""
 
 import logging
+import os
 import pathlib
 import tempfile
 
@@ -168,7 +169,7 @@ class Controller:
         directive_prefix = self.site.directive_prefix
         directive_translate = self.site.directive_translate
         generator = Generator(directive_prefix, directive_translate)
-        self.script_data['directives']['output_file'] = output
+        self.script_data['directives']['output_file'] = os.fsencode(output)
         self.run_generator(script, generator)
 
     def run_generator(self, script, generator):
