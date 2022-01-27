@@ -41,7 +41,7 @@ sites:
         host: remotebox      # ssh host
         copy_script: true    # if false, the script will be piped through ssh
         at_startup: ["check_connection"]
-    cluster:
+    slurm_cluster:
         type: slurm          # jobs are submitted to Slurm
         connection: ssh      # connect to the target via ssh
         host: remotecluster  # ssh host
@@ -49,6 +49,15 @@ sites:
         at_startup: ["check_connection"]
         pre_submit: ["create_output_dir"]
         preprocess: ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
+        at_exit: ["copy_submit_logfile"]
+    pbs_cluster:
+        type: pbs            # jobs are submitted to PBS
+        connection: ssh      # connect to the target via ssh
+        host: othercluster   # ssh host
+        copy_script: true    # if false, the script will be piped through ssh
+        at_startup: ["check_connection"]
+        pre_submit: ["create_output_dir"]
+        preprocess: ["remove_top_blank_lines", "pbs_add_output", "pbs_bubble"]
         at_exit: ["copy_submit_logfile"]
 ```
 
@@ -61,7 +70,8 @@ Name                         Type            Connection
 ------------------------------------------------------------
 localhost                    direct          local
 remote                       direct          ssh
-cluster                      slurm           ssh
+slurm_cluster                slurm           ssh
+pbs_cluster                  pbs             ssh
 ```
 
 ### Available options
