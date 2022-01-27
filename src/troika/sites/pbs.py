@@ -1,15 +1,13 @@
 """PBS-managed site"""
 
 import logging
-import os
 import pathlib
 import re
-import tempfile
 import time
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
-from ..preprocess import preprocess
+from ..parser import BaseParser, ParseError
 from ..utils import check_retcode
 from .base import Site
 
@@ -36,57 +34,53 @@ def _split_pbs_directive(arg):
     return key, val
 
 
-_DIRECTIVE_RE = re.compile(rb"^#\s*PBS\s+(.+)$")
+class PBSDirectiveParser(BaseParser):
+    """Parser that processes a script to extract PBS directives
 
+    Parameters
+    ----------
+    drop_keys: Iterable[bytes]
+        Directives to ignore, e.g. ``[b'-o', b'-e']``
 
-@preprocess.register
-def pbs_add_output(sin, script, user, output):
-    """Set the output file"""
-    for line in sin:
-        m = _DIRECTIVE_RE.match(line)
+    Members
+    -------
+    data: collections.OrderedDict[bytes, (bytes or None, bytes)]
+        Directives that have been parsed. The first item of the dict value is
+        the parsed value, if any, and the second is the full line, including
+        the line terminator.
+    """
+
+    DIRECTIVE_RE = re.compile(rb"^#\s*PBS\s+(.+)$")
+
+    def __init__(self, drop_keys=None):
+        super().__init__()
+        self.data = OrderedDict()
+        if drop_keys is None:
+            drop_keys = []
+        self.drop_keys = set(drop_keys)
+
+    def feed(self, line):
+        """Process the given line
+
+        See ``BaseParser.feed``
+        """
+        m = self.DIRECTIVE_RE.match(line)
         if m is None:
-            yield line
-            continue
-        key, val = _split_pbs_directive(m.group(1))
-        if key in [b"-o", b"-e", b"-j"]:
-            continue
-        yield line
-    yield b"#PBS -j oe\n"
-    yield b"#PBS -o " + os.fsencode(output) + b"\n"
+            return False
 
+        key, value = _split_pbs_directive(m.group(1))
+        if key not in self.drop_keys:
+            self.data[key] = (value, line)
 
-@preprocess.register
-def pbs_bubble(sin, script, user, output):
-    """Make sure all PBS directives are at the top"""
-    directives = []
-    with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
-            dir=script.parent, prefix=script.name) as tmp:
-        first = True
-        for line in sin:
-            if line.isspace():
-                tmp.write(line)
-                continue
-
-            m = _DIRECTIVE_RE.match(line)
-            if m is not None:
-                directives.append(line)
-                continue
-
-            if first:
-                first = False
-                if line.startswith(b"#!"):
-                    yield line
-                    continue
-
-            tmp.write(line)
-
-        yield from directives
-        tmp.seek(0)
-        yield from tmp
+        return True
 
 
 class PBSSite(Site):
     """Site managed using PBS"""
+
+
+    directive_prefix = b"#PBS "
+    directive_translate = {"output_file": b"-o %s"}
 
 
     def __init__(self, config, connection, global_config):
@@ -199,6 +193,10 @@ class PBSSite(Site):
                     return
 
             first = False
+
+    def get_native_parser(self):
+        """See `troika.sites.Site.get_native_parser`"""
+        return PBSDirectiveParser(drop_keys=[b'-o', b'-e', b'-j'])
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)
