@@ -171,6 +171,8 @@ class Controller:
         directive_translate = self.site.directive_translate
         generator = Generator(directive_prefix, directive_translate)
         self.script_data['directives']['output_file'] = os.fsencode(output)
+        if 'error_file' not in self.script_data['directives']:
+            self.script_data['directives']['join_output_error'] = ()  # TODO: delegate to the site
         return self.run_generator(script, generator)
 
     def run_generator(self, script, generator):
