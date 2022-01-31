@@ -32,8 +32,10 @@ class BaseParser:
         Output data
     """
 
+    data = None
+
     def __init__(self):
-        self.data = None
+        pass
 
     def feed(self, line):
         """Feed a line to be processed

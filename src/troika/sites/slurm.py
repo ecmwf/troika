@@ -1,5 +1,6 @@
 """Slurm-managed site"""
 
+from collections import OrderedDict
 import logging
 import pathlib
 import re

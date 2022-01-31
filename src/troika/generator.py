@@ -37,6 +37,8 @@ class Generator:
             Lines of the script header, with endings
         """
 
+        header = []
+
         shebang = script_data.get('shebang')
         if shebang is not None:
             header.append(shebang)

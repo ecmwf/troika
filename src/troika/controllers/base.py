@@ -3,6 +3,7 @@
 import logging
 import os
 import pathlib
+import shutil
 import tempfile
 
 from .. import hook
@@ -128,9 +129,9 @@ class Controller:
         yield from site.list_sites(self.config)
 
     def setup(self, parse_script=None):
+        self.site = self._get_site()
         if parse_script is not None:
             self.parse_script(parse_script)
-        self.site = self._get_site()
         hook.setup_hooks(self.config, self.args.site)
         res = hook.at_startup(self.args.action, self.site, self.args)
         if any(res):
@@ -170,7 +171,7 @@ class Controller:
         directive_translate = self.site.directive_translate
         generator = Generator(directive_prefix, directive_translate)
         self.script_data['directives']['output_file'] = os.fsencode(output)
-        self.run_generator(script, generator)
+        return self.run_generator(script, generator)
 
     def run_generator(self, script, generator):
         script = pathlib.Path(script)
@@ -180,7 +181,7 @@ class Controller:
                 "overwriting", str(orig_script))
         with tempfile.NamedTemporaryFile(mode='w+b', delete=False,
                     dir=script.parent, prefix=script.name) as sout:
-            sout.writelines(generator.generate(script_data))
+            sout.writelines(generator.generate(self.script_data))
             for line in self.script_data['body']:
                 sout.write(line)
             new_script = pathlib.Path(sout.name)
