@@ -81,7 +81,17 @@ class PBSSite(Site):
 
 
     directive_prefix = b"#PBS "
-    directive_translate = {"output_file": b"-o %s"}
+    directive_translate = {
+        "billing_account": b"-A %s",
+        "export_vars": b"-v %s",  # TODO: support -V as well?
+        "join_output_error": b"-j oe",  # TODO: make that automatic
+        "mail_type": b"-m %s",  # TODO: add translation logic
+        "mail_user": b"-M %s",
+        "name": b"-N %s",
+        "output_file": b"-o %s",
+        "queue": b"-q %s",
+        "walltime": b"-l walltime=%s",
+    }
 
 
     def __init__(self, config, connection, global_config):

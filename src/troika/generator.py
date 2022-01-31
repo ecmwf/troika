@@ -56,4 +56,9 @@ class Generator:
             for _, directive in native.values():
                 header.append(directive)
 
+        extra = script_data.get('extra')
+        if extra is not None:
+            header.append(b"\n")
+            header.extend(extra)
+
         return header

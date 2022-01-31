@@ -81,7 +81,27 @@ class SlurmSite(Site):
 
 
     directive_prefix = b"#SBATCH "
-    directive_translate = {"output_file": b"--output=%s"}
+    directive_translate = {
+        "billing_account": b"--account=%s",
+        "cpus_per_task": b"--cpus-per-task=%s",
+        "error_file": b"--error=%s",
+        "exclusive_resources": b"--exclusive",
+        "export_vars": b"--export=%s",
+        "mail_type": b"--mail-type=%s",  # TODO: add translation logic
+        "mail_user": b"--mail-user=%s",
+        "memory_per_node": b"--mem=%s",
+        "memory_per_cpu": b"--mem-per-cpu=%s",
+        "name": b"--job-name=%s",
+        "output_file": b"--output=%s",
+        "partition": b"--partition=%s",
+        "tasks_per_node": b"--ntasks-per-node=%s",
+        "threads_per_core": b"--threads-per-core=%s",
+        "tmpdir_size": b"--tmp=%s",
+        "total_nodes": b"--nodes=%s",
+        "total_tasks": b"--ntasks=%s",
+        "queue": b"--qos=%s",
+        "walltime": b"--time=%s",
+    }
 
 
     SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
