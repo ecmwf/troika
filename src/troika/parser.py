@@ -19,8 +19,7 @@ from . import RunError
 
 class ParseError(RunError):
     """Exception raised during script parsing"""
-    def __init__(self, msg):
-        super().__init__()
+    pass
 
 
 class BaseParser:

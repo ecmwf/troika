@@ -105,7 +105,8 @@ def test_parse_error(script, errline):
     lines = textwrap.dedent(script).encode('ascii').splitlines()
     parser = DirectiveParser()
     with pytest.raises(ParseError,
-            match=f".*line {errline}, Invalid key-value pair:.*"):
-        for line in lines:
+            match="Invalid key-value pair:.*"):
+        for lno, line in enumerate(lines, start=1):
             parser.feed(line)
+    assert lno == errline
 

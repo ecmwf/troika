@@ -32,6 +32,9 @@ def dummy_controller(dummy_site):
         def _get_site(self):
             return dummy_site
 
+        def generate_script(self, script, user, output):
+            return script
+
         def setup(self, parse_script=None):
             self.site = self._get_site()
 

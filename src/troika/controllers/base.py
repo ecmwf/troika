@@ -8,7 +8,7 @@ import tempfile
 
 from .. import hook
 from ..generator import Generator
-from ..parser import DirectiveParser, MultiParser, ParseError
+from ..parser import DirectiveParser, MultiParser, ParseError, ShebangParser
 from .. import site
 
 _logger = logging.getLogger(__name__)
