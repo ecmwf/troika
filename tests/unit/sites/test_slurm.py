@@ -24,7 +24,7 @@ def dummy_slurm_conf(tmp_path):
 
 def test_get_site(dummy_slurm_conf):
     global_config = Config({"sites": {"foo": dummy_slurm_conf}})
-    site = get_site(global_config, "foo", "user")
+    site = get_site(global_config, "foo", "user", [])
     assert isinstance(site, slurm.SlurmSite)
 
 
@@ -54,7 +54,7 @@ def sample_script(tmp_path):
 
 @pytest.fixture
 def dummy_controller(dummy_slurm_site):
-    controller = Controller(Config({}), None, None)
+    controller = Controller(Config({}), None, None, [])
     controller.site = dummy_slurm_site
     return controller
 

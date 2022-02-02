@@ -15,7 +15,7 @@ def dummy_direct_conf(tmp_path):
 
 def test_get_site(dummy_direct_conf):
     global_config = Config({"sites": {"foo": dummy_direct_conf}})
-    site = get_site(global_config, "foo", "user")
+    site = get_site(global_config, "foo", "user", [])
     assert isinstance(site, direct.DirectExecSite)
 
 

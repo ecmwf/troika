@@ -3,16 +3,16 @@
 import logging
 
 from . import ConfigurationError
+from .components import discover
 from .controllers.base import Controller
 from . import controllers
-from .plugins import discover
 
 _logger = logging.getLogger(__name__)
 
 
-def get_controller(config, args, logfile):
+def get_controller(config, args, logfile, plugins):
     """Create a `troika.controllers.base.Controller` object from configuration"""
-    known_types = discover(controllers, Controller, attrname="__type_name__", allow_base=True)
+    known_types = discover(controllers, plugins, Controller, attrname="__type_name__", allow_base=True)
     _logger.debug("Available controllers: %s", ", ".join(known_types.keys()))
 
     ctl = config.get("controller", "base")
@@ -21,6 +21,6 @@ def get_controller(config, args, logfile):
     except KeyError:
         raise ConfigurationError(f"Unknown controller {ctl!r}")
 
-    ctl = cls(config, args, logfile)
+    ctl = cls(config, args, logfile, plugins)
     _logger.debug("Using %r", ctl)
     return ctl

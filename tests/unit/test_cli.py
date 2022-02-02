@@ -47,6 +47,7 @@ def dummy_controller(dummy_site):
 def dummy_actions(monkeypatch, dummy_controller):
     monkeypatch.setattr(troika.cli, "get_config", lambda config: Config({}))
     monkeypatch.setattr(troika.cli, "get_controller", dummy_controller)
+    monkeypatch.setattr(troika.cli, "load_plugins", lambda names: [])
 
     def make_dummy_action():
         class DummyAction(troika.cli.Action):
@@ -113,7 +114,7 @@ def test_submit(dummy_controller, dummy_site):
     args = make_test_args(action="submit", site="dummy", script="script",
         user="user", output="output", dryrun=True)
     cfg = Config({})
-    ctl = dummy_controller(cfg, args, None)
+    ctl = dummy_controller(cfg, args, None, [])
     act = troika.cli.SubmitAction(args)
     sts = act.run(cfg, ctl)
     assert sts == 0
@@ -124,7 +125,7 @@ def test_monitor(dummy_controller, dummy_site):
     args = make_test_args(action="monitor", site="dummy", script="script",
         user="user", jobid="1234", dryrun=True)
     cfg = Config({})
-    ctl = dummy_controller(cfg, args, None)
+    ctl = dummy_controller(cfg, args, None, [])
     act = troika.cli.MonitorAction(args)
     sts = act.run(cfg, ctl)
     assert sts == 0
@@ -135,7 +136,7 @@ def test_kill(dummy_controller, dummy_site):
     args = make_test_args(action="kill", site="dummy", script="script",
         user="user", jobid="1234", dryrun=True)
     cfg = Config({})
-    ctl = dummy_controller(cfg, args, None)
+    ctl = dummy_controller(cfg, args, None, [])
     act = troika.cli.KillAction(args)
     sts = act.run(cfg, ctl)
     assert sts == 0

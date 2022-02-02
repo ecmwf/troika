@@ -23,10 +23,11 @@ class Controller:
 
     __type_name__ = "base"
 
-    def __init__(self, config, args, logfile):
+    def __init__(self, config, args, logfile, plugins):
         self.config = config
         self.args = args
         self.logfile = logfile
+        self.plugins = plugins
         self.site = None
         self.script_data = {}
 
@@ -195,4 +196,4 @@ class Controller:
         return script
 
     def _get_site(self):
-        return site.get_site(self.config, self.args.site, self.args.user)
+        return site.get_site(self.config, self.args.site, self.args.user, self.plugins)
