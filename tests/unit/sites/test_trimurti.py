@@ -29,7 +29,7 @@ def dummy_trimurti_conf(tmp_path):
 
 def test_get_site(dummy_trimurti_conf):
     global_config = Config({"sites": {"foo": dummy_trimurti_conf}})
-    site = get_site(global_config, "foo", "user", [])
+    site = get_site(global_config, "foo", "user")
     assert isinstance(site, trimurti.TrimurtiSite)
     assert site._host == "dummy"
     assert dummy_trimurti_conf["trimurti_path"].samefile(site._trimurti_path)

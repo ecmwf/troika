@@ -25,7 +25,7 @@ def dummy_pbs_conf(tmp_path):
 
 def test_get_site(dummy_pbs_conf):
     global_config = Config({"sites": {"foo": dummy_pbs_conf}})
-    site = get_site(global_config, "foo", "user", [])
+    site = get_site(global_config, "foo", "user")
     assert isinstance(site, pbs.PBSSite)
 
 
@@ -55,7 +55,7 @@ def sample_script(tmp_path):
 
 @pytest.fixture
 def dummy_controller(dummy_pbs_site):
-    controller = Controller(Config({}), None, None, [])
+    controller = Controller(Config({}), None, None)
     controller.site = dummy_pbs_site
     return controller
 

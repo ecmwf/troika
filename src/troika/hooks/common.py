@@ -4,12 +4,10 @@ import logging
 import pathlib
 
 from ..utils import check_retcode
-from .base import at_startup, pre_submit, at_exit
 
 _logger = logging.getLogger(__name__)
 
 
-@at_startup.register
 def check_connection(action, site, args):
     """Startup hook to check the connection works before doing anything"""
     working = site.check_connection(dryrun=args.dryrun)
@@ -18,7 +16,6 @@ def check_connection(action, site, args):
         return True
 
 
-@pre_submit.register
 def create_output_dir(site, output, dryrun=False):
     """Pre-submit hook to create the output directory"""
     out_dir = pathlib.Path(output).parent
@@ -29,7 +26,6 @@ def create_output_dir(site, output, dryrun=False):
     check_retcode(retcode, what="Output directory creation")
 
 
-@at_exit.register
 def copy_submit_logfile(action, site, args, sts, logfile):
     """Exit hook to copy the log file to the remote server when submitting a job"""
     if action != "submit":

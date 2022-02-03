@@ -3,6 +3,7 @@
 import logging
 
 from .. import ConfigurationError
+from ..components import get_entrypoint
 
 _logger = logging.getLogger(__name__)
 
@@ -51,24 +52,6 @@ class Hook:
             results.append(res)
         return results
 
-    def register(self, func, key=None):
-        """Register a function for use as a hook
-
-        Parameters
-        ----------
-        func: callable
-            Hook function
-        key: str or None
-            If specified, key to use for lookup. If None, the function name
-            will be used instead.
-        """
-        if key is None:
-            key = func.__name__
-        if key in self._hooks:
-            _logger.warning("Multiply defined %r %s hook", key, self.name)
-        self._hooks[key] = func
-        return func
-
     def instantiate(self, hooks):
         """Select the requested hook implementations
 
@@ -80,8 +63,8 @@ class Hook:
         hookfuncs = []
         for hookname in hooks:
             try:
-                hookfunc = self._hooks[hookname]
-            except KeyError:
+                hookfunc = get_entrypoint(f"troika.hooks.{self.name}", hookname)
+            except ValueError:
                 msg = f"Implementation {hookname!r} not found for {self.name} hook"
                 raise ConfigurationError(msg)
             hookfuncs.append((hookname, hookfunc))
