@@ -252,7 +252,7 @@ class SlurmSite(Site):
 
             cmd = [self._scancel, str(jid)]
             if sig is not None:
-                cmd.extend(["-s", str(int(sig))])
+                cmd.extend(["-s", str(sig)])
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
