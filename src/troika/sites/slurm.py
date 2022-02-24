@@ -94,6 +94,7 @@ class SlurmSite(Site):
         "name": b"--job-name=%s",
         "output_file": b"--output=%s",
         "partition": b"--partition=%s",
+        "signal": b"--signal=%s",  # TODO: add translation logic
         "tasks_per_node": b"--ntasks-per-node=%s",
         "threads_per_core": b"--threads-per-core=%s",
         "tmpdir_size": b"--tmp=%s",
