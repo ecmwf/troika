@@ -134,7 +134,8 @@ class SlurmSite(Site):
             _logger.error("squeue error: %s", proc_stderr)
             check_retcode(retcode, what="Get State")
         else:
-            if proc_stdout:_logger.debug("squeue error output: %s", jid, proc_stderr)
+            if proc_stderr:
+                _logger.debug("squeue error output: %s", jid, proc_stderr)
         if proc_stdout: return proc_stdout.decode("ascii")
 
     def submit(self, script, user, output, dryrun=False):
