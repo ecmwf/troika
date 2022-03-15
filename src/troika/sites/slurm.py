@@ -120,6 +120,24 @@ class SlurmSite(Site):
             return None
         return int(match.group(1))
 
+    def _get_state(self, jid):
+        """Return the state of a SLURM job, or None if it doesn't exist"""
+        cmd = [ self._squeue, "-h", "-o", "%T", "-j", str(jid) ]
+        proc = self._connection.execute(cmd, stdout=PIPE, stderr=PIPE)
+        proc_stdout, proc_stderr = proc.communicate()
+        retcode = proc.returncode
+        # Essential to remove trailing newline from stdout before returning
+        proc_stdout = proc_stdout.strip()
+        proc_stderr = proc_stderr.strip()
+        _logger.debug("squeue output for job %d: %s", jid, proc_stdout)
+        if retcode != 0:
+            _logger.error("squeue error: %s", proc_stderr)
+            check_retcode(retcode, what="Get State")
+        else:
+            if proc_stderr:
+                _logger.debug("squeue error output: %s", jid, proc_stderr)
+        if proc_stdout: return proc_stdout.decode("ascii")
+
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
@@ -199,6 +217,32 @@ class SlurmSite(Site):
         except ValueError:
             raise RunError(f"Invalid job id: {jid!r}")
 
+        # Attempting to send a signal to a PENDING job will wait for it
+        # to run first, which is not what we want. Cancel such jobs
+        # directly, regardless of `_kill_sequence`. The "-t PENDING"
+        # is important to prevent a race condition if the job is just
+        # about to run.
+        state = self._get_state(jid)
+        if state == 'PENDING':
+            cmd = [self._scancel, "-t", "PENDING", str(jid)]
+            proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
+            if not dryrun:
+                proc_stdout, _ = proc.communicate()
+                retcode = proc.returncode
+                if retcode != 0:
+                    _logger.error("scancel output: %s", proc_stdout)
+                    check_retcode(retcode, what="Kill")
+                elif proc_stdout:
+                    _logger.debug("scancel output: %s", proc_stdout)
+
+            state = self._get_state(jid)
+            if state is None or state == 'CANCELLED':
+                return
+            elif state == 'PENDING':
+                raise RunError(f"Failed to cancel PENDING job {jid!r}")
+            # If anything else, the job is probably starting, so fall through
+            # and treat like a running job
+
         seq = self._kill_sequence
         if seq is None:
             seq = [(0, None)]
@@ -209,7 +253,7 @@ class SlurmSite(Site):
 
             cmd = [self._scancel, str(jid)]
             if sig is not None:
-                cmd.extend(["-s", str(int(sig))])
+                cmd.extend(["-f", "-s", str(sig)])
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -222,7 +266,11 @@ class SlurmSite(Site):
                     _logger.error("scancel output: %s", proc_stdout)
                     check_retcode(retcode, what="Kill")
                 else:
+                    if proc_stdout:
+                        _logger.debug("scancel output: %s", proc_stdout)
                     return
+            elif proc_stdout:
+                _logger.debug("scancel output: %s", proc_stdout)
 
             first = False
 
