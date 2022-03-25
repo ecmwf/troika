@@ -87,6 +87,7 @@ class SlurmSite(Site):
         "error_file": b"--error=%s",
         "exclusive_resources": b"--exclusive",
         "export_vars": b"--export=%s",
+        "licenses": b"--licenses=%s",
         "mail_type": b"--mail-type=%s",  # TODO: add translation logic
         "mail_user": b"--mail-user=%s",
         "memory_per_node": b"--mem=%s",
