@@ -3,7 +3,7 @@
 from .base import Connection
 from .local import LocalConnection
 
-from ..utils import check_retcode
+from ..utils import check_retcode, parse_bool
 
 
 class SSHConnection(Connection):
@@ -14,6 +14,7 @@ class SSHConnection(Connection):
         self.parent = LocalConnection({}, user)
         self.ssh = config.get('ssh_command', 'ssh')
         self.scp = config.get('scp_command', 'scp')
+        self.verbose = parse_bool(config.get('ssh_verbose', True))
         self.host = config['host']
 
     def __repr__(self):
@@ -22,8 +23,11 @@ class SSHConnection(Connection):
     def execute(self, command, stdin=None, stdout=None, stderr=None,
             detach=False, dryrun=False):
         """See `Connection.execute`"""
-        ssh_args = [self.ssh, '-v', '-o', 'StrictHostKeyChecking=no',
-            '-l', self.user, self.host]
+        ssh_args = [self.ssh]
+        if self.verbose:
+            ssh_args.append('-v')
+        ssh_args.extend(['-o', 'StrictHostKeyChecking=no',
+            '-l', self.user, self.host])
         args = ssh_args + command
         return self.parent.execute(args, stdin=stdin, stdout=stdout,
             stderr=stderr, detach=detach, dryrun=dryrun)
