@@ -1,6 +1,6 @@
 """Common definitions"""
 
-VERSION = "0.1.4"
+VERSION = "0.1.5"
 
 
 class ConfigurationError(RuntimeError):
