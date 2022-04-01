@@ -65,3 +65,21 @@ def check_retcode(retcode, what="Command", suffix=""):
             msg += f" terminated by signal {-retcode}"
         msg += suffix
         raise RunError(msg)
+
+
+def first_not_none(l):
+    """Return the first element in `l` that is not None, if any
+    
+    >>> first_not_none(['a', 'b', 'c'])
+    'a'
+    >>> first_not_none([None, 1, 3])
+    1
+    >>> first_not_none([2, None, 6])
+    2
+    >>> first_not_none([None, None])
+    >>> first_not_none([])
+    """
+    for x in l:
+        if x is not None:
+            return x
+    return None
