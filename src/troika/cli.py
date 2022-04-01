@@ -16,7 +16,7 @@ _logger = logging.getLogger(__name__)
 _config_guesses = [
     p / "etc" / "troika.yml"
     for p in [
-        pathlib.Path(__file__).parent.parent,
+        pathlib.Path(__file__).parent.parent.parent.parent.parent,
         pathlib.Path(sys.prefix),
     ]
 ]
