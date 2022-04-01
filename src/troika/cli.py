@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import pathlib
 import sys
 import textwrap
 
@@ -11,6 +12,14 @@ from .config import get_config
 from .controller import Controller
 
 _logger = logging.getLogger(__name__)
+
+_config_guesses = [
+    p / "etc" / "troika.yml"
+    for p in [
+        pathlib.Path(__file__).parent.parent,
+        pathlib.Path(sys.prefix),
+    ]
+]
 
 
 class Action:
@@ -36,7 +45,7 @@ class Action:
     def execute(self):
         """Execute the action"""
         try:
-            config = get_config(self.args.config)
+            config = get_config(self.args.config, guesses=_config_guesses)
             controller = Controller(config, self.args, self.logfile)
             return self.run(config, controller)
         except ConfigurationError as e:
