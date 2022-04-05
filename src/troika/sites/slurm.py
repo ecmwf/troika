@@ -105,7 +105,7 @@ class SlurmSite(Site):
     }
 
 
-    SUBMIT_RE = re.compile(r"^Submitted batch job (\d+)$", re.MULTILINE)
+    SUBMIT_RE = re.compile(r"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
@@ -146,6 +146,10 @@ class SlurmSite(Site):
         if sub_output.exists():
             _logger.warning("Submission output file %r already exists, " +
                 "overwriting", str(sub_output))
+        sub_error = script.with_suffix(script.suffix + ".suberr")
+        if sub_error.exists():
+            _logger.warning("Submission error file %r already exists, " +
+                "overwriting", str(sub_error))
 
         cmd = [self._sbatch]
 
@@ -160,17 +164,19 @@ class SlurmSite(Site):
             inpf = script.open(mode="rb")
 
         outf = None
+        errf = None
         if not dryrun:
             outf = sub_output.open(mode="wb")
+            errf = sub_error.open(mode="wb")
 
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf,
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf, stderr=errf,
             dryrun=dryrun)
         if dryrun:
             return
 
         retcode = proc.wait()
         check_retcode(retcode, what="Submission",
-            suffix=f", check {str(sub_output)!r}")
+            suffix=f", check {str(sub_output)!r} and {str(sub_error)!r}")
 
         jobid = self._parse_submit_output(sub_output.read_text())
         _logger.debug("Slurm job ID: %d", jobid)
