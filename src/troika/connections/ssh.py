@@ -28,7 +28,7 @@ class SSHConnection(Connection):
         ssh_args = [self.ssh]
         if self.verbose:
             ssh_args.append('-v')
-        ssh_args.extend('-o', 'StrictHostKeyChecking=no'])
+        ssh_args.extend(['-o', 'StrictHostKeyChecking=no'])
         if self.user is not None:
             ssh_args.extend(['-l', self.user])
         ssh_args.append(self.host)
