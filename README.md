@@ -57,6 +57,15 @@ sites:
         at_startup: ["check_connection"]
         pre_submit: ["create_output_dir"]
         at_exit: ["copy_submit_logfile"]
+    pbs_cluster:
+        type: pbs            # jobs are submitted to PBS
+        connection: ssh      # connect to the target via ssh
+        host: othercluster   # ssh host
+        copy_script: true    # if false, the script will be piped through ssh
+        at_startup: ["check_connection"]
+        pre_submit: ["create_output_dir"]
+        preprocess: ["remove_top_blank_lines", "pbs_add_output", "pbs_bubble"]
+        at_exit: ["copy_submit_logfile"]
 ```
 
 The configuration can be checked using the `list-sites` command:

@@ -193,6 +193,9 @@ class SlurmSite(Site):
         """See `troika.sites.Site.monitor`"""
         script = pathlib.Path(script)
 
+        if user is None:
+            user = "$USER"
+
         if jid is None:
             jid = self._parse_jidfile(script)
         try:

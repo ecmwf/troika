@@ -38,8 +38,11 @@ class SSHConnection(Connection):
 
     def sendfile(self, src, dst, dryrun=False):
         """See `Connection.sendfile`"""
-        scp_args = [self.scp, '-v', '-o', 'StrictHostKeyChecking=no', src,
-            f"{self.user}@{self.host}:{dst}"]
+        scp_args = [self.scp, '-v', '-o', 'StrictHostKeyChecking=no', src]
+        if self.user is None:
+            scp_args.append(f"{self.host}:{dst}")
+        else:
+            scp_args.append(f"{self.user}@{self.host}:{dst}")
         proc = self.parent.execute(scp_args, dryrun=dryrun)
         if dryrun:
             return
