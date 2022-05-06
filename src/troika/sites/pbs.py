@@ -1,4 +1,4 @@
-"""Slurm-managed site"""
+"""PBS-managed site"""
 
 import logging
 import os
@@ -16,19 +16,19 @@ from .base import Site
 _logger = logging.getLogger(__name__)
 
 
-def _split_slurm_directive(arg):
-    """Split the argument of a Slurm directive
+def _split_pbs_directive(arg):
+    """Split the argument of a PBS directive
 
-    >>> _split_slurm_directive(b"--output=foo")
-    (b'--output', b'foo')
-    >>> _split_slurm_directive(b"-J job")
-    (b'-J', b'job')
-    >>> _split_slurm_directive(b"--exclusive")
-    (b'--exclusive', None)
+    >>> _split_pbs_directive(b"-o foo")
+    (b'-o', b'foo')
+    >>> _split_pbs_directive(b"-N job")
+    (b'-N', b'job')
+    >>> _split_pbs_directive(b"-V")
+    (b'-V', None)
     """
-    m = re.match(rb"([^\s=]+)(=|\s+)?(.*)?$", arg)
+    m = re.match(rb"(\S+)(\s+)?(.*)?$", arg)
     if m is None:
-        raise RunError(r"Malformed sbatch argument: {arg!r}")
+        raise RunError(r"Malformed qsub argument: {arg!r}")
     key, sep, val = m.groups()
     if sep is None:
         assert val == b""
@@ -36,27 +36,28 @@ def _split_slurm_directive(arg):
     return key, val
 
 
-_DIRECTIVE_RE = re.compile(rb"^#\s*SBATCH\s+(.+)$")
+_DIRECTIVE_RE = re.compile(rb"^#\s*PBS\s+(.+)$")
 
 
 @preprocess.register
-def slurm_add_output(sin, script, user, output):
+def pbs_add_output(sin, script, user, output):
     """Set the output file"""
     for line in sin:
         m = _DIRECTIVE_RE.match(line)
         if m is None:
             yield line
             continue
-        key, val = _split_slurm_directive(m.group(1))
-        if key in [b"-o", b"--output", b"-e", b"--error"]:
+        key, val = _split_pbs_directive(m.group(1))
+        if key in [b"-o", b"-e", b"-j"]:
             continue
         yield line
-    yield b"#SBATCH --output=" + os.fsencode(output) + b"\n"
+    yield b"#PBS -j oe\n"
+    yield b"#PBS -o " + os.fsencode(output) + b"\n"
 
 
 @preprocess.register
-def slurm_bubble(sin, script, user, output):
-    """Make sure all Slurm directives are at the top"""
+def pbs_bubble(sin, script, user, output):
+    """Make sure all PBS directives are at the top"""
     directives = []
     with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
             dir=script.parent, prefix=script.name) as tmp:
@@ -84,24 +85,17 @@ def slurm_bubble(sin, script, user, output):
         yield from tmp
 
 
-class SlurmSite(Site):
-    """Site managed using Slurm"""
+class PBSSite(Site):
+    """Site managed using PBS"""
 
-    SUBMIT_RE = re.compile(r"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
-        self._sbatch = config.get('sbatch_command', 'sbatch')
-        self._scancel = config.get('scancel_command', 'scancel')
-        self._squeue = config.get('squeue_command', 'squeue')
+        self._qsub = config.get('qsub_command', 'qsub')
+        self._qdel = config.get('qdel_command', 'qdel')
+        self._qsig = config.get('qsig_command', 'qsig')
+        self._qstat = config.get('qstat_command', 'qstat')
         self._copy_script = config.get('copy_script', False)
-
-    def _parse_submit_output(self, out):
-        match = self.SUBMIT_RE.search(out)
-        if match is None:
-            _logger.warn("Could not parse SLURM output %r", out)
-            return None
-        return int(match.group(1))
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
@@ -115,7 +109,7 @@ class SlurmSite(Site):
             _logger.warning("Submission error file %r already exists, " +
                 "overwriting", str(sub_error))
 
-        cmd = [self._sbatch]
+        cmd = [self._qsub]
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
@@ -142,8 +136,8 @@ class SlurmSite(Site):
         check_retcode(retcode, what="Submission",
             suffix=f", check {str(sub_output)!r} and {str(sub_error)!r}")
 
-        jobid = self._parse_submit_output(sub_output.read_text())
-        _logger.debug("Slurm job ID: %d", jobid)
+        jobid = sub_output.read_text().strip()
+        _logger.debug("PBS job ID: %s", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
         if jid_output.exists():
@@ -157,15 +151,8 @@ class SlurmSite(Site):
         """See `troika.sites.Site.monitor`"""
         script = pathlib.Path(script)
 
-        if user is None:
-            user = "$USER"
-
         if jid is None:
             jid = self._parse_jidfile(script)
-        try:
-            jid = int(jid)
-        except ValueError:
-            raise RunError(f"Invalid job id: {jid!r}")
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
@@ -175,8 +162,7 @@ class SlurmSite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute([self._squeue, "-u", user, "-j", str(jid)],
-            stdout=outf, dryrun=dryrun)
+        self._connection.execute([self._qstat, jid], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
@@ -186,10 +172,6 @@ class SlurmSite(Site):
 
         if jid is None:
             jid = self._parse_jidfile(script)
-        try:
-            jid = int(jid)
-        except ValueError:
-            raise RunError(f"Invalid job id: {jid!r}")
 
         seq = self._kill_sequence
         if seq is None:
@@ -199,9 +181,9 @@ class SlurmSite(Site):
         for wait, sig in seq:
             time.sleep(wait)
 
-            cmd = [self._scancel, str(jid)]
+            cmd = [self._qdel, jid]
             if sig is not None:
-                cmd.extend(["-s", str(int(sig))])
+                cmd = [self._qsig, "-s", str(int(sig)), jid]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -211,7 +193,7 @@ class SlurmSite(Site):
             retcode = proc.returncode
             if retcode != 0:
                 if first:
-                    _logger.error("scancel output: %s", proc_stdout)
+                    _logger.error("qdel/qsig output: %s", proc_stdout)
                     check_retcode(retcode, what="Kill")
                 else:
                     return
@@ -227,4 +209,4 @@ class SlurmSite(Site):
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(connection={self._connection!r}, sbatch_command={self._sbatch!r})"
+        return f"{self.__class__.__name__}(connection={self._connection!r}, qsub_command={self._qsub!r})"

@@ -46,7 +46,7 @@ def dummy_controller(dummy_site):
 
 @pytest.fixture
 def dummy_actions(monkeypatch, dummy_controller):
-    monkeypatch.setattr(troika.cli, "get_config", lambda config: Config({}))
+    monkeypatch.setattr(troika.cli, "get_config", lambda *args, **kwargs: Config({}))
     monkeypatch.setattr(troika.cli, "Controller", dummy_controller)
 
     def make_dummy_action():

@@ -6,6 +6,7 @@ import os
 import yaml
 
 from . import ConfigurationError, InvocationError
+from .utils import first_not_none
 
 _logger = logging.getLogger(__name__)
 
@@ -36,25 +37,32 @@ class Config(UserDict):
         return sites[name]
 
 
-def get_config(configfile=None):
+def get_config(configfile=None, guesses=[]):
     """Read a configuration file
 
     If configfile is None, the path is read from the ``TROIKA_CONFIG_FILE``
-    environment variable.
+    environment variable, or optional guesses.
 
     Parameters
     ----------
     configfile: None, path-like or file-like
+        Configuration file (path or stream)
+    guesses: list of path-like
+        Try these paths as a last resort
 
     Returns
     -------
     `Config`
     """
 
+    configfile = first_not_none([
+        configfile,
+        os.environ.get("TROIKA_CONFIG_FILE"),
+    ] + [
+        guess for guess in guesses if os.path.exists(guess)
+    ])
     if configfile is None:
-        configfile = os.environ.get("TROIKA_CONFIG_FILE")
-        if configfile is None:
-            raise InvocationError("No configuration file found")
+        raise InvocationError("No configuration file found")
 
     try:
         path = os.fspath(configfile)
