@@ -15,7 +15,7 @@ class SSHConnection(Connection):
         self.ssh = config.get('ssh_command', 'ssh')
         self.scp = config.get('scp_command', 'scp')
         self.ssh_options = config.get('ssh_options', [])
-        if parse_bool(config.get('ssh_verbose', True)):
+        if parse_bool(config.get('ssh_verbose', False)):
             self.ssh_options.append('-v')
         strict_host_key_checking = parse_bool(config.get('ssh_strict_host_key_checking', False))
         if strict_host_key_checking is not None:
