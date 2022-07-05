@@ -14,7 +14,15 @@ class SSHConnection(Connection):
         self.parent = LocalConnection({}, user)
         self.ssh = config.get('ssh_command', 'ssh')
         self.scp = config.get('scp_command', 'scp')
-        self.verbose = parse_bool(config.get('ssh_verbose', True))
+        self.ssh_options = config.get('ssh_options', [])
+        if parse_bool(config.get('ssh_verbose', True)):
+            self.ssh_options.append('-v')
+        strict_host_key_checking = parse_bool(config.get('ssh_strict_host_key_checking', False))
+        if strict_host_key_checking is not None:
+            self.ssh_options.append(f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}')
+        connect_timeout = config.get('ssh_connect_timeout', None)
+        if connect_timeout is not None:
+            self.ssh_options.append(f'-oConnectTimeout={connect_timeout}')
         self.host = config['host']
         if self.user is None:
             self.user = config.get('user', None)
@@ -25,20 +33,18 @@ class SSHConnection(Connection):
     def execute(self, command, stdin=None, stdout=None, stderr=None,
             detach=False, dryrun=False):
         """See `Connection.execute`"""
-        ssh_args = [self.ssh]
-        if self.verbose:
-            ssh_args.append('-v')
-        ssh_args.extend(['-o', 'StrictHostKeyChecking=no'])
-        if self.user is not None:
-            ssh_args.extend(['-l', self.user])
-        ssh_args.append(self.host)
+        ssh_args = [self.ssh] + self.ssh_options
+        if self.user is None:
+            ssh_args.append(f"{self.host}")
+        else:
+            ssh_args.append(f"{self.user}@{self.host}")
         args = ssh_args + command
         return self.parent.execute(args, stdin=stdin, stdout=stdout,
             stderr=stderr, detach=detach, dryrun=dryrun)
 
     def sendfile(self, src, dst, dryrun=False):
         """See `Connection.sendfile`"""
-        scp_args = [self.scp, '-v', '-o', 'StrictHostKeyChecking=no', src]
+        scp_args = [self.scp] + self.ssh_options + [src]
         if self.user is None:
             scp_args.append(f"{self.host}:{dst}")
         else:
