@@ -81,24 +81,21 @@ class SubmitAction(Action):
     """Main entry point for the 'submit' sub-command"""
     def run(self, config, controller):
         args = self.args
-        controller.submit(args.script, args.user, args.output, args.dryrun)
-        return 0
+        return controller.submit(args.script, args.user, args.output, args.dryrun)
 
 
 class MonitorAction(Action):
     """Main entry point for the 'monitor' sub-command"""
     def run(self, config, controller):
         args = self.args
-        controller.monitor(args.script, args.user, args.jobid, args.dryrun)
-        return 0
+        return controller.monitor(args.script, args.user, args.jobid, args.dryrun)
 
 
 class KillAction(Action):
     """Main entry point for the 'kill' sub-command"""
     def run(self, config, controller):
         args = self.args
-        controller.kill(args.script, args.user, args.jobid, args.dryrun)
-        return 0
+        return controller.kill(args.script, args.user, args.jobid, args.dryrun)
 
 
 class CheckConnectionAction(Action):
