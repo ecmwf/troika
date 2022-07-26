@@ -110,9 +110,16 @@ class DirectExecSite(Site):
         if seq is None:
             seq = [(0, signal.SIGTERM)]
 
-        first = True
+        cancel_status = None
         for wait, sig in seq:
             time.sleep(wait)
+
+            # os.kill only understands signal numbers, not names
+            if isinstance(s, str):
+                if sig.startswith('SIG'):
+                    sig = signals.Signal(sig)
+                else:
+                    sig = signals.Signal('SIG'+sig)
 
             if dryrun:
                 _logger.info(f"Sending {signal_name(sig)} to process {jid}")
@@ -122,12 +129,17 @@ class DirectExecSite(Site):
             try:
                 os.kill(jid, sig)
             except ProcessLookupError:
-                if first:
+                if cancel_status is None:
                     raise RunError(f"Process ID {jid} not found")
                 else:
-                    return
+                    break
 
-            first = False
+            if sig is None or sig in (signal.SIGKILL, 'KILL', 'SIGKILL'):
+                cancel_status = 'KILLED'
+            else:
+                cancel_status = 'TERMINATED'
+
+        return (jid, cancel_status)
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)

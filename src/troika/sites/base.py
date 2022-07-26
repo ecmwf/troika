@@ -89,6 +89,18 @@ class Site:
             Job ID
         dryrun: bool
             If True, do not kill, only report what would be done
+
+        Returns
+        -------
+        tuple:
+            [0] The job ID of the killed job
+            [1] CANCELLED:  the job was cancelled before it started
+                KILLED:     the job was killed while running without a
+                            catchable signal allowing it to clean up or
+                            report its demise
+                TERMINATED: the job was sent a catchable signal while running
+                            and is expected to clean up and report its own
+                            demise if necessary
         """
         raise NotImplementedError()
 

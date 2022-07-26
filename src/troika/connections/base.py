@@ -26,7 +26,7 @@ class Connection:
         return False
 
     def execute(self, command, stdin=None, stdout=None, stderr=None,
-            detach=False, dryrun=False):
+            detach=False, env=None, dryrun=False):
         """Execute the given command on the host
 
         Parameters
@@ -41,6 +41,8 @@ class Connection:
             Standard error, same as stdout if None
         detach: bool
             If True, detach from the running command
+        env: dict or None
+            Extra variables to set in the command's environment
         dryrun: bool
             If True, do not do anything but print the command that would be
             executed
