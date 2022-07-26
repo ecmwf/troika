@@ -76,7 +76,7 @@ class Controller:
         self.site.monitor(script, user, jid, dryrun)
         self.teardown()
 
-    def kill(self, script, user, jid=None, dryrun=False):
+    def kill(self, script, user, output=None, jid=None, dryrun=False):
         """Process a 'kill' command
 
         The script and job ID are interpreted according to the site.
@@ -88,6 +88,8 @@ class Controller:
             Path to the job script
         user: str
             Remote user name
+        output: path-like or None
+            Path to the job output file
         jid: str or None
             Job ID
         dryrun: bool

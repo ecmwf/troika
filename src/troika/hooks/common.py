@@ -32,3 +32,14 @@ def copy_submit_logfile(action, site, args, sts, logfile):
         return
     out_dir = pathlib.Path(args.output).parent
     site._connection.sendfile(logfile, out_dir, dryrun=args.dryrun)
+
+
+def copy_kill_logfile(action, site, args, sts, logfile):
+    """Exit hook to copy the log file to the remote server when killing a job"""
+    if action != "kill":
+        return
+    if args.output:
+        out_dir = pathlib.Path(args.output).parent
+        site._connection.sendfile(logfile, out_dir, dryrun=args.dryrun)
+    else:
+        _logger.error("copy_kill_logfile hook requires output argument to be passed")
