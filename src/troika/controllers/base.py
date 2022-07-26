@@ -51,7 +51,7 @@ class Controller:
         """
         self.setup(parse_script=script)
         pp_script = self.generate_script(script, user, output)
-        hook.pre_submit(self.site, output, dryrun)
+        hook.pre_submit(self.site, script, output, dryrun)
         self.site.submit(pp_script, user, output, dryrun)
         self.teardown()
 
