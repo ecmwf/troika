@@ -202,6 +202,8 @@ def main(args=None, prog=None):
     parser_kill.add_argument("script", help="job script")
     parser_kill.add_argument("-u", "--user", default=None,
         help="remote user")
+    parser_kill.add_argument("-o", "--output", required=False,
+        help="job output file")
     parser_kill.add_argument("-j", "--jobid", default=None,
         help="remote job ID")
 

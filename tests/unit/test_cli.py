@@ -133,7 +133,7 @@ def test_monitor(dummy_controller, dummy_site):
 
 def test_kill(dummy_controller, dummy_site):
     args = make_test_args(action="kill", site="dummy", script="script",
-        user="user", jobid="1234", dryrun=True)
+        user="user", jobid="1234", output=None, dryrun=True)
     cfg = Config({})
     ctl = dummy_controller(cfg, args, None)
     act = troika.cli.KillAction(args)
