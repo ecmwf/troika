@@ -96,13 +96,15 @@ def at_startup(action, site, args):
 
 
 @Hook.declare
-def pre_submit(site, output, dryrun):
+def pre_submit(site, script, output, dryrun):
     """Pre-submit hook
 
     Parameters
     ----------
     site: `troika.sites.base.Site`
         Selected site
+    script: path-like
+        Path to the script to be submitted
     output: path-like
         Path to the job output file
     dryrun: bool

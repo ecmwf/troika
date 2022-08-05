@@ -16,7 +16,7 @@ def check_connection(action, site, args):
         return True
 
 
-def create_output_dir(site, output, dryrun=False):
+def create_output_dir(site, script, output, dryrun=False):
     """Pre-submit hook to create the output directory"""
     out_dir = pathlib.Path(output).parent
     proc = site._connection.execute(["mkdir", "-p", out_dir], dryrun=dryrun)
@@ -24,6 +24,14 @@ def create_output_dir(site, output, dryrun=False):
         return
     retcode = proc.wait()
     check_retcode(retcode, what="Output directory creation")
+
+
+def copy_orig_script(site, script, output, dryrun=False):
+    """Pre-submit hook to copy the original script to the remote server"""
+    out_dir = pathlib.Path(output).parent
+    script = pathlib.Path(script)
+    orig_script = script.with_suffix(script.suffix + ".orig")
+    site._connection.sendfile(orig_script, out_dir, dryrun=dryrun)
 
 
 def copy_submit_logfile(action, site, args, sts, logfile):
