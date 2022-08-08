@@ -96,15 +96,36 @@ def at_startup(action, site, args):
 
 
 @Hook.declare
-def pre_submit(site, output, dryrun):
+def pre_submit(site, script, output, dryrun):
     """Pre-submit hook
 
     Parameters
     ----------
     site: `troika.sites.base.Site`
         Selected site
+    script: path-like
+        Path to the script to be submitted
     output: path-like
         Path to the job output file
+    dryrun: bool
+        If True, do not do anything, only print actions
+    """
+
+
+@Hook.declare
+def post_kill(site, script, jid, cancel_status, dryrun):
+    """Post-kill hook
+
+    Parameters
+    ----------
+    site: `troika.sites.base.Site`
+        Selected site
+    script: path-like
+        Path to the script file of the job being killed
+    jid: str
+        Job ID of the job being killed
+    cancel_status: str
+        CANCELLED, KILLED or TERMINATED
     dryrun: bool
         If True, do not do anything, only print actions
     """

@@ -182,13 +182,13 @@ class PBSSite(Site):
         if seq is None:
             seq = [(0, None)]
 
-        first = True
+        cancel_status = None
         for wait, sig in seq:
             time.sleep(wait)
 
             cmd = [self._qdel, jid]
             if sig is not None:
-                cmd = [self._qsig, "-s", str(int(sig)), jid]
+                cmd = [self._qsig, "-s", str(sig), jid]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -197,13 +197,19 @@ class PBSSite(Site):
             proc_stdout, _ = proc.communicate()
             retcode = proc.returncode
             if retcode != 0:
-                if first:
+                if cancel_status is None:
                     _logger.error("qdel/qsig output: %s", proc_stdout)
                     check_retcode(retcode, what="Kill")
                 else:
-                    return
+                    _logger.debug("qdel/qsig output: %s", proc_stdout)
+                    break
 
-            first = False
+            if sig is None or sig in (signal.SIGKILL, 'KILL', 'SIGKILL'):
+                cancel_status = 'KILLED'
+            elif cancel_status is None:
+                cancel_status = 'TERMINATED'
+
+        return (jid, cancel_status)
 
     def get_native_parser(self):
         """See `troika.sites.Site.get_native_parser`"""

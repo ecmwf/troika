@@ -56,7 +56,7 @@ class Controller:
         """
         with self.action_context(parse_script=script) as context:
             pp_script = self.generate_script(script, user, output)
-            hook.pre_submit(self.site, output, dryrun)
+            hook.pre_submit(self.site, script, output, dryrun)
             self.site.submit(pp_script, user, output, dryrun)
         return context.status
 
@@ -86,7 +86,7 @@ class Controller:
             self.site.monitor(script, user, jid, dryrun)
         return context.status
 
-    def kill(self, script, user, jid=None, dryrun=False):
+    def kill(self, script, user, output=None, jid=None, dryrun=False):
         """Process a 'kill' command
 
         The script and job ID are interpreted according to the site.
@@ -98,6 +98,8 @@ class Controller:
             Path to the job script
         user: str
             Remote user name
+        output: path-like or None
+            Path to the job output file
         jid: str or None
             Job ID
         dryrun: bool
@@ -109,7 +111,8 @@ class Controller:
             Return code (0 for success)
         """
         with self.action_context() as context:
-            self.site.kill(script, user, jid, dryrun)
+            jid, cancel_status = self.site.kill(script, user, jid, dryrun)
+            hook.post_kill(self.site, script, jid, cancel_status, dryrun)
         return context.status
 
     def check_connection(self, timeout=None, dryrun=False):
