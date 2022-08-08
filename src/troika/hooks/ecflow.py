@@ -55,6 +55,8 @@ def abort_on_ecflow(site, script, jid, cancel_status, dryrun=False):
         connection = LocalConnection({}, site._connection.user)
 
     proc = connection.execute(cmd, stdout=PIPE, stderr=PIPE, env=env, dryrun=dryrun)
+    if dryrun:
+        return
 
     proc_stdout, proc_stderr = proc.communicate()
     retcode = proc.returncode
