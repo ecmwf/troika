@@ -96,7 +96,8 @@ class Controller:
             If True, do not kill, only report what would be done
         """
         self.setup()
-        self.site.kill(script, user, jid, dryrun)
+        jid, cancel_status = self.site.kill(script, user, jid, dryrun)
+        hook.post_kill(self.site, script, jid, cancel_status, dryrun)
         self.teardown()
 
     def check_connection(self, timeout=None, dryrun=False):

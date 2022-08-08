@@ -1,6 +1,7 @@
 """Local connection class"""
 
 import logging
+import os
 import shutil
 import subprocess
 from subprocess import DEVNULL, STDOUT
@@ -24,7 +25,7 @@ class LocalConnection(Connection):
         return True
 
     def execute(self, command, stdin=None, stdout=None, stderr=None,
-            detach=False, dryrun=False):
+            detach=False, env=None, dryrun=False):
         """See `Connection.execute`"""
         if dryrun:
             _logger.info("Execute: %s", " ".join(repr(str(arg)) for arg in command))
@@ -37,7 +38,8 @@ class LocalConnection(Connection):
             stderr = STDOUT
         _logger.debug("Executing %s", " ".join(repr(str(arg)) for arg in command))
         proc = subprocess.Popen(command, stdin=stdin, stdout=stdout,
-            stderr=stderr, start_new_session=detach)
+            stderr=stderr, start_new_session=detach,
+            env=({**os.environ, **env} if env is not None else None))
         _logger.debug("Child PID: %d", proc.pid)
         return proc
 

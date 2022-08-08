@@ -4,6 +4,7 @@ from collections import OrderedDict
 import logging
 import pathlib
 import re
+import signal
 import time
 
 from .. import InvocationError, RunError
@@ -238,6 +239,9 @@ class SlurmSite(Site):
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
             if not dryrun:
                 proc_stdout, _ = proc.communicate()
+                # Strip this _before_ checking for output because ecscancel
+                # produces spurious blank lines
+                proc_stdout = proc_stdout.strip()
                 retcode = proc.returncode
                 if retcode != 0:
                     _logger.error("scancel output: %s", proc_stdout)
@@ -247,7 +251,7 @@ class SlurmSite(Site):
 
             state = self._get_state(jid)
             if state is None or state == 'CANCELLED':
-                return
+                return (jid, 'CANCELLED')
             elif state == 'PENDING':
                 raise RunError(f"Failed to cancel PENDING job {jid!r}")
             # If anything else, the job is probably starting, so fall through
@@ -257,7 +261,7 @@ class SlurmSite(Site):
         if seq is None:
             seq = [(0, None)]
 
-        first = True
+        cancel_status = None
         for wait, sig in seq:
             time.sleep(wait)
 
@@ -271,18 +275,25 @@ class SlurmSite(Site):
 
             proc_stdout, _ = proc.communicate()
             retcode = proc.returncode
+            # Strip this _before_ checking for output because ecscancel
+            # produces spurious blank lines
+            proc_stdout = proc_stdout.strip()
             if retcode != 0:
-                if first:
+                if cancel_status is None:
                     _logger.error("scancel output: %s", proc_stdout)
                     check_retcode(retcode, what="Kill")
                 else:
                     if proc_stdout:
                         _logger.debug("scancel output: %s", proc_stdout)
-                    return
+                    break
             elif proc_stdout:
                 _logger.debug("scancel output: %s", proc_stdout)
 
-            first = False
+            if sig is None or sig in (signal.SIGKILL, 'KILL', 'SIGKILL'):
+                cancel_status = 'KILLED'
+            elif cancel_status is None:
+                cancel_status = 'TERMINATED'
+        return (jid, cancel_status)
 
     def get_native_parser(self):
         """See `troika.sites.Site.get_native_parser`"""

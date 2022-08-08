@@ -22,6 +22,7 @@ def dummy_site():
             self.monitor_called = True
         def kill(self, script, user, jid=None, dryrun=False):
             self.kill_called = True
+            return jid, 'KILLED'
     dummy = DummySite({}, None, Config({}))
     return dummy
 
