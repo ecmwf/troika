@@ -4,6 +4,7 @@ from collections import OrderedDict
 import logging
 import pathlib
 import re
+import signal
 import time
 
 from .. import InvocationError, RunError
