@@ -41,6 +41,8 @@ class Generator:
 
         shebang = script_data.get('shebang')
         if shebang is not None:
+            if not shebang.endswith(b'\n'):
+                shebang += b'\n'
             header.append(shebang)
 
         if self.dir_prefix is not None:

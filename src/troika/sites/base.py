@@ -33,6 +33,7 @@ class Site:
 
 
     def __init__(self, config, connection, global_config):
+        self.config = config
         self._connection = connection
         self._kill_sequence = config.get('kill_sequence', None)
 
