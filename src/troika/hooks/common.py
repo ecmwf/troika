@@ -8,6 +8,16 @@ from ..utils import check_retcode
 _logger = logging.getLogger(__name__)
 
 
+def ensure_output_dir(site, output, dryrun=False):
+    """Ensure the output directory exists and return its path"""
+    out_dir = pathlib.PurePath(output).parent
+    proc = site._connection.execute(["mkdir", "-p", out_dir], dryrun=dryrun)
+    if dryrun:
+        return out_dir
+    retcode = proc.wait()
+    check_retcode(retcode, what="Output directory creation")
+    return out_dir
+
 def check_connection(action, site, args):
     """Startup hook to check the connection works before doing anything"""
     working = site.check_connection(dryrun=args.dryrun)
@@ -18,28 +28,24 @@ def check_connection(action, site, args):
 
 def create_output_dir(site, script, output, dryrun=False):
     """Pre-submit hook to create the output directory"""
-    out_dir = pathlib.Path(output).parent
-    proc = site._connection.execute(["mkdir", "-p", out_dir], dryrun=dryrun)
-    if dryrun:
-        return
-    retcode = proc.wait()
-    check_retcode(retcode, what="Output directory creation")
+    ensure_output_dir(site, output, dryrun=dryrun)
 
 
 def copy_orig_script(site, script, output, dryrun=False):
     """Pre-submit hook to copy the original script to the remote server"""
-    out_dir = pathlib.Path(output).parent
-    script = pathlib.Path(script)
+    out_dir = ensure_output_dir(site, output, dryrun=dryrun)
+    script = pathlib.PurePath(script)
     orig_script = script.with_suffix(script.suffix + ".orig")
-    site._connection.sendfile(orig_script, out_dir, dryrun=dryrun)
+    site._connection.sendfile(orig_script, out_dir / orig_script.name, dryrun=dryrun)
 
 
 def copy_submit_logfile(action, site, args, sts, logfile):
     """Exit hook to copy the log file to the remote server when submitting a job"""
     if action != "submit":
         return
-    out_dir = pathlib.Path(args.output).parent
-    site._connection.sendfile(logfile, out_dir, dryrun=args.dryrun)
+    logfile = pathlib.PurePath(logfile)
+    out_dir = ensure_output_dir(site, args.output, dryrun=args.dryrun)
+    site._connection.sendfile(logfile, out_dir / logfile.name, dryrun=args.dryrun)
 
 
 def copy_kill_logfile(action, site, args, sts, logfile):
@@ -47,7 +53,8 @@ def copy_kill_logfile(action, site, args, sts, logfile):
     if action != "kill":
         return
     if args.output:
-        out_dir = pathlib.Path(args.output).parent
-        site._connection.sendfile(logfile, out_dir, dryrun=args.dryrun)
+        logfile = pathlib.PurePath(logfile)
+        out_dir = ensure_output_dir(site, args.output, dryrun=args.dryrun)
+        site._connection.sendfile(logfile, out_dir / logfile.name, dryrun=args.dryrun)
     else:
         _logger.error("copy_kill_logfile hook requires output argument to be passed")
