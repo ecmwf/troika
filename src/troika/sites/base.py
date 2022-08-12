@@ -1,5 +1,8 @@
 """Base site class"""
 
+from .. import ConfigurationError
+from ..utils import normalise_signal
+
 
 class Site:
     """Base site class
@@ -34,7 +37,13 @@ class Site:
 
     def __init__(self, config, connection, global_config):
         self._connection = connection
-        self._kill_sequence = config.get('kill_sequence', None)
+        try:
+            self._kill_sequence = [
+                (wait, normalise_signal(sig))
+                for wait, sig in config.get('kill_sequence', [])
+            ]
+        except (TypeError, ValueError) as e:
+            raise ConfigurationError(f"Invalid kill sequence: {e!s}")
 
     def submit(self, script, user, output, dryrun=False):
         """Submit a job

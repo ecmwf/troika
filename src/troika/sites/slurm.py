@@ -267,7 +267,7 @@ class SlurmSite(Site):
 
             cmd = [self._scancel, str(jid)]
             if sig is not None:
-                cmd.extend(["-f", "-s", str(sig)])
+                cmd.extend(["-f", "-s", str(sig.value)])
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -289,7 +289,7 @@ class SlurmSite(Site):
             elif proc_stdout:
                 _logger.debug("scancel output: %s", proc_stdout)
 
-            if sig is None or sig in (signal.SIGKILL, 'KILL', 'SIGKILL'):
+            if sig is None or sig == signal.SIGKILL:
                 cancel_status = 'KILLED'
             elif cancel_status is None:
                 cancel_status = 'TERMINATED'

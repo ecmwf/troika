@@ -189,7 +189,7 @@ class PBSSite(Site):
 
             cmd = [self._qdel, jid]
             if sig is not None:
-                cmd = [self._qsig, "-s", str(sig), jid]
+                cmd = [self._qsig, "-s", str(sig.value), jid]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -205,7 +205,7 @@ class PBSSite(Site):
                     _logger.debug("qdel/qsig output: %s", proc_stdout)
                     break
 
-            if sig is None or sig in (signal.SIGKILL, 'KILL', 'SIGKILL'):
+            if sig is None or sig == signal.SIGKILL:
                 cancel_status = 'KILLED'
             elif cancel_status is None:
                 cancel_status = 'TERMINATED'

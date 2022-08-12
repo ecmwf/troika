@@ -9,24 +9,38 @@ from . import RunError
 _logger = logging.getLogger(__name__)
 
 
-def signal_name(sig):
-    """Get the usual SIG* name associated to the given signal number
+def normalise_signal(sig):
+    """Get the `signal.Signals` value associated with the given signal
 
-    >>> signal_name(2)
-    'SIGINT'
-    >>> signal_name(9)
-    'SIGKILL'
-    >>> signal_name(15)
-    'SIGTERM'
-    >>> signal_name(0)
+    >>> normalise_signal(2)
+    <Signals.SIGINT: 2>
+    >>> normalise_signal('KILL')
+    <Signals.SIGKILL: 9>
+    >>> normalise_signal('SIGTERM')
+    <Signals.SIGTERM: 15>
+    >>> normalise_signal('NOTASIGNAL')
     Traceback (most recent call last):
         ...
-    KeyError: 0
+    ValueError: Invalid signal: 'NOTASIGNAL'
+    >>> normalise_signal(-3)
+    Traceback (most recent call last):
+        ...
+    ValueError: Invalid signal: -3
     """
-    match = [s for s in signal.Signals if s.value == int(sig)]
-    if len(match) != 1:
-        raise KeyError(sig)
-    return match[0].name
+    if isinstance(sig, signal.Signals):
+        return sig
+    elif isinstance(sig, str):
+        name = sig.upper()
+        if not name.startswith("SIG"):
+            name = "SIG" + name
+        match = [s for s in signal.Signals if s.name == name]
+        if len(match) == 1:
+            return match[0]
+    elif isinstance(sig, int):
+        match = [s for s in signal.Signals if s.value == int(sig)]
+        if len(match) == 1:
+            return match[0]
+    raise ValueError(f"Invalid signal: {sig!r}")
 
 
 def check_retcode(retcode, what="Command", suffix=""):
