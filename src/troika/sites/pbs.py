@@ -1,6 +1,7 @@
 """PBS-managed site"""
 
 from collections import OrderedDict
+import locale
 import logging
 import pathlib
 import re
@@ -106,14 +107,6 @@ class PBSSite(Site):
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
-        sub_output = script.with_suffix(script.suffix + ".sub")
-        if sub_output.exists():
-            _logger.warning("Submission output file %r already exists, " +
-                "overwriting", str(sub_output))
-        sub_error = script.with_suffix(script.suffix + ".suberr")
-        if sub_error.exists():
-            _logger.warning("Submission error file %r already exists, " +
-                "overwriting", str(sub_error))
 
         cmd = [self._qsub]
 
@@ -127,22 +120,20 @@ class PBSSite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        outf = None
-        errf = None
-        if not dryrun:
-            outf = sub_output.open(mode="wb")
-            errf = sub_error.open(mode="wb")
-
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf, stderr=errf,
-            dryrun=dryrun)
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
 
-        retcode = proc.wait()
-        check_retcode(retcode, what="Submission",
-            suffix=f", check {str(sub_output)!r} and {str(sub_error)!r}")
+        proc_stdout, proc_stderr = proc.communicate()
+        if proc.returncode != 0:
+            if proc_stdout: _logger.error("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.error("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
+            check_retcode(proc.returncode, what="Submission")
+        else:
+            if proc_stdout: _logger.debug("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.debug("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
 
-        jobid = sub_output.read_text().strip()
+        jobid = proc_stdout.decode(locale.getpreferredencoding()).strip()
         _logger.debug("PBS job ID: %s", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
