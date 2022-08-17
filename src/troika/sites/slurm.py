@@ -8,6 +8,7 @@ import signal
 import time
 
 from .. import InvocationError, RunError
+from .. import generator
 from ..connection import PIPE
 from ..parser import BaseParser, ParseError
 from ..utils import check_retcode
@@ -77,6 +78,19 @@ class SlurmDirectiveParser(BaseParser):
         return True
 
 
+def _translate_mail_type(value):
+    trans = {b"none": b"NONE", b"begin": b"BEGIN", b"end": b"END", b"fail": b"FAIL"}
+    vals = value.split(b",")
+    newvals = []
+    for val in vals:
+        newval = trans.get(val.lower())
+        if newval is None:
+            _logger.warn("Unknown mail_type value %r", val)
+            newval = val
+        newvals.append(newval)
+    return b"--mail-type=%s" % b",".join(newvals)
+
+
 class SlurmSite(Site):
     """Site managed using Slurm"""
 
@@ -87,9 +101,9 @@ class SlurmSite(Site):
         "cpus_per_task": b"--cpus-per-task=%s",
         "error_file": b"--error=%s",
         "export_vars": b"--export=%s",
-        "join_output_error": None,
+        "join_output_error": generator.ignore,
         "licenses": b"--licenses=%s",
-        "mail_type": b"--mail-type=%s",  # TODO: add translation logic
+        "mail_type": _translate_mail_type,
         "mail_user": b"--mail-user=%s",
         "memory_per_node": b"--mem=%s",
         "memory_per_cpu": b"--mem-per-cpu=%s",

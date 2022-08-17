@@ -7,6 +7,11 @@ from . import ConfigurationError, InvocationError
 _logger = logging.getLogger(__name__)
 
 
+def ignore(value):
+    """Ignore the requested directive"""
+    return None
+
+
 class Generator:
     """Base script header generator
 
@@ -17,7 +22,10 @@ class Generator:
         directives will be generated
 
     directive_translate: dict[str, bytes]
-        Directive translation table. Values are formatted using the % operator
+        Directive translation table. Values can be either `bytes` that are
+        formatted using the % operator, or callable objects that are called with
+        the value of the directive and should return `None` (ignore the
+        directive), a byte string, or a list of byte strings
 
     unknown_directive: str, optional (`'fail'`, `'warn'`, or `'ignore'`)
         If set to `'fail'`, an unknown directive will cause Troika to exit with
@@ -61,15 +69,20 @@ class Generator:
 
         if self.dir_prefix is not None:
             for name, arg in script_data['directives'].items():
-                sentinel = object()
-                fmt = self.dir_translate.get(name, sentinel)
-                if fmt is sentinel:
+                fmt = self.dir_translate.get(name)
+                if fmt is None:
                     self._unknown_directive(name)
                     continue
-                if fmt is None:
-                    continue
-                directive = self.dir_prefix + (fmt % arg) + b"\n"
-                header.append(directive)
+                directives = None
+                if isinstance(fmt, bytes):
+                    directives = [(fmt % arg)]
+                else:
+                    directives = fmt(arg)
+                    if directives is None:
+                        directives = []
+                    elif isinstance(directives, bytes):
+                        directives = [directives]
+                header.extend(self.dir_prefix + directive + b"\n" for directive in directives)
 
         native = script_data.get('native')
         if native is not None:
