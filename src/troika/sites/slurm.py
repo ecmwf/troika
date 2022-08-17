@@ -106,7 +106,7 @@ class SlurmSite(Site):
     }
 
 
-    SUBMIT_RE = re.compile(r"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
+    SUBMIT_RE = re.compile(br"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
@@ -143,14 +143,6 @@ class SlurmSite(Site):
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
-        sub_output = script.with_suffix(script.suffix + ".sub")
-        if sub_output.exists():
-            _logger.warning("Submission output file %r already exists, " +
-                "overwriting", str(sub_output))
-        sub_error = script.with_suffix(script.suffix + ".suberr")
-        if sub_error.exists():
-            _logger.warning("Submission error file %r already exists, " +
-                "overwriting", str(sub_error))
 
         cmd = [self._sbatch]
 
@@ -164,22 +156,20 @@ class SlurmSite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        outf = None
-        errf = None
-        if not dryrun:
-            outf = sub_output.open(mode="wb")
-            errf = sub_error.open(mode="wb")
-
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf, stderr=errf,
-            dryrun=dryrun)
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
 
-        retcode = proc.wait()
-        check_retcode(retcode, what="Submission",
-            suffix=f", check {str(sub_output)!r} and {str(sub_error)!r}")
+        proc_stdout, proc_stderr = proc.communicate()
+        if proc.returncode != 0:
+            if proc_stdout: _logger.error("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.error("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
+            check_retcode(proc.returncode, what="submission")
+        else:
+            if proc_stdout: _logger.debug("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.debug("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
 
-        jobid = self._parse_submit_output(sub_output.read_text())
+        jobid = self._parse_submit_output(proc_stdout)
         _logger.debug("Slurm job ID: %d", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
