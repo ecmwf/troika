@@ -87,6 +87,7 @@ class SlurmSite(Site):
         "cpus_per_task": b"--cpus-per-task=%s",
         "error_file": b"--error=%s",
         "export_vars": b"--export=%s",
+        "join_output_error": None,
         "licenses": b"--licenses=%s",
         "mail_type": b"--mail-type=%s",  # TODO: add translation logic
         "mail_user": b"--mail-user=%s",

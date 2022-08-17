@@ -29,6 +29,7 @@ class Controller:
         self.logfile = logfile
         self.site = None
         self.default_shebang = None
+        self.unknown_directive = 'warn'
         self.script_data = {}
 
     def __repr__(self):
@@ -188,6 +189,7 @@ class Controller:
         if any(res):
             raise SystemExit(1)
         self.default_shebang = self.site.config.get('default_shebang', None)
+        self.unknown_directive = self.site.config.get('unknown_directive', 'warn')
 
     def teardown(self, sts=0):
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
@@ -223,7 +225,7 @@ class Controller:
             self.script_data['shebang'] = self.default_shebang.encode('utf-8')
         directive_prefix = self.site.directive_prefix
         directive_translate = self.site.directive_translate
-        generator = Generator(directive_prefix, directive_translate)
+        generator = Generator(directive_prefix, directive_translate, self.unknown_directive)
         self.script_data['directives']['output_file'] = os.fsencode(output)
         if 'error_file' not in self.script_data['directives']:
             self.script_data['directives']['join_output_error'] = ()  # TODO: delegate to the site
