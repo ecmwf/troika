@@ -86,7 +86,6 @@ class SlurmSite(Site):
         "billing_account": b"--account=%s",
         "cpus_per_task": b"--cpus-per-task=%s",
         "error_file": b"--error=%s",
-        "exclusive_resources": b"--exclusive",
         "export_vars": b"--export=%s",
         "licenses": b"--licenses=%s",
         "mail_type": b"--mail-type=%s",  # TODO: add translation logic
@@ -96,6 +95,7 @@ class SlurmSite(Site):
         "name": b"--job-name=%s",
         "output_file": b"--output=%s",
         "partition": b"--partition=%s",
+        "priority": b"--priority=%s",
         "tasks_per_node": b"--ntasks-per-node=%s",
         "threads_per_core": b"--threads-per-core=%s",
         "tmpdir_size": b"--tmp=%s",
@@ -103,6 +103,7 @@ class SlurmSite(Site):
         "total_tasks": b"--ntasks=%s",
         "queue": b"--qos=%s",
         "walltime": b"--time=%s",
+        "working_dir": b"--chdir=%s",
     }
 
 

@@ -91,6 +91,7 @@ class PBSSite(Site):
         "mail_user": b"-M %s",
         "name": b"-N %s",
         "output_file": b"-o %s",
+        "priority": b"-p %s",
         "queue": b"-q %s",
         "walltime": b"-l walltime=%s",
     }
