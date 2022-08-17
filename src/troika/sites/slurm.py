@@ -106,7 +106,7 @@ class SlurmSite(Site):
     }
 
 
-    SUBMIT_RE = re.compile(r"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
+    SUBMIT_RE = re.compile(br"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
@@ -122,8 +122,10 @@ class SlurmSite(Site):
             return None
         return int(match.group(1))
 
-    def _get_state(self, jid):
-        """Return the state of a SLURM job, or None if it doesn't exist"""
+    def _get_state(self, jid, strict=True):
+        """Return the state of a SLURM job, or None if 'strict' is not in
+        effect and it can't be retrieved (which probably means the job no
+        longer exists)"""
         cmd = [ self._squeue, "-h", "-o", "%T", "-j", str(jid) ]
         proc = self._connection.execute(cmd, stdout=PIPE, stderr=PIPE)
         proc_stdout, proc_stderr = proc.communicate()
@@ -134,7 +136,8 @@ class SlurmSite(Site):
         _logger.debug("squeue output for job %d: %s", jid, proc_stdout)
         if retcode != 0:
             _logger.error("squeue error: %s", proc_stderr)
-            check_retcode(retcode, what="Get State")
+            if strict:
+                check_retcode(retcode, what="Get State")
         else:
             if proc_stderr:
                 _logger.debug("squeue error output: %s", jid, proc_stderr)
@@ -143,14 +146,6 @@ class SlurmSite(Site):
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
-        sub_output = script.with_suffix(script.suffix + ".sub")
-        if sub_output.exists():
-            _logger.warning("Submission output file %r already exists, " +
-                "overwriting", str(sub_output))
-        sub_error = script.with_suffix(script.suffix + ".suberr")
-        if sub_error.exists():
-            _logger.warning("Submission error file %r already exists, " +
-                "overwriting", str(sub_error))
 
         cmd = [self._sbatch]
 
@@ -164,22 +159,20 @@ class SlurmSite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        outf = None
-        errf = None
-        if not dryrun:
-            outf = sub_output.open(mode="wb")
-            errf = sub_error.open(mode="wb")
-
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf, stderr=errf,
-            dryrun=dryrun)
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
 
-        retcode = proc.wait()
-        check_retcode(retcode, what="Submission",
-            suffix=f", check {str(sub_output)!r} and {str(sub_error)!r}")
+        proc_stdout, proc_stderr = proc.communicate()
+        if proc.returncode != 0:
+            if proc_stdout: _logger.error("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.error("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
+            check_retcode(proc.returncode, what="submission")
+        else:
+            if proc_stdout: _logger.debug("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.debug("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
 
-        jobid = self._parse_submit_output(sub_output.read_text())
+        jobid = self._parse_submit_output(proc_stdout)
         _logger.debug("Slurm job ID: %d", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
@@ -249,7 +242,7 @@ class SlurmSite(Site):
                 elif proc_stdout:
                     _logger.debug("scancel output: %s", proc_stdout)
 
-            state = self._get_state(jid)
+            state = self._get_state(jid, strict=False)
             if state is None or state == 'CANCELLED':
                 return (jid, 'CANCELLED')
             elif state == 'PENDING':
@@ -267,7 +260,7 @@ class SlurmSite(Site):
 
             cmd = [self._scancel, str(jid)]
             if sig is not None:
-                cmd.extend(["-f", "-s", str(sig)])
+                cmd.extend(["-f", "-s", str(sig.value)])
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -289,7 +282,7 @@ class SlurmSite(Site):
             elif proc_stdout:
                 _logger.debug("scancel output: %s", proc_stdout)
 
-            if sig is None or sig in (signal.SIGKILL, 'KILL', 'SIGKILL'):
+            if sig is None or sig == signal.SIGKILL:
                 cancel_status = 'KILLED'
             elif cancel_status is None:
                 cancel_status = 'TERMINATED'

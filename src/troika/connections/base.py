@@ -31,8 +31,8 @@ class Connection:
         """
         return False
 
-    def execute(self, command, stdin=None, stdout=None, stderr=None,
-            detach=False, env=None, dryrun=False):
+    def execute(self, command, stdin=None, stdout=None, stderr=None, text=False,
+            encoding=None, errors=None, detach=False, env=None, dryrun=False):
         """Execute the given command on the host
 
         Parameters
@@ -45,6 +45,12 @@ class Connection:
             Standard output, /dev/null if None
         stderr: None, PIPE, DEVNULL or file-like
             Standard error, same as stdout if None
+        text: bool
+            If True, open streams in text mode
+        encoding: str or None
+            Encoding to use for opening streams in text mode
+        errors: str or None
+            Error handling mode to use for decoding streams in text mode
         detach: bool
             If True, detach from the running command
         env: dict or None

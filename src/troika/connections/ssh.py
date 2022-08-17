@@ -33,7 +33,7 @@ class SSHConnection(Connection):
         return f"{self.__class__.__name__}(host={self.host!r}, user={self.user!r})"
 
     def execute(self, command, stdin=None, stdout=None, stderr=None,
-            detach=False, env=None, dryrun=False):
+            text=False, encoding=None, errors=None, detach=False, env=None, dryrun=False):
         """See `Connection.execute`"""
         ssh_args = [self.ssh] + self.ssh_options
         if self.user is None:
@@ -47,7 +47,8 @@ class SSHConnection(Connection):
         cmd_args = [ shlex.quote(str(arg)) for arg in command ]
         args = ssh_args + env_args + cmd_args
         return self.parent.execute(args, stdin=stdin, stdout=stdout,
-            stderr=stderr, detach=detach, dryrun=dryrun)
+            stderr=stderr, text=text, encoding=encoding, errors=errors,
+            detach=detach, dryrun=dryrun)
 
     def sendfile(self, src, dst, dryrun=False):
         """See `Connection.sendfile`"""

@@ -6,7 +6,7 @@ import pathlib
 import shutil
 import tempfile
 
-from .. import hook
+from .. import hook, ConfigurationError, InvocationError, RunError
 from ..generator import Generator
 from ..parser import DirectiveParser, MultiParser, ParseError, ShebangParser
 from .. import site
@@ -28,6 +28,7 @@ class Controller:
         self.args = args
         self.logfile = logfile
         self.site = None
+        self.default_shebang = None
         self.script_data = {}
 
     def __repr__(self):
@@ -48,12 +49,17 @@ class Controller:
             Path to the job output file
         dryrun: bool
             If True, do not submit, only report what would be done
+
+        Returns
+        -------
+        int 
+            Return code (0 for success)
         """
-        self.setup(parse_script=script)
-        pp_script = self.generate_script(script, user, output)
-        hook.pre_submit(self.site, script, output, dryrun)
-        self.site.submit(pp_script, user, output, dryrun)
-        self.teardown()
+        with self.action_context(parse_script=script) as context:
+            pp_script = self.generate_script(script, user, output)
+            hook.pre_submit(self.site, script, output, dryrun)
+            self.site.submit(pp_script, user, output, dryrun)
+        return context.status
 
     def monitor(self, script, user, jid=None, dryrun=False):
         """Process a 'monitor' command
@@ -71,10 +77,15 @@ class Controller:
             Job ID
         dryrun: bool
             If True, do not do anything, only report what would be done
+
+        Returns
+        -------
+        int 
+            Return code (0 for success)
         """
-        self.setup()
-        self.site.monitor(script, user, jid, dryrun)
-        self.teardown()
+        with self.action_context() as context:
+            self.site.monitor(script, user, jid, dryrun)
+        return context.status
 
     def kill(self, script, user, output=None, jid=None, dryrun=False):
         """Process a 'kill' command
@@ -94,11 +105,16 @@ class Controller:
             Job ID
         dryrun: bool
             If True, do not kill, only report what would be done
+
+        Returns
+        -------
+        int 
+            Return code (0 for success)
         """
-        self.setup()
-        jid, cancel_status = self.site.kill(script, user, jid, dryrun)
-        hook.post_kill(self.site, script, jid, cancel_status, dryrun)
-        self.teardown()
+        with self.action_context() as context:
+            jid, cancel_status = self.site.kill(script, user, jid, dryrun)
+            hook.post_kill(self.site, script, jid, cancel_status, dryrun)
+        return context.status
 
     def check_connection(self, timeout=None, dryrun=False):
         """Process a 'check-connection' command
@@ -117,10 +133,10 @@ class Controller:
         bool
             True if the connection is able to execute commands
         """
-        self.setup()
-        working = self.site.check_connection(timeout=timeout, dryrun=dryrun)
-        self.teardown(0 if working else 1)
-        return working
+        with self.action_context() as context:
+            working = self.site.check_connection(timeout=timeout, dryrun=dryrun)
+            if not working: context.status = 1
+        return context.status == 0
 
     def list_sites(self):
         """Process a 'list-sites' command
@@ -131,6 +147,38 @@ class Controller:
         """
         yield from site.list_sites(self.config)
 
+    class ActionContext:
+        def __init__(self, controller, *args, **kwargs):
+            self._controller = controller
+            self._controller.setup(*args, **kwargs)
+
+        def __enter__(self):
+            self.status = None
+            return self
+
+        def __exit__(self, exc_type, exc, traceback):
+            if exc is None:
+                if self.status is None:
+                    self.status = 0
+                swallow = False
+            else:
+                if self.status is None or self.status == 0:
+                    self.status = 1
+                if isinstance(exc, ConfigurationError):
+                    _logger.critical("Configuration error: %s", exc)
+                elif isinstance(exc, InvocationError):
+                    _logger.critical("Invocation error: %s", exc)
+                elif isinstance(exc, RunError):
+                    _logger.critical("%s", exc)
+                else:
+                    _logger.error("Unhandled exception", exc_info=(exc_type, exc, traceback))
+                swallow = True
+            self._controller.teardown(self.status)
+            return swallow
+
+    def action_context(self, *args, **kwargs):
+        return self.ActionContext(self, *args, **kwargs)
+
     def setup(self, parse_script=None):
         self.site = self._get_site()
         if parse_script is not None:
@@ -139,6 +187,7 @@ class Controller:
         res = hook.at_startup(self.args.action, self.site, self.args)
         if any(res):
             raise SystemExit(1)
+        self.default_shebang = self.site.config.get('default_shebang', None)
 
     def teardown(self, sts=0):
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
@@ -170,6 +219,8 @@ class Controller:
         return stmp
 
     def generate_script(self, script, user, output):
+        if self.default_shebang is not None and self.script_data.get('shebang', None) is None:
+            self.script_data['shebang'] = self.default_shebang.encode('utf-8')
         directive_prefix = self.site.directive_prefix
         directive_translate = self.site.directive_translate
         generator = Generator(directive_prefix, directive_translate)
