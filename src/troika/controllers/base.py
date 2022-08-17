@@ -223,8 +223,7 @@ class Controller:
     def generate_script(self, script, user, output):
         if self.default_shebang is not None and self.script_data.get('shebang', None) is None:
             self.script_data['shebang'] = self.default_shebang.encode('utf-8')
-        directive_prefix = self.site.directive_prefix
-        directive_translate = self.site.directive_translate
+        directive_prefix, directive_translate = self.site.get_directive_translation()
         generator = Generator(directive_prefix, directive_translate, self.unknown_directive)
         self.script_data['directives']['output_file'] = os.fsencode(output)
         if 'error_file' not in self.script_data['directives']:

@@ -1,6 +1,7 @@
 """Base site class"""
 
 from .. import ConfigurationError
+from .. import generator
 from ..utils import normalise_signal
 
 
@@ -142,3 +143,21 @@ class Site:
             Directive parser, if any
         """
         return None
+
+    def get_directive_translation(self):
+        """Construct the translation params
+
+        Returns
+        -------
+        tuple
+            `(directive_prefix, directive_translate)`, updated with the
+            configuration overrides
+        """
+        prefix = self.config.get("directive_prefix", self.directive_prefix)
+        translate = self.directive_translate.copy()
+        for name, fmt in self.config.get("directive_translate", {}).items():
+            if fmt is None:
+                translate[name] = generator.ignore
+            else:
+                translate[name] = fmt.encode("utf-8")
+        return (prefix, translate)
