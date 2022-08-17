@@ -28,6 +28,7 @@ class Controller:
         self.args = args
         self.logfile = logfile
         self.site = None
+        self.default_shebang = None
         self.script_data = {}
 
     def __repr__(self):
@@ -186,6 +187,7 @@ class Controller:
         res = hook.at_startup(self.args.action, self.site, self.args)
         if any(res):
             raise SystemExit(1)
+        self.default_shebang = self.site.config.get('default_shebang', None)
 
     def teardown(self, sts=0):
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
@@ -217,6 +219,8 @@ class Controller:
         return stmp
 
     def generate_script(self, script, user, output):
+        if self.default_shebang is not None and self.script_data.get('shebang', None) is None:
+            self.script_data['shebang'] = self.default_shebang.encode('utf-8')
         directive_prefix = self.site.directive_prefix
         directive_translate = self.site.directive_translate
         generator = Generator(directive_prefix, directive_translate)

@@ -36,6 +36,7 @@ class Site:
 
 
     def __init__(self, config, connection, global_config):
+        self.config = config
         self._connection = connection
         try:
             self._kill_sequence = [
