@@ -78,6 +78,12 @@ class SlurmDirectiveParser(BaseParser):
         return True
 
 
+def _translate_export_vars(value):
+    if value in (b"all", b"none"):
+        value = value.upper()
+    return b"--export=%s" % value
+
+
 def _translate_mail_type(value):
     trans = {b"none": b"NONE", b"begin": b"BEGIN", b"end": b"END", b"fail": b"FAIL"}
     vals = value.split(b",")
@@ -100,7 +106,7 @@ class SlurmSite(Site):
         "billing_account": b"--account=%s",
         "cpus_per_task": b"--cpus-per-task=%s",
         "error_file": b"--error=%s",
-        "export_vars": b"--export=%s",
+        "export_vars": _translate_export_vars,
         "join_output_error": generator.ignore,
         "licenses": b"--licenses=%s",
         "mail_type": _translate_mail_type,
