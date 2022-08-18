@@ -7,6 +7,7 @@ import shutil
 import tempfile
 
 from .. import hook, ConfigurationError, InvocationError, RunError
+from ..directives import ALIASES
 from ..generator import Generator
 from ..parser import DirectiveParser, MultiParser, ParseError, ShebangParser
 from .. import site
@@ -195,7 +196,7 @@ class Controller:
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
 
     def parse_script(self, script):
-        parsers = [('directives', DirectiveParser())]
+        parsers = [('directives', DirectiveParser(aliases=ALIASES))]
         native = self.site.get_native_parser()
         if native is not None:
             parsers.append(('native', native))
