@@ -106,6 +106,7 @@ class PBSSite(Site):
     directive_prefix = b"#PBS "
     directive_translate = {
         "billing_account": b"-A %s",
+        "error_file": b"-e %s",
         "export_vars": _translate_export_vars,
         "join_output_error": b"-j oe",  # TODO: make that automatic
         "mail_type": _translate_mail_type,
