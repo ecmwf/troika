@@ -69,7 +69,6 @@ def dummy_controller(dummy_pbs_site):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         echo "Hello, World!"
         """,
         id="add_output"),
@@ -85,7 +84,6 @@ def dummy_controller(dummy_pbs_site):
         """,
         """\
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -q test
         #PBS -N hello
 
@@ -109,7 +107,6 @@ def dummy_controller(dummy_pbs_site):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -q test
         #PBS -N hello
 
@@ -134,7 +131,6 @@ def dummy_controller(dummy_pbs_site):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -q test
         #PBS -N hello
 
@@ -156,7 +152,6 @@ def dummy_controller(dummy_pbs_site):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -N hello
 
         echo "Hello, World!"
@@ -175,7 +170,6 @@ def dummy_controller(dummy_pbs_site):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -N hello
 
         echo "Hello, World!"
@@ -192,7 +186,6 @@ def dummy_controller(dummy_pbs_site):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -N hello
 
         echo "Hello, World!"
@@ -208,7 +201,6 @@ def dummy_controller(dummy_pbs_site):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -N hello
 
         echo "\xfc\xaa"
@@ -241,7 +233,6 @@ def test_preprocess(sin, sexp, dummy_controller, tmp_path):
         """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
-        #PBS -j oe
         #PBS -N hello
 
         echo "@GARBAGE@"
