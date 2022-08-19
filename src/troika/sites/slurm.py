@@ -11,7 +11,7 @@ from .. import InvocationError, RunError
 from .. import generator
 from ..connection import PIPE
 from ..parser import BaseParser, ParseError
-from ..utils import check_retcode
+from ..utils import check_retcode, parse_bool
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -84,6 +84,15 @@ def _translate_export_vars(value):
     return b"--export=%s" % value
 
 
+def _translate_hyperthreading(value):
+    if value == ():
+        value = True
+    else:
+        value = parse_bool(value)
+    flag = b"" if value else b"no"
+    return b"--hint=%smultithread" % flag
+
+
 def _translate_mail_type(value):
     trans = {b"none": b"NONE", b"begin": b"BEGIN", b"end": b"END", b"fail": b"FAIL"}
     vals = value.split(b",")
@@ -105,6 +114,7 @@ class SlurmSite(Site):
     directive_translate = {
         "billing_account": b"--account=%s",
         "cpus_per_task": b"--cpus-per-task=%s",
+        "enable_hyperthreading": _translate_hyperthreading,
         "error_file": b"--error=%s",
         "export_vars": _translate_export_vars,
         "join_output_error": generator.ignore,

@@ -127,6 +127,10 @@ def parse_bool(x, default=_parse_bool_sentinel):
     True
     >>> any(parse_bool(x) for x in [False, "no", "No", "false", "False", "off", "OFF", "0", 0])
     False
+    >>> all(parse_bool(x) for x in [b"yes", b"Yes", b"true", b"True", b"on", b"ON", "1"])
+    True
+    >>> any(parse_bool(x) for x in [b"no", b"No", b"false", b"False", b"off", b"OFF", b"0"])
+    False
     >>> parse_bool("maybe", default=False)
     False
     >>> parse_bool("maybe", default=True)
@@ -144,6 +148,8 @@ def parse_bool(x, default=_parse_bool_sentinel):
     """
     if isinstance(x, bool):
         return x
+    if isinstance(x, bytes):
+        x = x.decode("ascii", "replace")
     if isinstance(x, str):
         x = x.lower()
         if x in ["no", "0", "false", "off"]:
