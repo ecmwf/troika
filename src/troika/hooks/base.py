@@ -17,6 +17,9 @@ class Hook:
         Hook name
     """
 
+    #: Entrypoint namespace
+    _namespace = "troika.hooks"
+
     registered_hooks = {}
 
     @classmethod
@@ -63,7 +66,7 @@ class Hook:
         hookfuncs = []
         for hookname in hooks:
             try:
-                hookfunc = get_entrypoint(f"troika.hooks.{self.name}", hookname)
+                hookfunc = get_entrypoint(f"{self._namespace}.{self.name}", hookname)
             except ValueError:
                 msg = f"Implementation {hookname!r} not found for {self.name} hook"
                 raise ConfigurationError(msg)
