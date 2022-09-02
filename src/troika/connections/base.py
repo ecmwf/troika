@@ -108,6 +108,6 @@ class Connection:
             log = _logger.debug
         else:
             log = _logger.error
-        if proc_stdout: log("stdout checking connection:\n", proc_stdout.strip())
-        if proc_stderr: log("stderr checking connection:\n", proc_stderr.strip())
+        if proc_stdout: log("stdout checking connection:\n%s", proc_stdout.strip())
+        if proc_stderr: log("stderr checking connection:\n%s", proc_stderr.strip())
         return retcode == 0
