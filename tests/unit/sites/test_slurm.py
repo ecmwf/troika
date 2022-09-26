@@ -11,9 +11,6 @@ from troika.site import get_site
 from troika.sites import slurm
 
 
-__doctests__ = [slurm]
-
-
 @pytest.fixture
 def dummy_slurm_conf(tmp_path):
     return {

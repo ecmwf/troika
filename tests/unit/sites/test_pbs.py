@@ -11,9 +11,6 @@ from troika.site import get_site
 from troika.sites import pbs
 
 
-__doctests__ = [pbs]
-
-
 @pytest.fixture
 def dummy_pbs_conf(tmp_path):
     return {

@@ -1,5 +1,11 @@
 """Base connection class"""
 
+import logging
+
+from ..connection import PIPE
+
+_logger = logging.getLogger(__name__)
+
 class Connection:
     """Base connection class
 
@@ -93,8 +99,15 @@ class Connection:
         bool
             True if the connection is able to execute commands
         """
-        proc = self.execute(["true"], detach=False, dryrun=dryrun)
+        proc = self.execute(["true"], stdout=PIPE, stderr=PIPE, detach=False, dryrun=dryrun)
         if dryrun:
             return True
-        retcode = proc.wait(timeout)
+        proc_stdout, proc_stderr = proc.communicate()
+        retcode = proc.returncode
+        if proc.returncode == 0:
+            log = _logger.debug
+        else:
+            log = _logger.error
+        if proc_stdout: log("stdout checking connection:\n%s", proc_stdout.strip())
+        if proc_stderr: log("stderr checking connection:\n%s", proc_stderr.strip())
         return retcode == 0

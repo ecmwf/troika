@@ -95,7 +95,7 @@ class KillAction(Action):
     """Main entry point for the 'kill' sub-command"""
     def run(self, config, controller):
         args = self.args
-        return controller.kill(args.script, args.user, args.jobid, args.dryrun)
+        return controller.kill(args.script, args.user, args.output, args.jobid, args.dryrun)
 
 
 class CheckConnectionAction(Action):
