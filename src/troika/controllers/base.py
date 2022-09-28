@@ -7,6 +7,7 @@ import shutil
 import tempfile
 
 from .. import hook, ConfigurationError, InvocationError, RunError
+from ..directives import ALIASES, translators
 from ..generator import Generator
 from ..parser import DirectiveParser, MultiParser, ParseError, ShebangParser
 from .. import site
@@ -29,6 +30,7 @@ class Controller:
         self.logfile = logfile
         self.site = None
         self.default_shebang = None
+        self.unknown_directive = 'warn'
         self.script_data = {}
 
     def __repr__(self):
@@ -188,12 +190,13 @@ class Controller:
         if any(res):
             raise SystemExit(1)
         self.default_shebang = self.site.config.get('default_shebang', None)
+        self.unknown_directive = self.site.config.get('unknown_directive', 'warn')
 
     def teardown(self, sts=0):
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
 
     def parse_script(self, script):
-        parsers = [('directives', DirectiveParser())]
+        parsers = [('directives', DirectiveParser(aliases=ALIASES))]
         native = self.site.get_native_parser()
         if native is not None:
             parsers.append(('native', native))
@@ -221,12 +224,10 @@ class Controller:
     def generate_script(self, script, user, output):
         if self.default_shebang is not None and self.script_data.get('shebang', None) is None:
             self.script_data['shebang'] = self.default_shebang.encode('utf-8')
-        directive_prefix = self.site.directive_prefix
-        directive_translate = self.site.directive_translate
-        generator = Generator(directive_prefix, directive_translate)
+        directive_prefix, directive_translate = self.site.get_directive_translation()
+        generator = Generator(directive_prefix, directive_translate, self.unknown_directive)
         self.script_data['directives']['output_file'] = os.fsencode(output)
-        if 'error_file' not in self.script_data['directives']:
-            self.script_data['directives']['join_output_error'] = ()  # TODO: delegate to the site
+        self.script_data = translators(self.script_data, self.config, self.site)
         return self.run_generator(script, generator)
 
     def run_generator(self, script, generator):

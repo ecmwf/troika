@@ -74,9 +74,10 @@ class DirectiveParser(BaseParser):
     DIRECTIVE_RE = re.compile(rb"^#\s*troika\s+(.+?)\s*$", re.I)
     KEYVAL_RE = re.compile(rb"^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$")
 
-    def __init__(self):
+    def __init__(self, aliases=None):
         super().__init__()
         self.data = OrderedDict()
+        self.aliases = aliases if aliases is not None else {}
 
     def feed(self, line):
         """Process the given line
@@ -93,7 +94,9 @@ class DirectiveParser(BaseParser):
             raise ParseError(f"Invalid key-value pair: {kv}")
 
         key, value = kvm.groups()
-        self.data[key.decode('ascii')] = value
+        key = key.decode('ascii')
+        key = self.aliases.get(key, key)
+        self.data[key] = value
 
         return True
 

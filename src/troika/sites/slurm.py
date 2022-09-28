@@ -8,9 +8,10 @@ import signal
 import time
 
 from .. import InvocationError, RunError
+from .. import generator
 from ..connection import PIPE
 from ..parser import BaseParser, ParseError
-from ..utils import check_retcode
+from ..utils import check_retcode, parse_bool
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -77,6 +78,34 @@ class SlurmDirectiveParser(BaseParser):
         return True
 
 
+def _translate_export_vars(value):
+    if value in (b"all", b"none"):
+        value = value.upper()
+    return b"--export=%s" % value
+
+
+def _translate_hyperthreading(value):
+    if value == ():
+        value = True
+    else:
+        value = parse_bool(value)
+    flag = b"" if value else b"no"
+    return b"--hint=%smultithread" % flag
+
+
+def _translate_mail_type(value):
+    trans = {b"none": b"NONE", b"begin": b"BEGIN", b"end": b"END", b"fail": b"FAIL"}
+    vals = value.split(b",")
+    newvals = []
+    for val in vals:
+        newval = trans.get(val.lower())
+        if newval is None:
+            _logger.warn("Unknown mail_type value %r", val)
+            newval = val
+        newvals.append(newval)
+    return b"--mail-type=%s" % b",".join(newvals)
+
+
 class SlurmSite(Site):
     """Site managed using Slurm"""
 
@@ -85,17 +114,19 @@ class SlurmSite(Site):
     directive_translate = {
         "billing_account": b"--account=%s",
         "cpus_per_task": b"--cpus-per-task=%s",
+        "enable_hyperthreading": _translate_hyperthreading,
         "error_file": b"--error=%s",
-        "exclusive_resources": b"--exclusive",
-        "export_vars": b"--export=%s",
+        "export_vars": _translate_export_vars,
+        "join_output_error": generator.ignore,
         "licenses": b"--licenses=%s",
-        "mail_type": b"--mail-type=%s",  # TODO: add translation logic
+        "mail_type": _translate_mail_type,
         "mail_user": b"--mail-user=%s",
         "memory_per_node": b"--mem=%s",
         "memory_per_cpu": b"--mem-per-cpu=%s",
         "name": b"--job-name=%s",
         "output_file": b"--output=%s",
         "partition": b"--partition=%s",
+        "priority": b"--priority=%s",
         "tasks_per_node": b"--ntasks-per-node=%s",
         "threads_per_core": b"--threads-per-core=%s",
         "tmpdir_size": b"--tmp=%s",
@@ -103,6 +134,7 @@ class SlurmSite(Site):
         "total_tasks": b"--ntasks=%s",
         "queue": b"--qos=%s",
         "walltime": b"--time=%s",
+        "working_dir": b"--chdir=%s",
     }
 
 

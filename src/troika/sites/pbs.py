@@ -78,6 +78,27 @@ class PBSDirectiveParser(BaseParser):
         return True
 
 
+def _translate_export_vars(value):
+    if value == b"all":
+        return b"-V"
+    if value == b"none":
+        return
+    return b"-v %s" % value
+
+
+def _translate_mail_type(value):
+    trans = {b"none": b"n", b"begin": b"b", b"end": b"e", b"fail": b"a"}
+    vals = value.split(b",")
+    newvals = []
+    for val in vals:
+        newval = trans.get(val.lower())
+        if newval is None:
+            _logger.warn("Unknown mail_type value %r", val)
+            newval = val
+        newvals.append(newval)
+    return b"-m %s" % b"".join(newvals)
+
+
 class PBSSite(Site):
     """Site managed using PBS"""
 
@@ -85,12 +106,14 @@ class PBSSite(Site):
     directive_prefix = b"#PBS "
     directive_translate = {
         "billing_account": b"-A %s",
-        "export_vars": b"-v %s",  # TODO: support -V as well?
+        "error_file": b"-e %s",
+        "export_vars": _translate_export_vars,
         "join_output_error": b"-j oe",  # TODO: make that automatic
-        "mail_type": b"-m %s",  # TODO: add translation logic
+        "mail_type": _translate_mail_type,
         "mail_user": b"-M %s",
         "name": b"-N %s",
         "output_file": b"-o %s",
+        "priority": b"-p %s",
         "queue": b"-q %s",
         "walltime": b"-l walltime=%s",
     }
