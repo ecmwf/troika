@@ -11,5 +11,5 @@ def join_output_error(script_data, global_config, site):
 def extra_directives(script_data, global_config, site):
     """Add the content of 'extra_directives' in the site configuration"""
     for name, val in site.config.get('extra_directives', {}).items():
-        script_data['directives'].setdefault(name, val)
+        script_data['directives'].setdefault(name, val.encode("utf-8"))
     return script_data
