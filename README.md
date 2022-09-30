@@ -9,6 +9,7 @@ Submit, monitor and kill jobs on local and remote hosts
 * Python 3.8 or higher
 * `pyyaml` (https://pypi.org/project/PyYAML/)
 * For testing: `pytest` (https://pypi.org/project/pytest/)
+* For building the documentation: ``sphinx`` (https://www.sphinx-doc.org)
 
 ## Installing
 

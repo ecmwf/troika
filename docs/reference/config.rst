@@ -1,0 +1,163 @@
+
+.. _configuration:
+
+Configuration
+=============
+
+The Troika configuration file is written in YAML. See
+:doc:`/getting_started/configure` for an example, and :ref:`Command-line
+interface <cli_config>` for instructions regarding its location. Note that
+plugins may extend the configuration beyond what is described here. Please refer
+to the plugin-specific documentation for details.
+
+Top-level options
+-----------------
+
+The top-level configuration mapping may contain some global options.
+
+controller
+~~~~~~~~~~
+
+Use this specific controller. Plugins can define new controllers, see
+:doc:`/extending/controller`.
+
+
+Site configuration
+------------------
+
+The site configuration is contained in the ``sites`` mapping. Each key describes
+the name of a site, and the values are mapping containing the configuration for
+this specific site. The common site configuration options are described here.
+Plugins (including connections, sites and hooks) may extend this configuration.
+For additional documentation about sites, see :doc:`/reference/sites/index`.
+
+.. _type:
+
+type
+~~~~
+
+The site type. Troika supports the :doc:`direct </reference/sites/direct>`,
+:doc:`pbs </reference/sites/pbs>` and :doc:`slurm </reference/sites/slurm>`
+sites. Plugins may define additional sites, see :doc:`/extending/site`.
+
+
+.. _connection:
+
+connection
+~~~~~~~~~~
+
+The connection type. A site can be reached in different ways. Troika defines the
+:doc:`local </reference/connections/local>` and :doc:`ssh
+</reference/connections/ssh>` connections. Plugins may define additional
+connections, see :doc:`/extending/connection`.
+
+.. SSH connection:
+   ssh_command
+   scp_command
+   ssh_options
+   ssh_verbose
+   ssh_strict_host_key_checking
+   ssh_connect_timeout
+   host
+   user
+
+
+.. _default_shebang:
+
+default_shebang
+~~~~~~~~~~~~~~~
+
+If set, Troika will add this line to the beginning of the script if it does not
+have a shebang.
+
+
+translators
+~~~~~~~~~~~
+
+List of translators to apply when preprocessing the script. See
+:doc:`/reference/preprocessing` for a detailed description and a list of
+built-in translators.
+
+
+unknown_directive
+~~~~~~~~~~~~~~~~~
+
+Behaviour if an unknown directive is encountered (see
+:doc:`/reference/preprocessing`). Possible values are:
+
+``fail``
+   Troika will report an error and abort,
+``warn``
+   Troika will report a warning and continue,
+``ignore``
+   Troika will continue silently.
+
+The default value is ``warn``.
+
+
+directive_prefix
+~~~~~~~~~~~~~~~~
+
+Override the directive prefix set by the site, e.g. ``"#SBATCH "``.
+
+
+.. _directive_translate:
+
+directive_translate
+~~~~~~~~~~~~~~~~~~~
+
+Add or replace directives offered by the site. Mapping keys are the directive
+names (see :doc:`/reference/preprocessing`), values can be either a
+``%``-formatting string, or ``null`` to ignore this directive. The resulting
+directive will be computed using ``directive_prefix + (directive_translate[name]
+% argument)``.
+
+
+copy_script
+~~~~~~~~~~~
+
+If ``true``, when a job is submitted, copy the script to the remote system
+before calling the submission system. Otherwise, pipe the script through the
+connection to the submission system. Default is ``false``.
+
+.. Direct site
+   shell
+   use_shell
+
+.. PBS site
+   qsub_command
+   qdel_command
+   qsig_command
+   qstat_command
+
+.. Slurm site
+   sbatch_command
+   scancel_command
+   squeue_command
+
+.. Hooks
+
+.. _kill_sequence:
+
+kill_sequence
+~~~~~~~~~~~~~
+
+The kill sequence describes the sequence of events when :ref:`kill` is called.
+The default will issue a site-specific "cancel" command (e.g. ``kill -15``,
+``scancel``, ``qdel``) immediately. The value of this option is a list of
+``[duration, signal]`` pairs, where durations are in seconds and signals can be
+numeric or textual. For example, with the following configuration:
+
+.. code-block:: yaml
+
+   kill_sequence: [[0, "SIGINT"], [5, 15], [4, "KILL"]]
+
+Troika will send a ``SIGINT`` immediately, wait for 5 seconds, issue a
+``SIGTERM`` (signal 15), wait 4 more seconds and finally issue a ``SIGKILL``.
+
+
+Other options
+~~~~~~~~~~~~~
+
+Some components may define additional options, please refer to their
+documentation. Also, :doc:`hooks </reference/hooks>` are selected at this level.
