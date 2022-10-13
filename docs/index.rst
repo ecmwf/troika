@@ -4,7 +4,7 @@ Welcome to Troika's documentation!
 
 Troika is a generic sumbitter for HPC systems. It handles three main actions:
 submit, monitor, and kill jobs. Troika is able to use SSH to connect to remote
-systems, and can interact with queuing systems like PBS or Slurm.
+systems, and can interact with queueing systems like PBS or Slurm.
 
 .. toctree::
    :maxdepth: 2
