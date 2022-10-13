@@ -111,8 +111,6 @@ If ``true``, when a job is submitted, copy the script to the remote system
 before calling the submission system. Otherwise, pipe the script through the
 connection to the submission system. Default is ``false``.
 
-.. Hooks
-
 .. _kill_sequence:
 
 kill_sequence
@@ -130,6 +128,23 @@ numeric or textual. For example, with the following configuration:
 
 Troika will send a ``SIGINT`` immediately, wait for 5 seconds, issue a
 ``SIGTERM`` (signal 15), wait 4 more seconds and finally issue a ``SIGKILL``.
+
+
+.. _hook_options:
+
+Hooks
+~~~~~
+
+Hooks can be enabled by adding their names to the list corresponding to the hook
+type, e.g.:
+
+.. code-block:: yaml
+
+   at_exit: ['copy_submit_logfile', 'copy_kill_logfile']
+
+The following hook types are defined: :ref:`at_startup`, :ref:`pre_submit`,
+:ref:`post_kill`, and :ref:`at_exit`. See :doc:`/reference/hooks` for a list of
+built-in hooks. Plugins may define new hooks, see :doc:`/extending/hook`.
 
 
 .. _ssh_connection_options:

@@ -9,4 +9,5 @@ Extending Troika
    controller
    site
    connection
+   hook
    translator
