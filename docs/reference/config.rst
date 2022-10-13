@@ -102,27 +102,14 @@ directive will be computed using ``directive_prefix + (directive_translate[name]
 % argument)``.
 
 
+.. _config_copy_script:
+
 copy_script
 ~~~~~~~~~~~
 
 If ``true``, when a job is submitted, copy the script to the remote system
 before calling the submission system. Otherwise, pipe the script through the
 connection to the submission system. Default is ``false``.
-
-.. Direct site
-   shell
-   use_shell
-
-.. PBS site
-   qsub_command
-   qdel_command
-   qsig_command
-   qstat_command
-
-.. Slurm site
-   sbatch_command
-   scancel_command
-   squeue_command
 
 .. Hooks
 
@@ -195,6 +182,77 @@ ssh_connect_timeout
 
 Abandon the SSH connection after this delay (in seconds). If not set, the
 behaviour is the one of the ``ssh`` command.
+
+
+.. _direct_site_options:
+
+Direct site options
+~~~~~~~~~~~~~~~~~~~
+
+shell
+^^^^^
+
+Command to issue to spawn the shell interpreter, as a list. If not set, the
+shell is supposed to be ``bash`` in the ``PATH``, and ``bash -s`` will be used
+when :ref:`config_copy_script` is ``false``.
+
+
+.. _config_use_shell:
+
+use_shell
+^^^^^^^^^
+
+If ``true``, the job script will be executed using the shell interpreter.
+Otherwise, it will be executed directly. Note that :ref:`config_use_shell` and
+:ref:`config_copy_script` cannot be both ``false`` for remote sites. Default is
+``false`` when the connection is local, and ``true`` if it is remote.
+
+
+.. _pbs_site_options:
+
+PBS site options
+~~~~~~~~~~~~~~~~
+
+qsub_command
+^^^^^^^^^^^^
+
+Path to the ``qsub`` executable.
+
+qdel_command
+^^^^^^^^^^^^
+
+Path to the ``qdel`` executable.
+
+qsig_command
+^^^^^^^^^^^^
+
+Path to the ``qsig`` executable.
+
+qstat_command
+^^^^^^^^^^^^^
+
+Path to the ``qstat`` executable.
+
+
+.. _slurm_site_options:
+
+Slurm site options
+~~~~~~~~~~~~~~~~~~
+
+sbatch_command
+^^^^^^^^^^^^^^
+
+Path to the ``sbatch`` executable.
+
+scancel_command
+^^^^^^^^^^^^^^^
+
+Path to the ``scancel`` executable.
+
+squeue_command
+^^^^^^^^^^^^^^
+
+Path to the ``squeue`` executable.
 
 
 Other options
