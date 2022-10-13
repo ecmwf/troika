@@ -47,19 +47,8 @@ connection
 ~~~~~~~~~~
 
 The connection type. A site can be reached in different ways. Troika defines the
-:doc:`local </reference/connections/local>` and :doc:`ssh
-</reference/connections/ssh>` connections. Plugins may define additional
-connections, see :doc:`/extending/connection`.
-
-.. SSH connection:
-   ssh_command
-   scp_command
-   ssh_options
-   ssh_verbose
-   ssh_strict_host_key_checking
-   ssh_connect_timeout
-   host
-   user
+:ref:`local <local_connection>` and :ref:`ssh <ssh_connection>` connections.
+Plugins may define additional connections, see :doc:`/extending/connection`.
 
 
 .. _default_shebang:
@@ -154,6 +143,58 @@ numeric or textual. For example, with the following configuration:
 
 Troika will send a ``SIGINT`` immediately, wait for 5 seconds, issue a
 ``SIGTERM`` (signal 15), wait 4 more seconds and finally issue a ``SIGKILL``.
+
+
+.. _ssh_connection_options:
+
+SSH connection options
+~~~~~~~~~~~~~~~~~~~~~~
+
+These options control the behaviour of the SSH connection.
+
+host
+^^^^
+
+SSH host to connect to.
+
+user
+^^^^
+
+User to log in as.
+
+ssh_command
+^^^^^^^^^^^
+
+Path to the ``ssh`` executable. The default is to look for ``ssh`` in the
+``PATH``.
+
+scp_command
+^^^^^^^^^^^
+
+Path to the ``scp`` executable. The default is to look for ``scp`` in the
+``PATH``.
+
+ssh_options
+^^^^^^^^^^^
+
+Additional options to pass to ``ssh``. Must be a list.
+
+ssh_verbose
+^^^^^^^^^^^
+
+If ``true``, ``ssh`` will be called with the ``-v`` option to include extra
+information in the output. Default is ``false``.
+
+ssh_strict_host_key_checking
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If ``true``, perform strict host key checking. Default is ``false``.
+
+ssh_connect_timeout
+^^^^^^^^^^^^^^^^^^^
+
+Abandon the SSH connection after this delay (in seconds). If not set, the
+behaviour is the one of the ``ssh`` command.
 
 
 Other options

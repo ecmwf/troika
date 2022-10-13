@@ -9,6 +9,6 @@ Reference guide
    cli
    config
    preprocessing
-   connections/index
+   connections
    sites/index
    hooks
