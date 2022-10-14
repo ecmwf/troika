@@ -20,6 +20,12 @@ class Controller:
 
     Parameters
     ----------
+    config: :py:class:`troika.config.Config`
+        Configuration
+    args: :py:class:`argparse.Namespace`
+        Command-line arguments
+    logfile: path-like or None
+        Path to the log file
     """
 
     __type_name__ = "base"
@@ -34,6 +40,7 @@ class Controller:
         self.script_data = {}
 
     def __repr__(self):
+        """Return a printable representation"""
         return "Controller"
 
     def submit(self, script, user, output, dryrun=False):
@@ -54,7 +61,7 @@ class Controller:
 
         Returns
         -------
-        int 
+        int
             Return code (0 for success)
         """
         with self.action_context(parse_script=script) as context:
@@ -82,7 +89,7 @@ class Controller:
 
         Returns
         -------
-        int 
+        int
             Return code (0 for success)
         """
         with self.action_context() as context:
@@ -110,7 +117,7 @@ class Controller:
 
         Returns
         -------
-        int 
+        int
             Return code (0 for success)
         """
         with self.action_context() as context:
@@ -179,9 +186,20 @@ class Controller:
             return swallow
 
     def action_context(self, *args, **kwargs):
+        """Create a context manager for executing an action
+
+        The arguments are passed to :py:meth:`setup` when entering the context manager
+        """
         return self.ActionContext(self, *args, **kwargs)
 
     def setup(self, parse_script=None):
+        """Set up the controller
+
+        Parameters
+        ----------
+        parse_script: path-like, optional
+            Parse this script
+        """
         self.site = self._get_site()
         if parse_script is not None:
             self.parse_script(parse_script)
@@ -193,9 +211,23 @@ class Controller:
         self.unknown_directive = self.site.config.get('unknown_directive', 'warn')
 
     def teardown(self, sts=0):
+        """Tear down the controller
+
+        Parameters
+        ----------
+        sts: int
+            Exit status
+        """
         hook.at_exit(self.args.action, self.site, self.args, sts, self.logfile)
 
     def parse_script(self, script):
+        """Parse the script
+
+        Parameters
+        ----------
+        script: path-like
+            Script to parse
+        """
         parsers = [('directives', DirectiveParser(aliases=ALIASES))]
         native = self.site.get_native_parser()
         if native is not None:
@@ -207,6 +239,20 @@ class Controller:
         self.script_data['body'] = body
 
     def run_parser(self, script, parser):
+        """Run the parser on the script
+
+        Parameters
+        ----------
+        script: path-like
+            Path to the script
+        parser: :py:class:`troika.parser.Parser`
+            Parser to use
+
+        Returns
+        -------
+        file-like
+            Script body
+        """
         script = pathlib.Path(script)
         stmp = tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
             dir=script.parent, prefix=script.name)
@@ -222,6 +268,22 @@ class Controller:
         return stmp
 
     def generate_script(self, script, user, output):
+        """Generate the post-processed script
+
+        Parameters
+        ----------
+        script: path-like
+            Path to the script
+        user: str or None
+            Remote user name
+        output: path-like
+            Path to the job output file
+
+        Returns
+        -------
+        path-like
+            Path to the post-processed script
+        """
         if self.default_shebang is not None and self.script_data.get('shebang', None) is None:
             self.script_data['shebang'] = self.default_shebang.encode('utf-8')
         directive_prefix, directive_translate = self.site.get_directive_translation()
@@ -231,6 +293,20 @@ class Controller:
         return self.run_generator(script, generator)
 
     def run_generator(self, script, generator):
+        """Generate the script file
+
+        Parameters
+        ----------
+        script: path-like
+            Path to the script
+        generator: :py:class:`troika.generator.Generator`
+            Generator to run
+
+        Returns
+        -------
+        path-like
+            Path to the generated script file
+        """
         script = pathlib.Path(script)
         orig_script = script.with_suffix(script.suffix + ".orig")
         if orig_script.exists():
@@ -250,4 +326,5 @@ class Controller:
         return script
 
     def _get_site(self):
+        """Select the site and create the corresponding :py:class:`troika.sites.base.Site` instance"""
         return site.get_site(self.config, self.args.site, self.args.user)

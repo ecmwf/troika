@@ -1,5 +1,6 @@
 """Base hook definitions"""
 
+import functools
 import logging
 
 from .. import ConfigurationError
@@ -36,6 +37,7 @@ class Hook:
         if name is None:
             name = func.__name__
         hook = cls(name)
+        functools.update_wrapper(hook, func)
         cls.registered_hooks[name] = hook
         return hook
 
@@ -76,20 +78,16 @@ class Hook:
 
 @Hook.declare
 def at_startup(action, site, args):
-    """Exit hook
+    """Startup hook
 
     Parameters
     ----------
     action: {"submit", "monitor", "kill"}
         Action that was requested
-    site: `troika.sites.base.Site`
+    site: :py:class:`troika.sites.base.Site`
         Selected site
-    args: `argparse.Namespace`-like
+    args: :py:class:`argparse.Namespace`-like
         Command-line arguments
-    sts: int
-        Exit status
-    logfile: path-like
-        Path to the log file
 
     Returns
     -------
@@ -104,7 +102,7 @@ def pre_submit(site, script, output, dryrun):
 
     Parameters
     ----------
-    site: `troika.sites.base.Site`
+    site: :py:class:`troika.sites.base.Site`
         Selected site
     script: path-like
         Path to the script to be submitted
@@ -121,7 +119,7 @@ def post_kill(site, script, jid, cancel_status, dryrun):
 
     Parameters
     ----------
-    site: `troika.sites.base.Site`
+    site: :py:class:`troika.sites.base.Site`
         Selected site
     script: path-like
         Path to the script file of the job being killed
@@ -142,9 +140,9 @@ def at_exit(action, site, args, sts, logfile):
     ----------
     action: {"submit", "monitor", "kill"}
         Action that was requested
-    site: `troika.sites.base.Site`
+    site: :py:class:`troika.sites.base.Site`
         Selected site
-    args: `argparse.Namespace`-like
+    args: :py:class:`argparse.Namespace`-like
         Command-line arguments
     sts: int
         Exit status

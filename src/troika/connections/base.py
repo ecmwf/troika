@@ -61,7 +61,7 @@ class Connection:
 
         Returns
         -------
-        `subprocess.Popen` object or None
+        :py:class:`subprocess.Popen` object or None
             Local process object associated to the connection, if dryrun is False,
             else None
         """
