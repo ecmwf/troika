@@ -15,6 +15,9 @@ Top-level options
 
 The top-level configuration mapping may contain some global options.
 
+
+.. _config_controller:
+
 controller
 ~~~~~~~~~~
 
@@ -59,6 +62,8 @@ default_shebang
 If set, Troika will add this line to the beginning of the script if it does not
 have a shebang.
 
+
+.. _translators:
 
 translators
 ~~~~~~~~~~~

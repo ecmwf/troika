@@ -13,10 +13,10 @@ class Site:
     config: dict
         Site configuration
 
-    connection: `troika.connections.base.Connection`
+    connection: :py:class:`troika.connections.base.Connection`
         Connection object to interact with the site
 
-    global_config: `troika.config.Config`
+    global_config: :py:class:`troika.config.Config`
         Global configuration
     """
 
@@ -27,12 +27,12 @@ class Site:
     __type_name__ = None
 
 
-    #: Prefix for the generated directives, e.g. b"#SBATCH ". If `None`, no
-    #: directives will be generated
+    #: Prefix for the generated directives, e.g. ``b"#SBATCH "``. If ``None``,
+    #: no directives will be generated
     directive_prefix = None
 
-    #: Directive translation table (str -> bytes). Values are formatted using
-    #: the % operator
+    #: Directive translation table (``str`` -> ``bytes``). Values are formatted
+    #: using the ``%`` operator
     directive_translate = {}
 
 
@@ -104,14 +104,19 @@ class Site:
         Returns
         -------
         tuple:
-            [0] The job ID of the killed job
-            [1] CANCELLED:  the job was cancelled before it started
-                KILLED:     the job was killed while running without a
-                            catchable signal allowing it to clean up or
-                            report its demise
-                TERMINATED: the job was sent a catchable signal while running
-                            and is expected to clean up and report its own
-                            demise if necessary
+            [0]
+                The job ID of the killed job
+            [1]
+                CANCELLED:
+                    the job was cancelled before it started
+                KILLED:
+                    the job was killed while running without a
+                    catchable signal allowing it to clean up or
+                    report its demise
+                TERMINATED:
+                    the job was sent a catchable signal while running
+                    and is expected to clean up and report its own
+                    demise if necessary
         """
         raise NotImplementedError()
 
@@ -135,11 +140,11 @@ class Site:
         return self._connection.checkstatus(timeout=timeout, dryrun=dryrun)
 
     def get_native_parser(self):
-        """Create a `troika.parser.Parser` for native directives
+        """Create a :py:class:`troika.parser.Parser` for native directives
 
         Returns
         -------
-        `troika.parser.Parser` or None
+        :py:class:`troika.parser.Parser` or None
             Directive parser, if any
         """
         return None
@@ -150,7 +155,7 @@ class Site:
         Returns
         -------
         tuple
-            `(directive_prefix, directive_translate)`, updated with the
+            ``(directive_prefix, directive_translate)``, updated with the
             configuration overrides
         """
         prefix = self.config.get("directive_prefix", self.directive_prefix)

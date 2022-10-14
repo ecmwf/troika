@@ -36,7 +36,7 @@ may accept other directives.
 Translation
 -----------
 
-Translators operate on the parsed data to update the set of directives. The following translators are available with Troika. Plugins may define extra translators.
+Translators operate on the parsed data to update the set of directives. The following translators are available with Troika. Plugins may define extra translators, see :doc:`/extending/translator`.
 
 
 ``join_output_error``

@@ -10,8 +10,8 @@ _logger = logging.getLogger(__name__)
 class Translator(Hook):
     """Directive translation hook manager
 
-    See `troika.hooks.base.Hook`. The only change is the behaviour of the
-    `__call__` method::
+    See :py:class:`troika.hooks.base.Hook`. The only change is the behaviour of the
+    :py:meth:`__call__` method::
 
         def __call__(self, script_data, *args, **kwargs):
             for func in self.enabled_hooks:
@@ -39,13 +39,13 @@ def translators(script_data, global_config, site):
     ----------
     script_data: dict[str, Any]
         Data parsed from the input script
-    global_config: `troika.config.Config`
+    global_config: :py:class:`troika.config.Config`
         Global configuration
-    site: `troika.sites.base.Site`
+    site: :py:class:`troika.sites.base.Site`
         Target site
 
     Returns
     -------
     dict[str, Any]
-        Updated `script_data`
+        Updated ``script_data``
     """
