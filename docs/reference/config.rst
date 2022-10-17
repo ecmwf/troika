@@ -107,6 +107,17 @@ directive will be computed using ``directive_prefix + (directive_translate[name]
 % argument)``.
 
 
+.. _config_extra_directives:
+
+extra_directives
+~~~~~~~~~~~~~~~~
+
+When the :ref:`translator_extra_directives` translator is enabled, these
+directives will be added, unless already set. This is a mapping whose keys are
+the directive names (see :doc:`/reference/preprocessing`) and values are the
+values for these directives.
+
+
 .. _config_copy_script:
 
 copy_script

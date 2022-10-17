@@ -45,6 +45,14 @@ Translators operate on the parsed data to update the set of directives. The foll
 When no ``error_file`` is supplied, add the ``join_output_error`` directive. For instance, with PBS this will generate the ``#PBS -j oe`` directive.
 
 
+.. _translator_extra_directives:
+
+``extra_directives``
+~~~~~~~~~~~~~~~~~~~~
+
+Add the directives from the :ref:`config_extra_directives` configuration mapping, unless already set.
+
+
 ``enable_hyperthreading``
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
