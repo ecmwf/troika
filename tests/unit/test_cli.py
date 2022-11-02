@@ -105,7 +105,7 @@ def test_main_kill(dummy_actions, dummy_site):
 
 
 def make_test_args(**kwargs):
-    args = dict(logfile="/dev/null", verbose=0, quiet=0)
+    args = dict(logfile="/dev/null", overwrite_log=False, verbose=0, quiet=0)
     args.update(kwargs)
     return argparse.Namespace(**args)
 
