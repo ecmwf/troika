@@ -12,17 +12,22 @@ _logger = logging.getLogger(__name__)
 def ensure_output_dir(site, output, dryrun=False):
     """Ensure the output directory exists and return its path"""
     out_dir = pathlib.PurePath(output).parent
-    proc = site._connection.execute(["mkdir", "-p", out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
+    pmkdir_command = site.config.get('pmkdir_command', ['mkdir', '-p'])
+    if isinstance(pmkdir_command, (str, bytes)):
+        pmkdir_command = [ pmkdir_command ]
+    else:
+        pmkdir_command = list(pmkdir_command)
+    proc = site._connection.execute(pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
     if dryrun:
         return out_dir
     proc_stdout, proc_stderr = proc.communicate()
     if proc.returncode != 0:
-        if proc_stdout: _logger.error("mkdir stdout:\n%s", proc_stdout.strip())
-        if proc_stderr: _logger.error("mkdir stderr:\n%s", proc_stderr.strip())
+        if proc_stdout: _logger.error("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+        if proc_stderr: _logger.error("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
         check_retcode(proc.returncode, what="Ouput directory creation")
     else:
-        if proc_stdout: _logger.debug("mkdir stdout:\n%s", proc_stdout.strip())
-        if proc_stderr: _logger.debug("mkdir stderr:\n%s", proc_stderr.strip())
+        if proc_stdout: _logger.debug("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+        if proc_stderr: _logger.debug("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
     return out_dir
 
 def check_connection(action, site, args):
