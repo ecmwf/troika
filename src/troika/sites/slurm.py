@@ -168,7 +168,8 @@ class SlurmSite(Site):
         _logger.debug("squeue output for job %d: %s", jid, proc_stdout)
         if retcode != 0:
             _logger.error("squeue error: %s", proc_stderr)
-            if strict:
+            # An intermediary (e.g. ecsbatch) may shift the error message to stdout rather than stderr
+            if strict or all(b"Invalid job id specified" not in x for x in (proc_stdout, proc_stderr)):
                 check_retcode(retcode, what="Get State")
         else:
             if proc_stderr:
@@ -258,8 +259,11 @@ class SlurmSite(Site):
         # directly, regardless of `_kill_sequence`. The "-t PENDING"
         # is important to prevent a race condition if the job is just
         # about to run.
-        state = self._get_state(jid)
-        if state == 'PENDING':
+        state = self._get_state(jid, strict=False)
+        if state is None:
+            # Job disappeared already
+            return (jid, 'VANISHED')
+        elif state == 'PENDING':
             cmd = [self._scancel, "-t", "PENDING", str(jid)]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
             if not dryrun:
@@ -270,7 +274,11 @@ class SlurmSite(Site):
                 retcode = proc.returncode
                 if retcode != 0:
                     _logger.error("scancel output: %s", proc_stdout)
-                    check_retcode(retcode, what="Kill")
+                    if b"Invalid job id specified" in proc_stdout:
+                        # Job disappeared already
+                        return (jid, 'VANISHED')
+                    else:
+                        check_retcode(retcode, what="Kill")
                 elif proc_stdout:
                     _logger.debug("scancel output: %s", proc_stdout)
 
@@ -278,7 +286,8 @@ class SlurmSite(Site):
             if state is None or state == 'CANCELLED':
                 return (jid, 'CANCELLED')
             elif state == 'PENDING':
-                raise RunError(f"Failed to cancel PENDING job {jid!r}")
+                if not dryrun:
+                    raise RunError(f"Failed to cancel PENDING job {jid!r}")
             # If anything else, the job is probably starting, so fall through
             # and treat like a running job
 
@@ -306,10 +315,13 @@ class SlurmSite(Site):
             if retcode != 0:
                 if cancel_status is None:
                     _logger.error("scancel output: %s", proc_stdout)
-                    check_retcode(retcode, what="Kill")
+                    if b"Invalid job id specified" in proc_stdout:
+                        # Job disappeared already
+                        return (jid, 'VANISHED')
+                    else:
+                        check_retcode(retcode, what="Kill")
                 else:
-                    if proc_stdout:
-                        _logger.debug("scancel output: %s", proc_stdout)
+                    _logger.debug("scancel output: %s", proc_stdout)
                     break
             elif proc_stdout:
                 _logger.debug("scancel output: %s", proc_stdout)

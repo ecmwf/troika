@@ -3,7 +3,9 @@
 import logging
 import pathlib
 
+from .. import InvocationError
 from ..connection import PIPE
+from ..connections.local import LocalConnection
 from ..connections.local import LocalConnection
 from ..parser import DirectiveParser
 from ..utils import check_retcode
@@ -18,8 +20,12 @@ def abort_on_ecflow(site, script, jid, cancel_status, dryrun=False):
         msg = 'Cancelled before starting'
     elif cancel_status == 'KILLED':
         msg = 'Killed forcefully'
-    else:
+    elif cancel_status == 'VANISHED':
+        msg = 'Vanished unexpectedly'
+    elif cancel_status == 'TERMINATED':
         return
+    else:
+        raise InvocationError(f'abort_on_ecflow: unknown cancel status "{cancel_status}"')
 
     script = pathlib.Path(script)
     orig_script = script.with_suffix(script.suffix + ".orig")
