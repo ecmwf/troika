@@ -42,7 +42,7 @@ def get_logfile_path(action, script=None):
     return base.with_suffix(base.suffix + f".{action}log")
 
 
-def config(verbose=0, logfile=None):
+def config(verbose=0, logfile=None, logmode='a'):
     """Configure logging
 
     Parameters
@@ -51,6 +51,8 @@ def config(verbose=0, logfile=None):
         Increase (or decrease) the default log level this many times
     logfile: path-like or None
         Path to a log file
+    logmode: 'a' or 'w'
+        Mode to use for the log file ([a]ppend or over[w]rite)
     """
 
     default_log = LOGLEVELS.index(logging.WARNING)
@@ -63,7 +65,7 @@ def config(verbose=0, logfile=None):
     if logfile is not None:
         root_logger = logging.getLogger()
         try:
-            fh = logging.FileHandler(logfile)
+            fh = logging.FileHandler(logfile, mode=logmode)
         except IOError as e:
             _logger.error("Cannot open log file: %s", e)
             return

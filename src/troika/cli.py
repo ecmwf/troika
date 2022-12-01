@@ -39,7 +39,8 @@ class Action:
             self.logfile = log.get_logfile_path(args.action, getattr(args, 'script', None))
         if args.logfile is not None:
             self.logfile = args.logfile
-        log.config(args.verbose - args.quiet, self.logfile)
+        self.logmode = 'a' if args.append_log else 'w'
+        log.config(args.verbose - args.quiet, self.logfile, self.logmode)
         self.args = args
 
     def execute(self):
@@ -164,6 +165,8 @@ def main(args=None, prog=None):
         help="decrease verbosity level (can be repeated)")
     parser.add_argument("-l", "--logfile", default=None,
         help="save log output to this file")
+    parser.add_argument("-A", "--append-log", default=False,
+        action="store_true", help="append to the log file instead of overwriting")
 
     parser.add_argument("-c", "--config", type=argparse.FileType("r"),
         default=None, help="path to the configuration file")
