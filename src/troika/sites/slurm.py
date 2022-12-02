@@ -155,9 +155,27 @@ class SlurmSite(Site):
         return int(match.group(1))
 
     def _get_state(self, jid, strict=True):
-        """Return the state of a SLURM job, or None if 'strict' is not in
-        effect and it can't be retrieved (which probably means the job no
-        longer exists)"""
+        """Return the state of a SLURM job.
+
+        Parameters
+        ----------
+        jid: int or str
+            Job ID
+        strict: bool
+            If True (default), raise an exception for all failures of the
+            squeue command. If False, ignore ignore failures which are
+            merely because the specified job does not exist, but raise an
+            exception on all other failures.
+
+        Returns
+        -------
+        str or None:
+            Slurm job state, e.g. PENDING or RUNNING, if the job exists.
+            Returns None if strict is in effect and squeue either outputs
+            an empty string (as it can do for a job which has very recently
+            disappeared), or fails with a message indicating that the job
+            does not exist.
+"""
         cmd = [ self._squeue, "-h", "-o", "%T", "-j", str(jid) ]
         proc = self._connection.execute(cmd, stdout=PIPE, stderr=PIPE)
         proc_stdout, proc_stderr = proc.communicate()
@@ -174,6 +192,8 @@ class SlurmSite(Site):
         else:
             if proc_stderr:
                 _logger.debug("squeue error output: %s", jid, proc_stderr)
+            if strict and not proc_stdout:
+                raise RunError(f"Get State for job {job} produced no output")
         if proc_stdout: return proc_stdout.decode("ascii")
 
     def submit(self, script, user, output, dryrun=False):
