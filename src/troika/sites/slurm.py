@@ -189,6 +189,8 @@ class SlurmSite(Site):
             # An intermediary (e.g. ecsbatch) may shift the error message to stdout rather than stderr
             if strict or all(b"Invalid job id specified" not in x for x in (proc_stdout, proc_stderr)):
                 check_retcode(retcode, what="Get State")
+            else:
+                return None
         else:
             if proc_stderr:
                 _logger.debug("squeue error output: %s", jid, proc_stderr)
