@@ -3,6 +3,7 @@
 import logging
 import pathlib
 
+from ..connection import PIPE
 from ..utils import check_retcode
 
 _logger = logging.getLogger(__name__)
@@ -11,11 +12,22 @@ _logger = logging.getLogger(__name__)
 def ensure_output_dir(site, output, dryrun=False):
     """Ensure the output directory exists and return its path"""
     out_dir = pathlib.PurePath(output).parent
-    proc = site._connection.execute(["mkdir", "-p", out_dir], dryrun=dryrun)
+    pmkdir_command = site.config.get('pmkdir_command', ['mkdir', '-p'])
+    if isinstance(pmkdir_command, (str, bytes)):
+        pmkdir_command = [ pmkdir_command ]
+    else:
+        pmkdir_command = list(pmkdir_command)
+    proc = site._connection.execute(pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
     if dryrun:
         return out_dir
-    retcode = proc.wait()
-    check_retcode(retcode, what="Output directory creation")
+    proc_stdout, proc_stderr = proc.communicate()
+    if proc.returncode != 0:
+        if proc_stdout: _logger.error("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+        if proc_stderr: _logger.error("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
+        check_retcode(proc.returncode, what="Ouput directory creation")
+    else:
+        if proc_stdout: _logger.debug("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+        if proc_stderr: _logger.debug("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
     return out_dir
 
 def check_connection(action, site, args):
