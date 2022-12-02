@@ -14,7 +14,7 @@ the equals sign and at the end the value.
 from collections import OrderedDict
 import re
 
-from . import RunError
+from . import InvocationError, RunError
 
 
 class ParseError(RunError):
@@ -99,6 +99,20 @@ class DirectiveParser(BaseParser):
         self.data[key] = value
 
         return True
+
+    def parse_directive_args(self, args):
+        """Process a list of name=value arguments. Returns a dict."""
+        data = {}
+        for arg in args:
+            arg = arg.encode("utf-8")
+            m = self.KEYVAL_RE.match(arg)
+            if m is None:
+                raise InvocationError(f"Invalid key-value pair: {arg!r}")
+            key, value = m.groups()
+            key = key.decode('ascii')
+            key = self.aliases.get(key, key)
+            data[key] = value
+        return data
 
 
 class ShebangParser(BaseParser):

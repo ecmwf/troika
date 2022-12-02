@@ -2,6 +2,7 @@
 import pytest
 import textwrap
 
+from troika import InvocationError
 from troika.parser import DirectiveParser, ParseError
 
 
@@ -110,3 +111,42 @@ def test_parse_error(script, errline):
             parser.feed(line)
     assert lno == errline
 
+
+def test_directive_define():
+    defines = [
+        "name=hello",
+        "spam=beans",
+        "spam=eggs",
+    ]
+    expected = {
+        "name": b"hello",
+        "spam": b"eggs",
+    }
+    parser = DirectiveParser()
+    directives = parser.parse_directive_args(defines)
+    assert directives == expected
+
+
+@pytest.mark.parametrize("defines, wrong", [
+    pytest.param(
+        [
+            "help",
+            "name=hello",
+        ],
+        0,
+        id="noval"),
+
+    pytest.param(
+        [
+            "foo=bar",
+            "123=456",
+        ],
+        1,
+        id="badkey"),
+])
+def test_directive_define_error(defines, wrong):
+    parser = DirectiveParser()
+    wrongdir = defines[wrong].encode("ascii")
+    with pytest.raises(InvocationError,
+            match=f"Invalid key-value pair: {wrongdir!r}"):
+        parser.parse_directive_args(defines)
