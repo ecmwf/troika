@@ -182,7 +182,12 @@ class Controller:
                 else:
                     _logger.error("Unhandled exception", exc_info=(exc_type, exc, traceback))
                 swallow = True
-            self._controller.teardown(self.status)
+            try:
+                self._controller.teardown(self.status)
+            except Exception as e:
+                # An error during the at-exit hooks should _not_ be reported as
+                # failure of the operation (e.g. submission failure)
+                _logger.error("Exception during teardown/exit", exc_info=e)
             return swallow
 
     def action_context(self, *args, **kwargs):
