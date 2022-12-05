@@ -20,6 +20,12 @@ Troika will first feed the script to a series of parsers to extract meaningful i
 
 This information will be made available to the controller, translators and generator.
 
+.. program:: troika
+
+After the script has been parsed, the set of directives is updated based on the
+:option:`-D` flags passed on the command line, if any. These values take
+precedence over the ones in the script.
+
 
 Troika directives
 -----------------

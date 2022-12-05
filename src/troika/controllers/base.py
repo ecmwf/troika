@@ -233,7 +233,8 @@ class Controller:
         script: path-like
             Script to parse
         """
-        parsers = [('directives', DirectiveParser(aliases=ALIASES))]
+        dir_parser = DirectiveParser(aliases=ALIASES)
+        parsers = [('directives', dir_parser)]
         native = self.site.get_native_parser()
         if native is not None:
             parsers.append(('native', native))
@@ -242,6 +243,9 @@ class Controller:
         body = self.run_parser(script, parser)
         self.script_data.update(parser.data)
         self.script_data['body'] = body
+        dir_defines = getattr(self.args, "define", [])
+        dir_overrides = dir_parser.parse_directive_args(dir_defines)
+        self.script_data['directives'].update(dir_overrides)
 
     def run_parser(self, script, parser):
         """Run the parser on the script

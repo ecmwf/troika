@@ -185,6 +185,8 @@ def main(args=None, prog=None):
         help="remote user")
     parser_submit.add_argument("-o", "--output", required=True,
         help="job output file")
+    parser_submit.add_argument("-D", "--define", default=[], action="append",
+        metavar="NAME=VALUE", help="set these directives in the submitted job")
 
     parser_monitor = subparsers.add_parser("monitor",
             help="monitor a submitted job")

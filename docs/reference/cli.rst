@@ -115,6 +115,14 @@ using the :option:`-j` option. Otherwise, it will be taken from the
     (:ref:`monitor` and :ref:`kill` only) Use this job identifier instead of the
     ``<script>.jid`` file.
 
+Extra directives (see :doc:`/reference/preprocessing`) can be specified and will
+override the values defined in the script, if any.
+
+.. option:: -D <name>=<value>, --define <name>=<value>
+
+   (:ref:`submit` only) Define additional directives. Can be used multiple
+   times.
+
 
 .. _submit:
 
