@@ -117,6 +117,9 @@ class Site:
                     the job was sent a catchable signal while running
                     and is expected to clean up and report its own
                     demise if necessary
+                VANISHED:
+                    the job has disappeared so no further attempt
+                    could be made to kill it
         """
         raise NotImplementedError()
 
