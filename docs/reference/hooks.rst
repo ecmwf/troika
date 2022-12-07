@@ -37,11 +37,16 @@ pre_submit
 Pre-submit hooks are called between script generation and submission. The
 following pre-submit hooks are defined:
 
+.. _hook_create_output_dir:
+
 create_output_dir
 ~~~~~~~~~~~~~~~~~
 
 This hook ensures the directory containing the output file exists on the remote
-platform, creating it if needed.
+platform, creating it if needed. The command issued can be set using the
+:ref:`config_pmkdir_commmand` option.
+
+.. _hook_copy_orig_script:
 
 copy_orig_script
 ~~~~~~~~~~~~~~~~
@@ -77,10 +82,14 @@ Exit hooks are executed at the end of the execution, even in the case of a
 failure (the hook itself may perform different actions based on whether the
 execution was successful). The following exit hooks are defined:
 
+.. _hook_copy_submit_logfile:
+
 copy_submit_logfile
 ~~~~~~~~~~~~~~~~~~~
 
 After a :ref:`submit` action, copy the log file to the remote platform.
+
+.. _hook_copy_kill_logfile:
 
 copy_kill_logfile
 ~~~~~~~~~~~~~~~~~

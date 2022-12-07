@@ -30,7 +30,8 @@ Logging
 
 The main actions (:ref:`submit`, :ref:`monitor`, :ref:`kill`) will create a log
 file called ``<script>.<action>log``, e.g., ``testjob.submitlog`` by default,
-this can be overridden by the :option:`-l` option. The log verbosity on the
+this can be overridden by the :option:`-l` option. If the file exists, it will
+be ovewritten, unless the :option:`-A` flag is present. The log verbosity on the
 command line (standard error) can be controlled using the :option:`-v` and
 :option:`-q` options. The default verbosity level only prints warnings and
 errors.
@@ -39,6 +40,10 @@ errors.
 
    Save log output to this file, instead of deducing a name from the script name
    (main actions) or no file at all.
+
+.. option:: -A, --append-log
+
+   Do not overwrite an existing log file, append to it instead.
 
 .. option:: -q, --quiet
 
