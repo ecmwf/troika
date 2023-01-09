@@ -26,4 +26,4 @@ Troika can be installed from its source repository. It is recommended to use a v
 
    python3 -m venv troika
    source troika/bin/activate
-   python3 -m pip install git+https://github.com/ecmwf/troika.git
+   python3 -m pip install troika
