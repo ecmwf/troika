@@ -4,9 +4,10 @@ Submit, monitor and kill jobs on local and remote hosts
 
 ## Requirements
 
-* Python 3.6 or higher
+* Python 3.8 or higher
 * `pyyaml` (https://pypi.org/project/PyYAML/)
 * For testing: `pytest` (https://pypi.org/project/pytest/)
+* For building the documentation: ``sphinx`` (https://www.sphinx-doc.org)
 
 ## Installing
 
@@ -46,7 +47,6 @@ sites:
         copy_script: true    # if false, the script will be piped through ssh
         at_startup: ["check_connection"]
         pre_submit: ["create_output_dir"]
-        preprocess: ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
         at_exit: ["copy_submit_logfile"]
     pbs_cluster:
         type: pbs            # jobs are submitted to PBS
@@ -55,7 +55,6 @@ sites:
         copy_script: true    # if false, the script will be piped through ssh
         at_startup: ["check_connection"]
         pre_submit: ["create_output_dir"]
-        preprocess: ["remove_top_blank_lines", "pbs_add_output", "pbs_bubble"]
         at_exit: ["copy_submit_logfile"]
 ```
 

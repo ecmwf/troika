@@ -7,7 +7,6 @@ import signal
 import time
 
 from .. import ConfigurationError, InvocationError, RunError
-from ..utils import signal_name
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -110,24 +109,31 @@ class DirectExecSite(Site):
         if seq is None:
             seq = [(0, signal.SIGTERM)]
 
-        first = True
+        cancel_status = None
         for wait, sig in seq:
             time.sleep(wait)
+            if sig is None:
+                sig = signal.SIGTERM
 
             if dryrun:
-                _logger.info(f"Sending {signal_name(sig)} to process {jid}")
+                _logger.info(f"Sending {sig.name} to process {jid}")
                 continue
 
-            _logger.debug(f"Sending {signal_name(sig)} to process {jid}")
+            _logger.debug(f"Sending {sig.name} to process {jid}")
             try:
-                os.kill(jid, sig)
+                os.kill(jid, sig.value)
             except ProcessLookupError:
-                if first:
+                if cancel_status is None:
                     raise RunError(f"Process ID {jid} not found")
                 else:
-                    return
+                    break
 
-            first = False
+            if sig == signal.SIGKILL:
+                cancel_status = 'KILLED'
+            else:
+                cancel_status = 'TERMINATED'
+
+        return (jid, cancel_status)
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)

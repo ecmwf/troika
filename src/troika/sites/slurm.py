@@ -1,16 +1,17 @@
 """Slurm-managed site"""
 
+from collections import OrderedDict
 import logging
-import os
 import pathlib
 import re
-import tempfile
+import signal
 import time
 
 from .. import InvocationError, RunError
+from .. import generator
 from ..connection import PIPE
-from ..preprocess import preprocess
-from ..utils import check_retcode
+from ..parser import BaseParser, ParseError
+from ..utils import check_retcode, parse_bool
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -28,7 +29,7 @@ def _split_slurm_directive(arg):
     """
     m = re.match(rb"([^\s=]+)(=|\s+)?(.*)?$", arg)
     if m is None:
-        raise RunError(r"Malformed sbatch argument: {arg!r}")
+        raise ParseError(r"Malformed sbatch argument: {arg!r}")
     key, sep, val = m.groups()
     if sep is None:
         assert val == b""
@@ -36,58 +37,108 @@ def _split_slurm_directive(arg):
     return key, val
 
 
-_DIRECTIVE_RE = re.compile(rb"^#\s*SBATCH\s+(.+)$")
+class SlurmDirectiveParser(BaseParser):
+    """Parser that processes a script to extract Slurm directives
 
+    Parameters
+    ----------
+    drop_keys: Iterable[bytes]
+        Directives to ignore, e.g. ``[b'-o', b'--output']``
 
-@preprocess.register
-def slurm_add_output(sin, script, user, output):
-    """Set the output file"""
-    for line in sin:
-        m = _DIRECTIVE_RE.match(line)
+    Members
+    -------
+    data: collections.OrderedDict[bytes, (bytes or None, bytes)]
+        Directives that have been parsed. The first item of the dict value is
+        the parsed value, if any, and the second is the full line, including
+        the line terminator.
+    """
+
+    DIRECTIVE_RE = re.compile(rb"^#\s*SBATCH\s+(.+)$")
+
+    def __init__(self, drop_keys=None):
+        super().__init__()
+        self.data = OrderedDict()
+        if drop_keys is None:
+            drop_keys = []
+        self.drop_keys = set(drop_keys)
+
+    def feed(self, line):
+        """Process the given line
+
+        See ``BaseParser.feed``
+        """
+        m = self.DIRECTIVE_RE.match(line)
         if m is None:
-            yield line
-            continue
-        key, val = _split_slurm_directive(m.group(1))
-        if key in [b"-o", b"--output", b"-e", b"--error"]:
-            continue
-        yield line
-    yield b"#SBATCH --output=" + os.fsencode(output) + b"\n"
+            return False
+
+        key, value = _split_slurm_directive(m.group(1))
+        if key not in self.drop_keys:
+            self.data[key] = (value, line)
+
+        return True
 
 
-@preprocess.register
-def slurm_bubble(sin, script, user, output):
-    """Make sure all Slurm directives are at the top"""
-    directives = []
-    with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
-            dir=script.parent, prefix=script.name) as tmp:
-        first = True
-        for line in sin:
-            if line.isspace():
-                tmp.write(line)
-                continue
+def _translate_export_vars(value):
+    if value in (b"all", b"none"):
+        value = value.upper()
+    return b"--export=%s" % value
 
-            m = _DIRECTIVE_RE.match(line)
-            if m is not None:
-                directives.append(line)
-                continue
 
-            if first:
-                first = False
-                if line.startswith(b"#!"):
-                    yield line
-                    continue
+def _translate_hyperthreading(value):
+    if value == ():
+        value = True
+    else:
+        value = parse_bool(value)
+    flag = b"" if value else b"no"
+    return b"--hint=%smultithread" % flag
 
-            tmp.write(line)
 
-        yield from directives
-        tmp.seek(0)
-        yield from tmp
+def _translate_mail_type(value):
+    trans = {b"none": b"NONE", b"begin": b"BEGIN", b"end": b"END", b"fail": b"FAIL"}
+    vals = value.split(b",")
+    newvals = []
+    for val in vals:
+        newval = trans.get(val.lower())
+        if newval is None:
+            _logger.warn("Unknown mail_type value %r", val)
+            newval = val
+        newvals.append(newval)
+    return b"--mail-type=%s" % b",".join(newvals)
 
 
 class SlurmSite(Site):
     """Site managed using Slurm"""
 
-    SUBMIT_RE = re.compile(r"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
+
+    directive_prefix = b"#SBATCH "
+    directive_translate = {
+        "billing_account": b"--account=%s",
+        "cpus_per_task": b"--cpus-per-task=%s",
+        "enable_hyperthreading": _translate_hyperthreading,
+        "error_file": b"--error=%s",
+        "export_vars": _translate_export_vars,
+        "join_output_error": generator.ignore,
+        "licenses": b"--licenses=%s",
+        "mail_type": _translate_mail_type,
+        "mail_user": b"--mail-user=%s",
+        "memory_per_node": b"--mem=%s",
+        "memory_per_cpu": b"--mem-per-cpu=%s",
+        "name": b"--job-name=%s",
+        "output_file": b"--output=%s",
+        "partition": b"--partition=%s",
+        "priority": b"--priority=%s",
+        "tasks_per_node": b"--ntasks-per-node=%s",
+        "threads_per_core": b"--threads-per-core=%s",
+        "tmpdir_size": b"--tmp=%s",
+        "total_nodes": b"--nodes=%s",
+        "total_tasks": b"--ntasks=%s",
+        "queue": b"--qos=%s",
+        "walltime": b"--time=%s",
+        "working_dir": b"--chdir=%s",
+    }
+
+
+    SUBMIT_RE = re.compile(br"^(?:Submitted batch job )?(\d+)$", re.MULTILINE)
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
@@ -103,17 +154,53 @@ class SlurmSite(Site):
             return None
         return int(match.group(1))
 
+    def _get_state(self, jid, strict=True):
+        """Return the state of a SLURM job.
+
+        Parameters
+        ----------
+        jid: int or str
+            Job ID
+        strict: bool
+            If True (default), raise an exception for all failures of the
+            squeue command. If False, ignore ignore failures which are
+            merely because the specified job does not exist, but raise an
+            exception on all other failures.
+
+        Returns
+        -------
+        str or None:
+            Slurm job state, e.g. PENDING or RUNNING, if the job exists.
+            Returns None if strict is in effect and squeue either outputs
+            an empty string (as it can do for a job which has very recently
+            disappeared), or fails with a message indicating that the job
+            does not exist.
+"""
+        cmd = [ self._squeue, "-h", "-o", "%T", "-j", str(jid) ]
+        proc = self._connection.execute(cmd, stdout=PIPE, stderr=PIPE)
+        proc_stdout, proc_stderr = proc.communicate()
+        retcode = proc.returncode
+        # Essential to remove trailing newline from stdout before returning
+        proc_stdout = proc_stdout.strip()
+        proc_stderr = proc_stderr.strip()
+        _logger.debug("squeue output for job %d: %s", jid, proc_stdout)
+        if retcode != 0:
+            _logger.error("squeue error: %s", proc_stderr)
+            # An intermediary (e.g. ecsbatch) may shift the error message to stdout rather than stderr
+            if strict or all(b"Invalid job id specified" not in x for x in (proc_stdout, proc_stderr)):
+                check_retcode(retcode, what="Get State")
+            else:
+                return None
+        else:
+            if proc_stderr:
+                _logger.debug("squeue error output: %s", jid, proc_stderr)
+            if strict and not proc_stdout:
+                raise RunError(f"Get State for job {job} produced no output")
+        if proc_stdout: return proc_stdout.decode("ascii")
+
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
-        sub_output = script.with_suffix(script.suffix + ".sub")
-        if sub_output.exists():
-            _logger.warning("Submission output file %r already exists, " +
-                "overwriting", str(sub_output))
-        sub_error = script.with_suffix(script.suffix + ".suberr")
-        if sub_error.exists():
-            _logger.warning("Submission error file %r already exists, " +
-                "overwriting", str(sub_error))
 
         cmd = [self._sbatch]
 
@@ -127,22 +214,20 @@ class SlurmSite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        outf = None
-        errf = None
-        if not dryrun:
-            outf = sub_output.open(mode="wb")
-            errf = sub_error.open(mode="wb")
-
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf, stderr=errf,
-            dryrun=dryrun)
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
 
-        retcode = proc.wait()
-        check_retcode(retcode, what="Submission",
-            suffix=f", check {str(sub_output)!r} and {str(sub_error)!r}")
+        proc_stdout, proc_stderr = proc.communicate()
+        if proc.returncode != 0:
+            if proc_stdout: _logger.error("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.error("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
+            check_retcode(proc.returncode, what="submission")
+        else:
+            if proc_stdout: _logger.debug("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.debug("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
 
-        jobid = self._parse_submit_output(sub_output.read_text())
+        jobid = self._parse_submit_output(proc_stdout)
         _logger.debug("Slurm job ID: %d", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
@@ -191,17 +276,54 @@ class SlurmSite(Site):
         except ValueError:
             raise RunError(f"Invalid job id: {jid!r}")
 
+        # Attempting to send a signal to a PENDING job will wait for it
+        # to run first, which is not what we want. Cancel such jobs
+        # directly, regardless of `_kill_sequence`. The "-t PENDING"
+        # is important to prevent a race condition if the job is just
+        # about to run.
+        state = self._get_state(jid, strict=False)
+        if state is None:
+            # Job disappeared already
+            return (jid, 'VANISHED')
+        elif state == 'PENDING':
+            cmd = [self._scancel, "-t", "PENDING", str(jid)]
+            proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
+            if not dryrun:
+                proc_stdout, _ = proc.communicate()
+                # Strip this _before_ checking for output because ecscancel
+                # produces spurious blank lines
+                proc_stdout = proc_stdout.strip()
+                retcode = proc.returncode
+                if retcode != 0:
+                    _logger.error("scancel output: %s", proc_stdout)
+                    if b"Invalid job id specified" in proc_stdout:
+                        # Job disappeared already
+                        return (jid, 'VANISHED')
+                    else:
+                        check_retcode(retcode, what="Kill")
+                elif proc_stdout:
+                    _logger.debug("scancel output: %s", proc_stdout)
+
+            state = self._get_state(jid, strict=False)
+            if state is None or state == 'CANCELLED':
+                return (jid, 'CANCELLED')
+            elif state == 'PENDING':
+                if not dryrun:
+                    raise RunError(f"Failed to cancel PENDING job {jid!r}")
+            # If anything else, the job is probably starting, so fall through
+            # and treat like a running job
+
         seq = self._kill_sequence
         if seq is None:
             seq = [(0, None)]
 
-        first = True
+        cancel_status = None
         for wait, sig in seq:
             time.sleep(wait)
 
             cmd = [self._scancel, str(jid)]
             if sig is not None:
-                cmd.extend(["-s", str(int(sig))])
+                cmd.extend(["-f", "-s", str(sig.value)])
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -209,14 +331,32 @@ class SlurmSite(Site):
 
             proc_stdout, _ = proc.communicate()
             retcode = proc.returncode
+            # Strip this _before_ checking for output because ecscancel
+            # produces spurious blank lines
+            proc_stdout = proc_stdout.strip()
             if retcode != 0:
-                if first:
+                if cancel_status is None:
                     _logger.error("scancel output: %s", proc_stdout)
-                    check_retcode(retcode, what="Kill")
+                    if b"Invalid job id specified" in proc_stdout:
+                        # Job disappeared already
+                        return (jid, 'VANISHED')
+                    else:
+                        check_retcode(retcode, what="Kill")
                 else:
-                    return
+                    _logger.debug("scancel output: %s", proc_stdout)
+                    break
+            elif proc_stdout:
+                _logger.debug("scancel output: %s", proc_stdout)
 
-            first = False
+            if sig is None or sig == signal.SIGKILL:
+                cancel_status = 'KILLED'
+            elif cancel_status is None:
+                cancel_status = 'TERMINATED'
+        return (jid, cancel_status)
+
+    def get_native_parser(self):
+        """See `troika.sites.Site.get_native_parser`"""
+        return SlurmDirectiveParser(drop_keys=[b'-o', b'--output', b'-e', b'--error'])
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)

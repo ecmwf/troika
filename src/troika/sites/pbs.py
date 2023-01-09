@@ -1,15 +1,16 @@
 """PBS-managed site"""
 
+from collections import OrderedDict
+import locale
 import logging
-import os
 import pathlib
 import re
-import tempfile
+import signal
 import time
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
-from ..preprocess import preprocess
+from ..parser import BaseParser, ParseError
 from ..utils import check_retcode
 from .base import Site
 
@@ -36,57 +37,86 @@ def _split_pbs_directive(arg):
     return key, val
 
 
-_DIRECTIVE_RE = re.compile(rb"^#\s*PBS\s+(.+)$")
+class PBSDirectiveParser(BaseParser):
+    """Parser that processes a script to extract PBS directives
 
+    Parameters
+    ----------
+    drop_keys: Iterable[bytes]
+        Directives to ignore, e.g. ``[b'-o', b'-e']``
 
-@preprocess.register
-def pbs_add_output(sin, script, user, output):
-    """Set the output file"""
-    for line in sin:
-        m = _DIRECTIVE_RE.match(line)
+    Members
+    -------
+    data: collections.OrderedDict[bytes, (bytes or None, bytes)]
+        Directives that have been parsed. The first item of the dict value is
+        the parsed value, if any, and the second is the full line, including
+        the line terminator.
+    """
+
+    DIRECTIVE_RE = re.compile(rb"^#\s*PBS\s+(.+)$")
+
+    def __init__(self, drop_keys=None):
+        super().__init__()
+        self.data = OrderedDict()
+        if drop_keys is None:
+            drop_keys = []
+        self.drop_keys = set(drop_keys)
+
+    def feed(self, line):
+        """Process the given line
+
+        See ``BaseParser.feed``
+        """
+        m = self.DIRECTIVE_RE.match(line)
         if m is None:
-            yield line
-            continue
-        key, val = _split_pbs_directive(m.group(1))
-        if key in [b"-o", b"-e", b"-j"]:
-            continue
-        yield line
-    yield b"#PBS -j oe\n"
-    yield b"#PBS -o " + os.fsencode(output) + b"\n"
+            return False
+
+        key, value = _split_pbs_directive(m.group(1))
+        if key not in self.drop_keys:
+            self.data[key] = (value, line)
+
+        return True
 
 
-@preprocess.register
-def pbs_bubble(sin, script, user, output):
-    """Make sure all PBS directives are at the top"""
-    directives = []
-    with tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
-            dir=script.parent, prefix=script.name) as tmp:
-        first = True
-        for line in sin:
-            if line.isspace():
-                tmp.write(line)
-                continue
+def _translate_export_vars(value):
+    if value == b"all":
+        return b"-V"
+    if value == b"none":
+        return
+    return b"-v %s" % value
 
-            m = _DIRECTIVE_RE.match(line)
-            if m is not None:
-                directives.append(line)
-                continue
 
-            if first:
-                first = False
-                if line.startswith(b"#!"):
-                    yield line
-                    continue
-
-            tmp.write(line)
-
-        yield from directives
-        tmp.seek(0)
-        yield from tmp
+def _translate_mail_type(value):
+    trans = {b"none": b"n", b"begin": b"b", b"end": b"e", b"fail": b"a"}
+    vals = value.split(b",")
+    newvals = []
+    for val in vals:
+        newval = trans.get(val.lower())
+        if newval is None:
+            _logger.warn("Unknown mail_type value %r", val)
+            newval = val
+        newvals.append(newval)
+    return b"-m %s" % b"".join(newvals)
 
 
 class PBSSite(Site):
     """Site managed using PBS"""
+
+
+    directive_prefix = b"#PBS "
+    directive_translate = {
+        "billing_account": b"-A %s",
+        "error_file": b"-e %s",
+        "export_vars": _translate_export_vars,
+        "join_output_error": b"-j oe",  # TODO: make that automatic
+        "mail_type": _translate_mail_type,
+        "mail_user": b"-M %s",
+        "name": b"-N %s",
+        "output_file": b"-o %s",
+        "priority": b"-p %s",
+        "queue": b"-q %s",
+        "walltime": b"-l walltime=%s",
+    }
 
 
     def __init__(self, config, connection, global_config):
@@ -100,14 +130,6 @@ class PBSSite(Site):
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
-        sub_output = script.with_suffix(script.suffix + ".sub")
-        if sub_output.exists():
-            _logger.warning("Submission output file %r already exists, " +
-                "overwriting", str(sub_output))
-        sub_error = script.with_suffix(script.suffix + ".suberr")
-        if sub_error.exists():
-            _logger.warning("Submission error file %r already exists, " +
-                "overwriting", str(sub_error))
 
         cmd = [self._qsub]
 
@@ -121,22 +143,20 @@ class PBSSite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        outf = None
-        errf = None
-        if not dryrun:
-            outf = sub_output.open(mode="wb")
-            errf = sub_error.open(mode="wb")
-
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=outf, stderr=errf,
-            dryrun=dryrun)
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
 
-        retcode = proc.wait()
-        check_retcode(retcode, what="Submission",
-            suffix=f", check {str(sub_output)!r} and {str(sub_error)!r}")
+        proc_stdout, proc_stderr = proc.communicate()
+        if proc.returncode != 0:
+            if proc_stdout: _logger.error("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.error("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
+            check_retcode(proc.returncode, what="Submission")
+        else:
+            if proc_stdout: _logger.debug("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
+            if proc_stderr: _logger.debug("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
 
-        jobid = sub_output.read_text().strip()
+        jobid = proc_stdout.decode(locale.getpreferredencoding()).strip()
         _logger.debug("PBS job ID: %s", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
@@ -177,13 +197,13 @@ class PBSSite(Site):
         if seq is None:
             seq = [(0, None)]
 
-        first = True
+        cancel_status = None
         for wait, sig in seq:
             time.sleep(wait)
 
             cmd = [self._qdel, jid]
             if sig is not None:
-                cmd = [self._qsig, "-s", str(int(sig)), jid]
+                cmd = [self._qsig, "-s", str(sig.value), jid]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -192,13 +212,23 @@ class PBSSite(Site):
             proc_stdout, _ = proc.communicate()
             retcode = proc.returncode
             if retcode != 0:
-                if first:
+                if cancel_status is None:
                     _logger.error("qdel/qsig output: %s", proc_stdout)
                     check_retcode(retcode, what="Kill")
                 else:
-                    return
+                    _logger.debug("qdel/qsig output: %s", proc_stdout)
+                    break
 
-            first = False
+            if sig is None or sig == signal.SIGKILL:
+                cancel_status = 'KILLED'
+            elif cancel_status is None:
+                cancel_status = 'TERMINATED'
+
+        return (jid, cancel_status)
+
+    def get_native_parser(self):
+        """See `troika.sites.Site.get_native_parser`"""
+        return PBSDirectiveParser(drop_keys=[b'-o', b'-e', b'-j'])
 
     def _parse_jidfile(self, script):
         script = pathlib.Path(script)

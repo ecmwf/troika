@@ -15,9 +15,12 @@ class DummySite(Site):
 @pytest.fixture
 def dummy_sites(monkeypatch):
     fake_sites = {"dummy": DummySite}
-    def fake_discover(package, base, attrname=""):
-        return fake_sites
-    monkeypatch.setattr("troika.site.discover", fake_discover)
+    def fake_get_entrypoint(group, name):
+        try:
+            return fake_sites[name]
+        except KeyError:
+            raise ValueError(name)
+    monkeypatch.setattr("troika.site.get_entrypoint", fake_get_entrypoint)
 
 
 def test_get_exist(dummy_sites):

@@ -1,13 +1,9 @@
 """Base site class"""
 
-import logging
-import pathlib
-import shutil
-import tempfile
+from .. import ConfigurationError
+from .. import generator
+from ..utils import normalise_signal
 
-from .. import preprocess as pp
-
-_logger = logging.getLogger(__name__)
 
 class Site:
     """Base site class
@@ -17,10 +13,10 @@ class Site:
     config: dict
         Site configuration
 
-    connection: `troika.connections.base.Connection`
+    connection: :py:class:`troika.connections.base.Connection`
         Connection object to interact with the site
 
-    global_config: `troika.config.Config`
+    global_config: :py:class:`troika.config.Config`
         Global configuration
     """
 
@@ -30,46 +26,26 @@ class Site:
     #: becomes ``foo``.
     __type_name__ = None
 
+
+    #: Prefix for the generated directives, e.g. ``b"#SBATCH "``. If ``None``,
+    #: no directives will be generated
+    directive_prefix = None
+
+    #: Directive translation table (``str`` -> ``bytes``). Values are formatted
+    #: using the ``%`` operator
+    directive_translate = {}
+
+
     def __init__(self, config, connection, global_config):
+        self.config = config
         self._connection = connection
-        self._kill_sequence = config.get('kill_sequence', None)
-
-    def preprocess(self, script, user, output):
-        """Preprocess a job script
-
-        The script, output and user are interpreted according to the site.
-
-        Parameters
-        ----------
-        script: path-like
-            Path to the job script
-        output: path-like
-            Path to the job output file
-        user:
-            Remote user name
-
-        Returns
-        -------
-        path-like:
-            Path to the preprocessed script
-        """
-        script = pathlib.Path(script)
-        orig_script = script.with_suffix(script.suffix + ".orig")
-        if orig_script.exists():
-            _logger.warning("Backup script file %r already exists, " +
-                "overwriting", str(orig_script))
-        with script.open(mode="rb") as sin, \
-                tempfile.NamedTemporaryFile(mode='w+b', delete=False,
-                    dir=script.parent, prefix=script.name) as sout:
-            sin_pp = pp.preprocess(sin, script, user, output)
-            sout.writelines(sin_pp)
-            new_script = pathlib.Path(sout.name)
-        shutil.copymode(script, new_script)
-        shutil.copy2(script, orig_script)
-        new_script.replace(script)
-        _logger.debug("Preprocessing done. Original script saved to %r",
-            str(orig_script))
-        return script
+        try:
+            self._kill_sequence = [
+                (wait, normalise_signal(sig))
+                for wait, sig in config.get('kill_sequence', [])
+            ]
+        except (TypeError, ValueError) as e:
+            raise ConfigurationError(f"Invalid kill sequence: {e!s}")
 
     def submit(self, script, user, output, dryrun=False):
         """Submit a job
@@ -124,6 +100,26 @@ class Site:
             Job ID
         dryrun: bool
             If True, do not kill, only report what would be done
+
+        Returns
+        -------
+        tuple:
+            [0]
+                The job ID of the killed job
+            [1]
+                CANCELLED:
+                    the job was cancelled before it started
+                KILLED:
+                    the job was killed while running without a
+                    catchable signal allowing it to clean up or
+                    report its demise
+                TERMINATED:
+                    the job was sent a catchable signal while running
+                    and is expected to clean up and report its own
+                    demise if necessary
+                VANISHED:
+                    the job has disappeared so no further attempt
+                    could be made to kill it
         """
         raise NotImplementedError()
 
@@ -145,3 +141,31 @@ class Site:
             True if the connection is able to execute commands
         """
         return self._connection.checkstatus(timeout=timeout, dryrun=dryrun)
+
+    def get_native_parser(self):
+        """Create a :py:class:`troika.parser.Parser` for native directives
+
+        Returns
+        -------
+        :py:class:`troika.parser.Parser` or None
+            Directive parser, if any
+        """
+        return None
+
+    def get_directive_translation(self):
+        """Construct the translation params
+
+        Returns
+        -------
+        tuple
+            ``(directive_prefix, directive_translate)``, updated with the
+            configuration overrides
+        """
+        prefix = self.config.get("directive_prefix", self.directive_prefix)
+        translate = self.directive_translate.copy()
+        for name, fmt in self.config.get("directive_translate", {}).items():
+            if fmt is None:
+                translate[name] = generator.ignore
+            else:
+                translate[name] = fmt.encode("utf-8")
+        return (prefix, translate)

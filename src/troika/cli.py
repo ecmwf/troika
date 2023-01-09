@@ -9,7 +9,7 @@ import textwrap
 from . import log
 from . import VERSION, ConfigurationError, InvocationError, RunError
 from .config import get_config
-from .controller import Controller
+from .controller import get_controller
 
 _logger = logging.getLogger(__name__)
 
@@ -47,7 +47,7 @@ class Action:
         """Execute the action"""
         try:
             config = get_config(self.args.config, guesses=_config_guesses)
-            controller = Controller(config, self.args, self.logfile)
+            controller = get_controller(config, self.args, self.logfile)
             return self.run(config, controller)
         except ConfigurationError as e:
             _logger.critical("Configuration error: %s", e)
@@ -82,24 +82,21 @@ class SubmitAction(Action):
     """Main entry point for the 'submit' sub-command"""
     def run(self, config, controller):
         args = self.args
-        controller.submit(args.script, args.user, args.output, args.dryrun)
-        return 0
+        return controller.submit(args.script, args.user, args.output, args.dryrun)
 
 
 class MonitorAction(Action):
     """Main entry point for the 'monitor' sub-command"""
     def run(self, config, controller):
         args = self.args
-        controller.monitor(args.script, args.user, args.jobid, args.dryrun)
-        return 0
+        return controller.monitor(args.script, args.user, args.jobid, args.dryrun)
 
 
 class KillAction(Action):
     """Main entry point for the 'kill' sub-command"""
     def run(self, config, controller):
         args = self.args
-        controller.kill(args.script, args.user, args.jobid, args.dryrun)
-        return 0
+        return controller.kill(args.script, args.user, args.output, args.jobid, args.dryrun)
 
 
 class CheckConnectionAction(Action):
@@ -188,6 +185,8 @@ def main(args=None, prog=None):
         help="remote user")
     parser_submit.add_argument("-o", "--output", required=True,
         help="job output file")
+    parser_submit.add_argument("-D", "--define", default=[], action="append",
+        metavar="NAME=VALUE", help="set these directives in the submitted job")
 
     parser_monitor = subparsers.add_parser("monitor",
             help="monitor a submitted job")
@@ -205,6 +204,8 @@ def main(args=None, prog=None):
     parser_kill.add_argument("script", help="job script")
     parser_kill.add_argument("-u", "--user", default=None,
         help="remote user")
+    parser_kill.add_argument("-o", "--output", required=False,
+        help="job output file")
     parser_kill.add_argument("-j", "--jobid", default=None,
         help="remote job ID")
 

@@ -6,12 +6,9 @@ import pytest
 import troika
 from troika.config import Config
 from troika.connections.local import LocalConnection
-from troika.hook import setup_hooks
+from troika.controllers.base import Controller
 from troika.site import get_site
 from troika.sites import slurm
-
-
-__doctests__ = [slurm]
 
 
 @pytest.fixture
@@ -19,7 +16,6 @@ def dummy_slurm_conf(tmp_path):
     return {
         "type": "slurm",
         "connection": "local",
-        "preprocess": ["remove_top_blank_lines", "slurm_add_output", "slurm_bubble"]
     }
 
 
@@ -53,6 +49,13 @@ def sample_script(tmp_path):
     return script_path
 
 
+@pytest.fixture
+def dummy_controller(dummy_slurm_site):
+    controller = Controller(Config({}), None, None)
+    controller.site = dummy_slurm_site
+    return controller
+
+
 @pytest.mark.parametrize("sin, sexp", [
     pytest.param(
         """\
@@ -66,21 +69,6 @@ def sample_script(tmp_path):
         """,
         id="add_output"),
     pytest.param(
-        """\n\n
-        #!/usr/bin/env bash
-        #SBATCH -J hello
-
-        echo "Hello, World!"
-        """,
-        """\
-        #!/usr/bin/env bash
-        #SBATCH -J hello
-        #SBATCH --output=@OUTPUT@
-
-        echo "Hello, World!"
-        """,
-        id="blanks"),
-    pytest.param(
         """\
         #SBATCH -n 1
 
@@ -91,9 +79,9 @@ def sample_script(tmp_path):
         echo "Hello, World!"
         """,
         """\
+        #SBATCH --output=@OUTPUT@
         #SBATCH -n 1
         #SBATCH -J hello
-        #SBATCH --output=@OUTPUT@
 
         set +x
 
@@ -114,9 +102,9 @@ def sample_script(tmp_path):
         """,
         """\
         #!/usr/bin/env bash
+        #SBATCH --output=@OUTPUT@
         #SBATCH -n 1
         #SBATCH -J hello
-        #SBATCH --output=@OUTPUT@
 
         set +x
 
@@ -138,9 +126,9 @@ def sample_script(tmp_path):
         """,
         """\
         #!/usr/bin/env bash
+        #SBATCH --output=@OUTPUT@
         #SBATCH -n 1
         #SBATCH -J hello
-        #SBATCH --output=@OUTPUT@
 
 
         set +x
@@ -159,8 +147,8 @@ def sample_script(tmp_path):
         """,
         """\
         #!/usr/bin/env bash
-        #SBATCH -J hello
         #SBATCH --output=@OUTPUT@
+        #SBATCH -J hello
 
         echo "Hello, World!"
         """,
@@ -175,8 +163,8 @@ def sample_script(tmp_path):
         """,
         """\
         #!/usr/bin/env bash
-        #SBATCH -J hello
         #SBATCH --output=@OUTPUT@
+        #SBATCH -J hello
 
         echo "Hello, World!"
         """,
@@ -191,8 +179,8 @@ def sample_script(tmp_path):
         """,
         """\
         #!/usr/bin/env bash
-        #SBATCH -J hello
         #SBATCH --output=@OUTPUT@
+        #SBATCH -J hello
 
         echo "Hello, World!"
         """,
@@ -200,15 +188,15 @@ def sample_script(tmp_path):
     pytest.param(
         """\
         #!/usr/bin/env bash
-        #SBATCH -J hello
         #SBATCH --output=foo
+        #SBATCH -J hello
 
         echo "Hello, World!"
         """,
         """\
         #!/usr/bin/env bash
-        #SBATCH -J hello
         #SBATCH --output=@OUTPUT@
+        #SBATCH -J hello
 
         echo "Hello, World!"
         """,
@@ -222,23 +210,22 @@ def sample_script(tmp_path):
         """,
         """\
         #!/usr/bin/env bash
-        #SBATCH -J hello
         #SBATCH --output=@OUTPUT@
+        #SBATCH -J hello
 
         echo "\xfc\xaa"
         """,
         id="invalid_utf8"),
 ])
-def test_preprocess(sin, sexp, dummy_slurm_conf, dummy_slurm_site, tmp_path):
+def test_preprocess(sin, sexp, dummy_controller, tmp_path):
     script = tmp_path / "script.sh"
     orig_script = tmp_path / "script.sh.orig"
     output = tmp_path / "output.log"
     sin = textwrap.dedent(sin)
     script.write_text(sin)
     sexp = textwrap.dedent(sexp).replace("@OUTPUT@", str(output.resolve()))
-    global_config = Config({"sites": {"foo": dummy_slurm_conf}})
-    setup_hooks(global_config, "foo")
-    pp_script = dummy_slurm_site.preprocess(script, "user", output)
+    dummy_controller.parse_script(script)
+    pp_script = dummy_controller.generate_script(script, "user", output)
     assert pp_script == script
     assert pp_script.read_text() == sexp
     assert orig_script.exists()
@@ -255,15 +242,15 @@ def test_preprocess(sin, sexp, dummy_slurm_conf, dummy_slurm_site, tmp_path):
         """,
         """\
         #!/usr/bin/env bash
-        #SBATCH -J hello
         #SBATCH --output=@OUTPUT@
+        #SBATCH -J hello
 
         echo "@GARBAGE@"
         """,
         b"\xfc\xaa",
         id="invalid_utf8"),
 ])
-def test_preprocess_bin(sin, sexp, garbage, dummy_slurm_conf, dummy_slurm_site, tmp_path):
+def test_preprocess_bin(sin, sexp, garbage, dummy_controller, tmp_path):
     script = tmp_path / "script.sh"
     orig_script = tmp_path / "script.sh.orig"
     output = tmp_path / "output.log"
@@ -271,9 +258,8 @@ def test_preprocess_bin(sin, sexp, garbage, dummy_slurm_conf, dummy_slurm_site, 
     script.write_bytes(sin)
     sexp = textwrap.dedent(sexp).replace("@OUTPUT@", str(output.resolve()))
     sexp = sexp.encode('utf-8').replace(b"@GARBAGE@", garbage)
-    global_config = Config({"sites": {"foo": dummy_slurm_conf}})
-    setup_hooks(global_config, "foo")
-    pp_script = dummy_slurm_site.preprocess(script, "user", output)
+    dummy_controller.parse_script(script)
+    pp_script = dummy_controller.generate_script(script, "user", output)
     assert pp_script == script
     assert pp_script.read_bytes() == sexp
     assert orig_script.exists()
@@ -292,9 +278,8 @@ def test_submit_dryrun(dummy_slurm_site, sample_script, tmp_path):
     pytest.param(str, id="str"),
     pytest.param(bytes, id="bytes"),
 ])
-def test_output_path_type(path_type, dummy_slurm_conf, dummy_slurm_site, sample_script, tmp_path):
+def test_output_path_type(path_type, dummy_controller, sample_script, tmp_path):
     output = path_type(tmp_path / "output.log")
-    global_config = Config({"sites": {"foo": dummy_slurm_conf}})
-    setup_hooks(global_config, "foo")
-    pp_script = dummy_slurm_site.preprocess(sample_script, "user", output)
+    dummy_controller.parse_script(sample_script)
+    pp_script = dummy_controller.generate_script(sample_script, "user", output)
     assert pp_script == sample_script

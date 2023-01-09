@@ -3,18 +3,14 @@
 import logging
 
 from . import ConfigurationError, InvocationError
+from .components import get_entrypoint
 from .connection import get_connection
-from .plugins import discover
-from .sites.base import Site
-from . import sites
 
 _logger = logging.getLogger(__name__)
 
 
 def get_site(config, name, user):
     """Create a `troika.site.Site` object from configuration"""
-    known_types = discover(sites, Site, attrname="__type_name__")
-    _logger.debug("Available site types: %s", ", ".join(known_types.keys()))
 
     try:
         site_config = config.get_site_config(name)
@@ -27,8 +23,8 @@ def get_site(config, name, user):
         raise ConfigurationError(f"Site {name!r} has no 'type'")
 
     try:
-        cls = known_types[tp]
-    except KeyError:
+        cls = get_entrypoint("troika.sites", tp)
+    except ValueError:
         raise ConfigurationError(f"Site {name!r} has unknown type {tp!r}")
 
     try:

@@ -15,9 +15,12 @@ class DummyConnection(Connection):
 @pytest.fixture
 def dummy_connections(monkeypatch):
     fake_connections = {"dummy": DummyConnection}
-    def fake_discover(package, base, attrname=""):
-        return fake_connections
-    monkeypatch.setattr("troika.connection.discover", fake_discover)
+    def fake_get_entrypoint(group, name):
+        try:
+            return fake_connections[name]
+        except KeyError:
+            raise ValueError(name)
+    monkeypatch.setattr("troika.connection.get_entrypoint", fake_get_entrypoint)
 
 
 def test_get_exist(dummy_connections):
