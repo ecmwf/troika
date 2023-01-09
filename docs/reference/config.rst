@@ -160,7 +160,18 @@ type, e.g.:
 
 The following hook types are defined: :ref:`at_startup`, :ref:`pre_submit`,
 :ref:`post_kill`, and :ref:`at_exit`. See :doc:`/reference/hooks` for a list of
-built-in hooks. Plugins may define new hooks, see :doc:`/extending/hook`.
+built-in hooks. Plugins may define new hooks, see :doc:`/extending/hook`. The
+options supported by the built-in hooks are listed below.
+
+.. _config_pmkdir_commmand:
+
+pmkdir_command
+^^^^^^^^^^^^^^
+
+Command to issue when creating a directoy on the remote platform. Default:
+``["mkdir", "-p"]``. Used by the :ref:`hook_create_output_dir`,
+:ref:`hook_copy_orig_script`, :ref:`hook_copy_submit_logfile`, and
+:ref:`hook_copy_kill_logfile` hooks.
 
 
 .. _ssh_connection_options:
