@@ -17,6 +17,11 @@ source troika/bin/activate
 python3 -m pip install troika
 ```
 
+## Presentation
+
+Slides and recording of the *"Troika: Submit, monitor, and interrupt jobs on any HPC system with the same interface"*
+talk at [FOSDEM'23](https://fosdem.org/2023) are available via https://fosdem.org/2023/schedule/event/troika_hpc_jobs .
+
 ## Getting started
 
 ### Concepts
