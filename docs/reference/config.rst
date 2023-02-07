@@ -163,12 +163,12 @@ The following hook types are defined: :ref:`at_startup`, :ref:`pre_submit`,
 built-in hooks. Plugins may define new hooks, see :doc:`/extending/hook`. The
 options supported by the built-in hooks are listed below.
 
-.. _config_pmkdir_commmand:
+.. _config_pmkdir_command:
 
 pmkdir_command
 ^^^^^^^^^^^^^^
 
-Command to issue when creating a directoy on the remote platform. Default:
+Command to issue when creating a directory on the remote platform. Default:
 ``["mkdir", "-p"]``. Used by the :ref:`hook_create_output_dir`,
 :ref:`hook_copy_orig_script`, :ref:`hook_copy_submit_logfile`, and
 :ref:`hook_copy_kill_logfile` hooks.

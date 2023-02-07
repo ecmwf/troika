@@ -163,7 +163,7 @@ class SlurmSite(Site):
             Job ID
         strict: bool
             If True (default), raise an exception for all failures of the
-            squeue command. If False, ignore ignore failures which are
+            squeue command. If False, ignore failures which are
             merely because the specified job does not exist, but raise an
             exception on all other failures.
 
