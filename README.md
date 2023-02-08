@@ -11,10 +11,24 @@ Submit, monitor and kill jobs on local and remote hosts
 
 ## Installing
 
-```
+```bash
 python3 -m venv troika
 source troika/bin/activate
 python3 -m pip install troika
+```
+
+To install in editable mode (for development):
+
+```bash
+python3 -m pip install -e .
+```
+
+To install optional dependency groups:
+
+```bash
+python3 -m pip install .          # install default dependencies
+python3 -m pip install .[tests]   # install test dependencies group
+python3 -m pip install .[all]     # install all dependencies groups
 ```
 
 ## Presentation
@@ -65,7 +79,7 @@ sites:
 
 The configuration can be checked using the `list-sites` command:
 
-```
+```bash
 $ troika -c config.yml list-sites
 Available sites:
 Name                         Type            Connection
@@ -78,7 +92,7 @@ pbs_cluster                  pbs             ssh
 
 ### Available options
 
-```
+```bash
 $ troika --help
 ```
 
@@ -86,18 +100,18 @@ $ troika --help
 
 Submit a job on `cluster`:
 
-```
+```bash
 $ troika -c config.yaml submit -o /path/to/output/file cluster job.sh
 ```
 
 Query the status of the job:
 
-```
+```bash
 $ troika -c config.yaml monitor cluster job.sh
 ```
 
 Kill the job:
 
-```
+```bash
 $ troika -c config.yaml kill cluster job.sh
 ```
