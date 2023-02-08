@@ -44,7 +44,7 @@ create_output_dir
 
 This hook ensures the directory containing the output file exists on the remote
 platform, creating it if needed. The command issued can be set using the
-:ref:`config_pmkdir_commmand` option.
+:ref:`config_pmkdir_command` option.
 
 .. _hook_copy_orig_script:
 
