@@ -154,7 +154,7 @@ class SlurmSite(Site):
             return None
         return int(match.group(1))
 
-    def _get_state(self, jid, strict=True):
+    def _get_state(self, jid, strict=True, dryrun=False):
         """Return the state of a SLURM job.
 
         Parameters
@@ -166,6 +166,8 @@ class SlurmSite(Site):
             squeue command. If False, ignore ignore failures which are
             merely because the specified job does not exist, but raise an
             exception on all other failures.
+        dryrun: bool
+            If True (default False), do not do anything and return "DRYRUN"
 
         Returns
         -------
@@ -174,10 +176,12 @@ class SlurmSite(Site):
             Returns None if strict is in effect and squeue either outputs
             an empty string (as it can do for a job which has very recently
             disappeared), or fails with a message indicating that the job
-            does not exist.
+            does not exist. If `dryrun` is True, the result is "DRYRUN".
 """
         cmd = [ self._squeue, "-h", "-o", "%T", "-j", str(jid) ]
-        proc = self._connection.execute(cmd, stdout=PIPE, stderr=PIPE)
+        proc = self._connection.execute(cmd, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
+        if dryrun:
+            return "DRYRUN"
         proc_stdout, proc_stderr = proc.communicate()
         retcode = proc.returncode
         # Essential to remove trailing newline from stdout before returning
@@ -281,7 +285,7 @@ class SlurmSite(Site):
         # directly, regardless of `_kill_sequence`. The "-t PENDING"
         # is important to prevent a race condition if the job is just
         # about to run.
-        state = self._get_state(jid, strict=False)
+        state = self._get_state(jid, strict=False, dryrun=dryrun)
         if state is None:
             # Job disappeared already
             return (jid, 'VANISHED')
@@ -304,7 +308,7 @@ class SlurmSite(Site):
                 elif proc_stdout:
                     _logger.debug("scancel output: %s", proc_stdout)
 
-            state = self._get_state(jid, strict=False)
+            state = self._get_state(jid, strict=False, dryrun=dryrun)
             if state is None or state == 'CANCELLED':
                 return (jid, 'CANCELLED')
             elif state == 'PENDING':
