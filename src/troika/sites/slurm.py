@@ -199,7 +199,7 @@ class SlurmSite(Site):
             if proc_stderr:
                 _logger.debug("squeue error output: %s", jid, proc_stderr)
             if strict and not proc_stdout:
-                raise RunError(f"Get State for job {job} produced no output")
+                raise RunError(f"Get State for job {jid} produced no output")
         if proc_stdout: return proc_stdout.decode("ascii")
 
     def submit(self, script, user, output, dryrun=False):
