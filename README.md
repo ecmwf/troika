@@ -14,8 +14,30 @@ Submit, monitor and kill jobs on local and remote hosts
 ```
 python3 -m venv troika
 source troika/bin/activate
-python3 -m pip install git+https://github.com/ecmwf/troika.git
+python3 -m pip install troika
 ```
+
+### Running the tests
+
+Once Troika is installed in your environment, the tests can be run using `pytest`:
+
+```
+python3 -m pytest -v tests/
+```
+
+### Building documentation
+
+The documentation uses `sphinx`. To generate the HTML docs:
+
+```
+cd docs/
+make html
+```
+
+## Presentation
+
+Slides and recording of the *"Troika: Submit, monitor, and interrupt jobs on any HPC system with the same interface"*
+talk at [FOSDEM'23](https://fosdem.org/2023) are available via https://fosdem.org/2023/schedule/event/troika_hpc_jobs .
 
 ## Getting started
 
