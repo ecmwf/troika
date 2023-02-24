@@ -194,7 +194,7 @@ class PBSSite(Site):
             jid = self._parse_jidfile(script)
 
         seq = self._kill_sequence
-        if seq is None:
+        if not seq:
             seq = [(0, None)]
 
         cancel_status = None
