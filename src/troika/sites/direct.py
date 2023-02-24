@@ -106,7 +106,7 @@ class DirectExecSite(Site):
             raise RunError(f"Invalid job id: {jid!r}")
 
         seq = self._kill_sequence
-        if seq is None:
+        if not seq:
             seq = [(0, signal.SIGTERM)]
 
         cancel_status = None

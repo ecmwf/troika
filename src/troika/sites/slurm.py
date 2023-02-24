@@ -318,7 +318,7 @@ class SlurmSite(Site):
             # and treat like a running job
 
         seq = self._kill_sequence
-        if seq is None:
+        if not seq:
             seq = [(0, None)]
 
         cancel_status = None
