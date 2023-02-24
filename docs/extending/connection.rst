@@ -3,7 +3,7 @@ Defining new connections
 ========================
 
 The connection is responsible for reaching a remote site, sending files and
-executing comands. Additional connections should be advertised as part of the
+executing commands. Additional connections should be advertised as part of the
 ``troika.connections`` group and selected using the :ref:`connection` site
 configuration keyword.
 

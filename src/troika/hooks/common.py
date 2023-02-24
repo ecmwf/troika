@@ -24,7 +24,7 @@ def ensure_output_dir(site, output, dryrun=False):
     if proc.returncode != 0:
         if proc_stdout: _logger.error("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
         if proc_stderr: _logger.error("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
-        check_retcode(proc.returncode, what="Ouput directory creation")
+        check_retcode(proc.returncode, what="Output directory creation")
     else:
         if proc_stdout: _logger.debug("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
         if proc_stderr: _logger.debug("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
