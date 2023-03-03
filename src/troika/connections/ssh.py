@@ -1,5 +1,6 @@
 """SSH connection class"""
 
+import pathlib
 import shlex
 
 from .base import Connection
@@ -13,7 +14,7 @@ class SSHConnection(Connection):
 
     def __init__(self, config, user):
         super().__init__(config, user)
-        self.parent = LocalConnection({}, user)
+        self.parent = LocalConnection(config, user)
         self.ssh = config.get('ssh_command', 'ssh')
         self.scp = config.get('scp_command', 'scp')
         self.ssh_options = config.get('ssh_options', [])
@@ -28,30 +29,44 @@ class SSHConnection(Connection):
         self.host = config['host']
         if self.user is None:
             self.user = config.get('user', None)
+        self.ssh_cwd = config.get('ssh_cwd', None)
+        if self.ssh_cwd:
+            self.ssh_cwd = pathlib.PurePath(self.ssh_cwd)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(host={self.host!r}, user={self.user!r})"
 
     def execute(self, command, stdin=None, stdout=None, stderr=None,
-            text=False, encoding=None, errors=None, detach=False, env=None, dryrun=False):
+            text=False, encoding=None, errors=None, detach=False,
+            env=None, cwd=None, dryrun=False):
         """See `Connection.execute`"""
-        ssh_args = [self.ssh] + self.ssh_options
+        args = [self.ssh] + self.ssh_options
         if self.user is None:
-            ssh_args.append(f"{self.host}")
+            args.append(f"{self.host}")
         else:
-            ssh_args.append(f"{self.user}@{self.host}")
-        if env is None:
-            env_args = []
-        else:
-            env_args = [ f'{shlex.quote(k)}={shlex.quote(v)}' for k,v in env.items() ]
-        cmd_args = [ shlex.quote(str(arg)) for arg in command ]
-        args = ssh_args + env_args + cmd_args
+            args.append(f"{self.user}@{self.host}")
+        if cwd is None:
+            cwd = self.ssh_cwd
+        elif self.ssh_cwd is not None:
+            # Treat cwd relative to default if present
+            cwd = self.ssh_cwd / cwd
+        if cwd is not None:
+            args += [ 'cd', shlex.quote(str(cwd)), '&&' ]
+        if env is not None:
+            args += [ f'{shlex.quote(k)}={shlex.quote(v)}' for k,v in env.items() ]
+        args += [ shlex.quote(str(arg)) for arg in command ]
         return self.parent.execute(args, stdin=stdin, stdout=stdout,
             stderr=stderr, text=text, encoding=encoding, errors=errors,
             detach=detach, dryrun=dryrun)
 
     def sendfile(self, src, dst, dryrun=False):
         """See `Connection.sendfile`"""
+        if self.parent.local_cwd is not None:
+            # src is always relative to Troika process, not underlying LocalConnection
+            src = Path(src).absolute()
+        if self.ssh_cwd:
+            # If dst is relative, treat it relative to configured cwd
+            dst = self.ssh_cwd / dst
         scp_args = [self.scp] + self.ssh_options + [src]
         if self.user is None:
             scp_args.append(f"{self.host}:{dst}")
