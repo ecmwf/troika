@@ -29,9 +29,9 @@ class SSHConnection(Connection):
         self.host = config['host']
         if self.user is None:
             self.user = config.get('user', None)
-        self.ssh_cwd = config.get('ssh_cwd', None)
-        if self.ssh_cwd:
-            self.ssh_cwd = pathlib.PurePath(self.ssh_cwd)
+        self.remote_cwd = config.get('remote_cwd', None)
+        if self.remote_cwd:
+            self.remote_cwd = pathlib.PurePath(self.remote_cwd)
 
     def __repr__(self):
         return f"{self.__class__.__name__}(host={self.host!r}, user={self.user!r})"
@@ -46,10 +46,10 @@ class SSHConnection(Connection):
         else:
             args.append(f"{self.user}@{self.host}")
         if cwd is None:
-            cwd = self.ssh_cwd
-        elif self.ssh_cwd is not None:
+            cwd = self.remote_cwd
+        elif self.remote_cwd is not None:
             # Treat cwd relative to default if present
-            cwd = self.ssh_cwd / cwd
+            cwd = self.remote_cwd / cwd
         if cwd is not None:
             args += [ 'cd', shlex.quote(str(cwd)), '&&' ]
         if env is not None:
@@ -64,9 +64,9 @@ class SSHConnection(Connection):
         if self.parent.local_cwd is not None:
             # src is always relative to Troika process, not underlying LocalConnection
             src = Path(src).absolute()
-        if self.ssh_cwd:
+        if self.remote_cwd:
             # If dst is relative, treat it relative to configured cwd
-            dst = self.ssh_cwd / dst
+            dst = self.remote_cwd / dst
         scp_args = [self.scp] + self.ssh_options + [src]
         if self.user is None:
             scp_args.append(f"{self.host}:{dst}")
