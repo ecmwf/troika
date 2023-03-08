@@ -63,7 +63,7 @@ class SSHConnection(Connection):
         """See `Connection.sendfile`"""
         if self.parent.local_cwd is not None:
             # src is always relative to Troika process, not underlying LocalConnection
-            src = Path(src).absolute()
+            src = pathlib.Path(src).absolute()
         if self.remote_cwd:
             # If dst is relative, treat it relative to configured cwd
             dst = self.remote_cwd / dst
