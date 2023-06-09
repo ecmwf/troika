@@ -173,6 +173,9 @@ class PBSSite(Site):
 
         if jid is None:
             jid = self._parse_jidfile(script)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
@@ -192,6 +195,9 @@ class PBSSite(Site):
 
         if jid is None:
             jid = self._parse_jidfile(script)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
 
         seq = self._kill_sequence
         if not seq:
