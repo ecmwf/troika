@@ -18,9 +18,9 @@ def dummy_site():
             self.kill_called = False
         def submit(self, script, user, output, dryrun=False):
             self.submit_called = True
-        def monitor(self, script, user, jid=None, dryrun=False):
+        def monitor(self, script, user, output=None, jid=None, dryrun=False):
             self.monitor_called = True
-        def kill(self, script, user, jid=None, dryrun=False):
+        def kill(self, script, user, output=None, jid=None, dryrun=False):
             self.kill_called = True
             return jid, 'KILLED'
     dummy = DummySite({}, None, Config({}))
@@ -124,7 +124,7 @@ def test_submit(dummy_controller, dummy_site):
 
 def test_monitor(dummy_controller, dummy_site):
     args = make_test_args(action="monitor", site="dummy", script="script",
-        user="user", jobid="1234", dryrun=True)
+        user="user", output="output", jobid="1234", dryrun=True)
     cfg = Config({})
     ctl = dummy_controller(cfg, args, None)
     act = troika.cli.MonitorAction(args)

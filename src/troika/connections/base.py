@@ -85,6 +85,21 @@ class Connection:
         """
         raise NotImplementedError
 
+    def getfile(self, src, dst, dryrun=False):
+        """Get the given file from the remote host
+
+        Parameters
+        ----------
+        src: path-like
+            Path to the file on the remote host
+        dst: path-like
+            Path to the target directory or file on the local host
+        dryrun: bool
+            If True, do not do anything but print the command that would be
+            executed
+        """
+        raise NotImplementedError
+
     def checkstatus(self, timeout=None, dryrun=False):
         """Check whether the connection is working
 

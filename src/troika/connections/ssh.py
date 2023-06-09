@@ -77,3 +77,23 @@ class SSHConnection(Connection):
             return
         retcode = proc.wait()
         check_retcode(retcode, what="Copy")
+
+    def getfile(self, src, dst, dryrun=False):
+        """See `Connection.getfile`"""
+        if self.remote_cwd:
+            # If src is relative, treat it relative to configured cwd
+            src = self.remote_cwd / src
+        if self.parent.local_cwd is not None:
+            # dst is always relative to Troika process, not underlying LocalConnection
+            dst = pathlib.Path(dst).absolute()
+        scp_args = [self.scp] + self.ssh_options
+        if self.user is None:
+            scp_args.append(f"{self.host}:{src}")
+        else:
+            scp_args.append(f"{self.user}@{self.host}:{src}")
+        scp_args.append(dst)
+        proc = self.parent.execute(scp_args, dryrun=dryrun)
+        if dryrun:
+            return
+        retcode = proc.wait()
+        check_retcode(retcode, what="Copy")

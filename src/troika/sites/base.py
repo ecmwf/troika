@@ -65,7 +65,7 @@ class Site:
         """
         raise NotImplementedError()
 
-    def monitor(self, script, user, jid=None, dryrun=False):
+    def monitor(self, script, user, output=None, jid=None, dryrun=False):
         """Kill a submitted job
 
         The script and job ID are interpreted according to the site.
@@ -77,6 +77,8 @@ class Site:
             Path to the job script
         user: str
             Remote user name
+        output: path-like or None
+            Path to the output file
         jid: str or None
             Job ID
         dryrun: bool
@@ -84,7 +86,7 @@ class Site:
         """
         raise NotImplementedError()
 
-    def kill(self, script, user, jid=None, dryrun=False):
+    def kill(self, script, user, output=None, jid=None, dryrun=False):
         """Kill a submitted or running job
 
         The script and job ID are interpreted according to the site.
@@ -96,6 +98,8 @@ class Site:
             Path to the job script
         user: str
             Remote user name
+        output: path-like or None
+            Path to the output file
         jid: str or None
             Job ID
         dryrun: bool
