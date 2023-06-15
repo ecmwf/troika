@@ -76,6 +76,9 @@ class DirectExecSite(Site):
 
         if jid is None:
             jid = self._parse_jidfile(script)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
         try:
             jid = int(jid)
         except ValueError:
@@ -100,6 +103,9 @@ class DirectExecSite(Site):
 
         if jid is None:
             jid = self._parse_jidfile(script)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
         try:
             jid = int(jid)
         except ValueError:

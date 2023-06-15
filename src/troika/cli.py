@@ -196,6 +196,7 @@ def main(args=None, prog=None):
     parser_monitor.add_argument("-u", "--user", default=None,
         help="remote user")
     parser_monitor.add_argument("-j", "--jobid", default=None,
+        type=lambda j: None if j=='' else j,
         help="remote job ID")
 
     parser_kill = subparsers.add_parser("kill", help="kill a submitted job")
@@ -207,6 +208,7 @@ def main(args=None, prog=None):
     parser_kill.add_argument("-o", "--output", required=False,
         help="job output file")
     parser_kill.add_argument("-j", "--jobid", default=None,
+        type=lambda j: None if j=='' else j,
         help="remote job ID")
 
     parser_checkconn = subparsers.add_parser("check-connection",
