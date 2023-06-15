@@ -114,7 +114,7 @@ def pre_submit(site, script, output, dryrun):
 
 
 @Hook.declare
-def post_kill(site, script, jid, cancel_status, dryrun):
+def post_kill(site, script, output, jid, cancel_status, dryrun):
     """Post-kill hook
 
     Parameters
@@ -123,6 +123,8 @@ def post_kill(site, script, jid, cancel_status, dryrun):
         Selected site
     script: path-like
         Path to the script file of the job being killed
+    output: path-like or None
+        Path to the job output file
     jid: str
         Job ID of the job being killed
     cancel_status: str
