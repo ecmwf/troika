@@ -166,3 +166,20 @@ def parse_bool(x, default=_parse_bool_sentinel):
         return default
 
     raise ValueError(f"Cannot parse boolean {x!r}")
+
+
+def command_as_list(x):
+    """Return the given command as a list
+
+    >>> command_as_list("foo")
+    ['foo']
+    >>> command_as_list("spaces not split")
+    ['spaces not split']
+    >>> command_as_list(b"bytes")
+    [b'bytes']
+    >>> command_as_list(["prg", "arg1", "arg2"])
+    ['prg', 'arg1', 'arg2']
+    """
+    if isinstance(x, (str, bytes)):
+        return [x]
+    return list(x)

@@ -11,7 +11,7 @@ from .. import InvocationError, RunError
 from .. import generator
 from ..connection import PIPE
 from ..parser import BaseParser, ParseError
-from ..utils import check_retcode, parse_bool
+from ..utils import check_retcode, command_as_list, parse_bool
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -142,9 +142,9 @@ class SlurmSite(Site):
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
-        self._sbatch = config.get('sbatch_command', 'sbatch')
-        self._scancel = config.get('scancel_command', 'scancel')
-        self._squeue = config.get('squeue_command', 'squeue')
+        self._sbatch = command_as_list(config.get('sbatch_command', 'sbatch'))
+        self._scancel = command_as_list(config.get('scancel_command', 'scancel'))
+        self._squeue = command_as_list(config.get('squeue_command', 'squeue'))
         self._copy_script = config.get('copy_script', False)
         self._copy_jid = config.get('copy_jid', False)
 
@@ -179,7 +179,7 @@ class SlurmSite(Site):
             disappeared), or fails with a message indicating that the job
             does not exist. If `dryrun` is True, the result is "DRYRUN".
 """
-        cmd = [ self._squeue, "-h", "-o", "%T", "-j", str(jid) ]
+        cmd = self._squeue + ["-h", "-o", "%T", "-j", str(jid)]
         proc = self._connection.execute(cmd, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return "DRYRUN"
@@ -207,7 +207,7 @@ class SlurmSite(Site):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
 
-        cmd = [self._sbatch]
+        cmd = self._sbatch.copy()
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
@@ -273,7 +273,7 @@ class SlurmSite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute([self._squeue, "-u", user, "-j", str(jid)],
+        self._connection.execute(self._squeue + ["-u", user, "-j", str(jid)],
             stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
@@ -302,7 +302,7 @@ class SlurmSite(Site):
             # Job disappeared already
             return (jid, 'VANISHED')
         elif state == 'PENDING':
-            cmd = [self._scancel, "-t", "PENDING", str(jid)]
+            cmd = self._scancel + ["-t", "PENDING", str(jid)]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
             if not dryrun:
                 proc_stdout, _ = proc.communicate()
@@ -337,7 +337,7 @@ class SlurmSite(Site):
         for wait, sig in seq:
             time.sleep(wait)
 
-            cmd = [self._scancel, str(jid)]
+            cmd = self._scancel + [str(jid)]
             if sig is not None:
                 cmd.extend(["-f", "-s", str(sig.value)])
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
@@ -392,4 +392,4 @@ class SlurmSite(Site):
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(connection={self._connection!r}, sbatch_command={self._sbatch!r})"
+        return f"{self.__class__.__name__}(connection={self._connection!r}, sbatch_command={self._sbatch[0]!r})"

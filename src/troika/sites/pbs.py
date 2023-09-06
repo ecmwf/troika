@@ -11,7 +11,7 @@ import time
 from .. import InvocationError, RunError
 from ..connection import PIPE
 from ..parser import BaseParser, ParseError
-from ..utils import check_retcode
+from ..utils import check_retcode, command_as_list
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -121,10 +121,10 @@ class PBSSite(Site):
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
-        self._qsub = config.get('qsub_command', 'qsub')
-        self._qdel = config.get('qdel_command', 'qdel')
-        self._qsig = config.get('qsig_command', 'qsig')
-        self._qstat = config.get('qstat_command', 'qstat')
+        self._qsub = command_as_list(config.get('qsub_command', 'qsub'))
+        self._qdel = command_as_list(config.get('qdel_command', 'qdel'))
+        self._qsig = command_as_list(config.get('qsig_command', 'qsig'))
+        self._qstat = command_as_list(config.get('qstat_command', 'qstat'))
         self._copy_script = config.get('copy_script', False)
         self._copy_jid = config.get('copy_jid', False)
 
@@ -132,7 +132,7 @@ class PBSSite(Site):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
 
-        cmd = [self._qsub]
+        cmd = self._qsub.copy()
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
@@ -191,7 +191,7 @@ class PBSSite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute([self._qstat, jid], stdout=outf, dryrun=dryrun)
+        self._connection.execute(self._qstat + [jid], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
@@ -213,9 +213,9 @@ class PBSSite(Site):
         for wait, sig in seq:
             time.sleep(wait)
 
-            cmd = [self._qdel, jid]
+            cmd = self._qdel + [jid]
             if sig is not None:
-                cmd = [self._qsig, "-s", str(sig.value), jid]
+                cmd = self._qsig + ["-s", str(sig.value), jid]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -260,4 +260,4 @@ class PBSSite(Site):
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(connection={self._connection!r}, qsub_command={self._qsub!r})"
+        return f"{self.__class__.__name__}(connection={self._connection!r}, qsub_command={self._qsub[0]!r})"
