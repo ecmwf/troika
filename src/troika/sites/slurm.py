@@ -114,6 +114,7 @@ class SlurmSite(Site):
     directive_translate = {
         "billing_account": b"--account=%s",
         "cpus_per_task": b"--cpus-per-task=%s",
+        "distribution": b"--distribution=%s",
         "enable_hyperthreading": _translate_hyperthreading,
         "error_file": b"--error=%s",
         "export_vars": _translate_export_vars,
@@ -127,6 +128,7 @@ class SlurmSite(Site):
         "output_file": b"--output=%s",
         "partition": b"--partition=%s",
         "priority": b"--priority=%s",
+        "reservation": b"--reservation=%s",
         "tasks_per_node": b"--ntasks-per-node=%s",
         "threads_per_core": b"--threads-per-core=%s",
         "tmpdir_size": b"--tmp=%s",
