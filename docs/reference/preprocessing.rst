@@ -90,6 +90,7 @@ Directive                  PBS translation           Slurm translation          
 =========================  ========================  ==============================  =====
 ``billing_account``        ``-A <value>``            ``--account=<value>``
 ``cpus_per_task``                                    ``--cpus-per-task=<value>``
+``distribution``                                     ``--distribution=<value>``
 ``enable_hyperthreading``                            ``--hint=[no]multithread``      [1]_
 ``error_file``             ``-e <value>``            ``--error=<value>``
 ``export_vars``            ``-v <value>`` or ``-V``  ``--export=<value>``            [1]_
@@ -103,6 +104,7 @@ Directive                  PBS translation           Slurm translation          
 ``output_file``            ``-o <value>``            ``--output=<value>``
 ``partition``                                        ``--partition=<value>``
 ``priority``               ``-p <value>``            ``--priority=<value>``
+``reservation``                                      ``--reservation=<value>``
 ``tasks_per_node``                                   ``--ntasks-per-node=<value>``
 ``threads_per_core``                                 ``--threads-per-core=<value>``
 ``tmpdir_size``                                      ``--tmp=<value>``

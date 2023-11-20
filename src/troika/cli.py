@@ -89,7 +89,7 @@ class MonitorAction(Action):
     """Main entry point for the 'monitor' sub-command"""
     def run(self, config, controller):
         args = self.args
-        return controller.monitor(args.script, args.user, args.jobid, args.dryrun)
+        return controller.monitor(args.script, args.user, args.output, args.jobid, args.dryrun)
 
 
 class KillAction(Action):
@@ -195,7 +195,10 @@ def main(args=None, prog=None):
     parser_monitor.add_argument("script", help="job script")
     parser_monitor.add_argument("-u", "--user", default=None,
         help="remote user")
+    parser_monitor.add_argument("-o", "--output", required=False,
+        help="job output file")
     parser_monitor.add_argument("-j", "--jobid", default=None,
+        type=lambda j: None if j=='' else j,
         help="remote job ID")
 
     parser_kill = subparsers.add_parser("kill", help="kill a submitted job")
@@ -207,6 +210,7 @@ def main(args=None, prog=None):
     parser_kill.add_argument("-o", "--output", required=False,
         help="job output file")
     parser_kill.add_argument("-j", "--jobid", default=None,
+        type=lambda j: None if j=='' else j,
         help="remote job ID")
 
     parser_checkconn = subparsers.add_parser("check-connection",

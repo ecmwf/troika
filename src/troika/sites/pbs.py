@@ -11,7 +11,7 @@ import time
 from .. import InvocationError, RunError
 from ..connection import PIPE
 from ..parser import BaseParser, ParseError
-from ..utils import check_retcode
+from ..utils import check_retcode, command_as_list
 from .base import Site
 
 _logger = logging.getLogger(__name__)
@@ -121,17 +121,18 @@ class PBSSite(Site):
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
-        self._qsub = config.get('qsub_command', 'qsub')
-        self._qdel = config.get('qdel_command', 'qdel')
-        self._qsig = config.get('qsig_command', 'qsig')
-        self._qstat = config.get('qstat_command', 'qstat')
+        self._qsub = command_as_list(config.get('qsub_command', 'qsub'))
+        self._qdel = command_as_list(config.get('qdel_command', 'qdel'))
+        self._qsig = command_as_list(config.get('qsig_command', 'qsig'))
+        self._qstat = command_as_list(config.get('qstat_command', 'qstat'))
         self._copy_script = config.get('copy_script', False)
+        self._copy_jid = config.get('copy_jid', False)
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
 
-        cmd = [self._qsub]
+        cmd = self._qsub.copy()
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
@@ -165,14 +166,22 @@ class PBSSite(Site):
                 "overwriting", str(jid_output))
         jid_output.write_text(str(jobid) + "\n")
 
+        if self._copy_jid:
+            jid_remote = pathlib.PurePath(output).parent / jid_output.name
+            _logger.debug("Copying JID to output directory: %s", jid_remote)
+            self._connection.sendfile(jid_output, jid_remote, dryrun=dryrun)
+
         return jobid
 
-    def monitor(self, script, user, jid=None, dryrun=False):
+    def monitor(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.Site.monitor`"""
         script = pathlib.Path(script)
 
         if jid is None:
-            jid = self._parse_jidfile(script)
+            jid = self._parse_jidfile(script, output)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
@@ -182,16 +191,19 @@ class PBSSite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute([self._qstat, jid], stdout=outf, dryrun=dryrun)
+        self._connection.execute(self._qstat + [jid], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
-    def kill(self, script, user, jid=None, dryrun=False):
+    def kill(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.Site.kill`"""
         script = pathlib.Path(script)
 
         if jid is None:
-            jid = self._parse_jidfile(script)
+            jid = self._parse_jidfile(script, output)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
 
         seq = self._kill_sequence
         if not seq:
@@ -201,9 +213,9 @@ class PBSSite(Site):
         for wait, sig in seq:
             time.sleep(wait)
 
-            cmd = [self._qdel, jid]
+            cmd = self._qdel + [jid]
             if sig is not None:
-                cmd = [self._qsig, "-s", str(sig.value), jid]
+                cmd = self._qsig + ["-s", str(sig.value), jid]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -230,13 +242,22 @@ class PBSSite(Site):
         """See `troika.sites.Site.get_native_parser`"""
         return PBSDirectiveParser(drop_keys=[b'-o', b'-e', b'-j'])
 
-    def _parse_jidfile(self, script):
+    def _parse_jidfile(self, script, output=None, dryrun=False):
         script = pathlib.Path(script)
         jid_output = script.with_suffix(script.suffix + ".jid")
         try:
             return jid_output.read_text().strip()
         except IOError as e:
+            if self._copy_jid and output is not None:
+                jid_remote = pathlib.PurePath(output).parent / jid_output.name
+                try:
+                    self._connection.getfile(jid_remote, jid_output, dryrun=dryrun)
+                    _logger.debug("Job ID file copied back from output directory: %s", jid_remote)
+                    if not dryrun:
+                        return jid_output.read_text().strip()
+                except (IOError, RunError) as e2:
+                    raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(connection={self._connection!r}, qsub_command={self._qsub!r})"
+        return f"{self.__class__.__name__}(connection={self._connection!r}, qsub_command={self._qsub[0]!r})"

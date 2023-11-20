@@ -70,7 +70,7 @@ class Controller:
             self.site.submit(pp_script, user, output, dryrun)
         return context.status
 
-    def monitor(self, script, user, jid=None, dryrun=False):
+    def monitor(self, script, user, output=None, jid=None, dryrun=False):
         """Process a 'monitor' command
 
         The script and job ID are interpreted according to the site.
@@ -82,6 +82,8 @@ class Controller:
             Path to the job script
         user: str
             Remote user name
+        output: path-like or None
+            Path to the job output file
         jid: str or None
             Job ID
         dryrun: bool
@@ -93,7 +95,7 @@ class Controller:
             Return code (0 for success)
         """
         with self.action_context() as context:
-            self.site.monitor(script, user, jid, dryrun)
+            self.site.monitor(script, user, output, jid, dryrun)
         return context.status
 
     def kill(self, script, user, output=None, jid=None, dryrun=False):
@@ -121,8 +123,8 @@ class Controller:
             Return code (0 for success)
         """
         with self.action_context() as context:
-            jid, cancel_status = self.site.kill(script, user, jid, dryrun)
-            hook.post_kill(self.site, script, jid, cancel_status, dryrun)
+            jid, cancel_status = self.site.kill(script, user, output, jid, dryrun)
+            hook.post_kill(self.site, script, output, jid, cancel_status, dryrun)
         return context.status
 
     def check_connection(self, timeout=None, dryrun=False):

@@ -13,7 +13,7 @@ from ..utils import check_retcode
 _logger = logging.getLogger(__name__)
 
 
-def abort_on_ecflow(site, script, jid, cancel_status, dryrun=False):
+def abort_on_ecflow(site, script, output, jid, cancel_status, dryrun=False):
     """Post-kill hook to issue an abort on behalf of a job that was killed
     or cancelled without the opportunity to inform ecFlow itself."""
     if cancel_status == 'CANCELLED':
@@ -29,6 +29,15 @@ def abort_on_ecflow(site, script, jid, cancel_status, dryrun=False):
 
     script = pathlib.Path(script)
     orig_script = script.with_suffix(script.suffix + ".orig")
+
+    if not orig_script.exists():
+        orig_script_copy = pathlib.PurePath(output).parent / orig_script.name
+        if output is not None:
+            try:
+                site._connection.getfile(orig_script_copy, orig_script, dryrun=dryrun)
+                _logger.debug(f'Original script copied back from output directory: {orig_script_copy!r}')
+            except (IOError, RunError) as e:
+                raise RunError(f"Could not copy back original script {e!s}")
 
     parser = DirectiveParser()
     with open(orig_script, 'rb') as sin:

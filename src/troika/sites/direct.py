@@ -20,6 +20,7 @@ class DirectExecSite(Site):
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
         self._copy_script = config.get('copy_script', False)
+        self._copy_jid = config.get('copy_jid', False)
         self._shell = config.get('shell',
             ['bash'] if self._copy_script else ['bash', '-s'])
         self._use_shell = config.get('use_shell', not connection.is_local())
@@ -68,14 +69,22 @@ class DirectExecSite(Site):
                 "overwriting", str(jid_output))
         jid_output.write_text(str(proc.pid) + "\n")
 
+        if self._copy_jid:
+            jid_remote = pathlib.PurePath(output).parent / jid_output.name
+            _logger.debug("Copying JID to output directory: %s", jid_remote)
+            self._connection.sendfile(jid_output, jid_remote, dryrun=dryrun)
+
         return proc
 
-    def monitor(self, script, user, jid=None, dryrun=False):
+    def monitor(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.base.Site.monitor`"""
         script = pathlib.Path(script)
 
         if jid is None:
-            jid = self._parse_jidfile(script)
+            jid = self._parse_jidfile(script, output)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
         try:
             jid = int(jid)
         except ValueError:
@@ -94,12 +103,15 @@ class DirectExecSite(Site):
 
         _logger.info("Output written to %r", str(stat_output))
 
-    def kill(self, script, user, jid=None, dryrun=False):
+    def kill(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.base.Site.kill`"""
         script = pathlib.Path(script)
 
         if jid is None:
-            jid = self._parse_jidfile(script)
+            jid = self._parse_jidfile(script, output)
+            _logger.debug(f"Read job id {jid!r} from jidfile")
+        else:
+            _logger.debug(f"Using specified job id {jid!r}")
         try:
             jid = int(jid)
         except ValueError:
@@ -135,12 +147,21 @@ class DirectExecSite(Site):
 
         return (jid, cancel_status)
 
-    def _parse_jidfile(self, script):
+    def _parse_jidfile(self, script, output=None, dryrun=False):
         script = pathlib.Path(script)
         jid_output = script.with_suffix(script.suffix + ".jid")
         try:
             return jid_output.read_text().strip()
         except IOError as e:
+            if self._copy_jid and output is not None:
+                jid_remote = pathlib.PurePath(output).parent / jid_output.name
+                try:
+                    self._connection.getfile(jid_remote, jid_output, dryrun=dryrun)
+                    _logger.debug("Job ID file copied back from output directory: %s", jid_remote)
+                    if not dryrun:
+                        return jid_output.read_text().strip()
+                except (IOError, RunError) as e2:
+                    raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):

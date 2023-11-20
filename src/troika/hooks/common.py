@@ -4,7 +4,7 @@ import logging
 import pathlib
 
 from ..connection import PIPE
-from ..utils import check_retcode
+from ..utils import check_retcode, command_as_list
 
 _logger = logging.getLogger(__name__)
 
@@ -12,11 +12,7 @@ _logger = logging.getLogger(__name__)
 def ensure_output_dir(site, output, dryrun=False):
     """Ensure the output directory exists and return its path"""
     out_dir = pathlib.PurePath(output).parent
-    pmkdir_command = site.config.get('pmkdir_command', ['mkdir', '-p'])
-    if isinstance(pmkdir_command, (str, bytes)):
-        pmkdir_command = [ pmkdir_command ]
-    else:
-        pmkdir_command = list(pmkdir_command)
+    pmkdir_command = command_as_list(site.config.get('pmkdir_command', ['mkdir', '-p']))
     proc = site._connection.execute(pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
     if dryrun:
         return out_dir

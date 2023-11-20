@@ -42,13 +42,13 @@ class SiteGroup(Site):
         """See `troika.sites.base.Site.submit`"""
         return self._selected.submit(script, user, output, dryrun=dryrun)
 
-    def monitor(self, script, user, jid=None, dryrun=False):
+    def monitor(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.base.Site.monitor`"""
-        return self._selected.monitor(script, user, jid=jid, dryrun=dryrun)
+        return self._selected.monitor(script, user, output=output, jid=jid, dryrun=dryrun)
 
-    def kill(self, script, user, jid=None, dryrun=False):
+    def kill(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.base.Site.kill`"""
-        return self._selected.kill(script, user, jid=jid, dryrun=dryrun)
+        return self._selected.kill(script, user, output=output, jid=jid, dryrun=dryrun)
 
     def check_connection(self, timeout=None, dryrun=False):
         """See `troika.sites.base.Site.check_connection`"""
