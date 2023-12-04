@@ -6,6 +6,7 @@ import shlex
 from .base import Connection
 from .local import LocalConnection
 
+from ..connection import PIPE
 from ..utils import check_retcode, parse_bool
 
 
@@ -72,10 +73,21 @@ class SSHConnection(Connection):
             scp_args.append(f"{self.host}:{dst}")
         else:
             scp_args.append(f"{self.user}@{self.host}:{dst}")
-        proc = self.parent.execute(scp_args, dryrun=dryrun)
+        proc = self.parent.execute(scp_args, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
+        proc_stdout, proc_stderr = proc.communicate()
+        proc_stdout = proc_stdout.strip()
+        proc_stderr = proc_stderr.strip()
         retcode = proc.wait()
+        if proc_stdout:
+            _logger.debug("scp output: %s", proc_stdout)
+        if retcode != 0:
+            if proc_stderr:
+                _logger.error("scp error: %s", proc_stderr)
+        else:
+            if proc_stderr:
+                _logger.debug("scp error output: %s", proc_stderr)
         check_retcode(retcode, what="Copy")
 
     def getfile(self, src, dst, dryrun=False):
@@ -92,8 +104,19 @@ class SSHConnection(Connection):
         else:
             scp_args.append(f"{self.user}@{self.host}:{src}")
         scp_args.append(dst)
-        proc = self.parent.execute(scp_args, dryrun=dryrun)
+        proc = self.parent.execute(scp_args, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
+        proc_stdout, proc_stderr = proc.communicate()
+        proc_stdout = proc_stdout.strip()
+        proc_stderr = proc_stderr.strip()
         retcode = proc.wait()
+        if proc_stdout:
+            _logger.debug("scp output: %s", proc_stdout)
+        if retcode != 0:
+            if proc_stderr:
+                _logger.error("scp error: %s", proc_stderr)
+        else:
+            if proc_stderr:
+                _logger.debug("scp error output: %s", proc_stderr)
         check_retcode(retcode, what="Copy")
