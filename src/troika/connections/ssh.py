@@ -1,5 +1,6 @@
 """SSH connection class"""
 
+import logging
 import pathlib
 import shlex
 
@@ -8,6 +9,8 @@ from .local import LocalConnection
 
 from ..connection import PIPE
 from ..utils import check_retcode, parse_bool
+
+_logger = logging.getLogger(__name__)
 
 
 class SSHConnection(Connection):
