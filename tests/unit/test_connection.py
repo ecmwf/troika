@@ -45,3 +45,27 @@ def test_get_ssh():
     cfg = {"host": "localhost"}
     conn = connection.get_connection("ssh", cfg, "user")
     assert isinstance(conn, SSHConnection)
+
+
+def test_local_islocal():
+    cfg = {}
+    conn = connection.get_connection("local", cfg, "user")
+    assert conn.is_local()
+
+
+def test_ssh_islocal():
+    cfg = {"host": "localhost"}
+    conn = connection.get_connection("ssh", cfg, "user")
+    assert not conn.is_local()
+
+
+def test_local_parent():
+    cfg = {}
+    conn = connection.get_connection("local", cfg, "user")
+    assert conn.get_parent() == conn
+
+
+def test_ssh_parent():
+    cfg = {"host": "localhost"}
+    conn = connection.get_connection("ssh", cfg, "user")
+    assert isinstance(conn.get_parent(), LocalConnection)

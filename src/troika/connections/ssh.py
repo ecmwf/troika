@@ -40,6 +40,10 @@ class SSHConnection(Connection):
     def __repr__(self):
         return f"{self.__class__.__name__}(host={self.host!r}, user={self.user!r})"
 
+    def get_parent(self):
+        """See `Connection.get_parent`"""
+        return self.parent
+
     def execute(self, command, stdin=None, stdout=None, stderr=None,
             text=False, encoding=None, errors=None, detach=False,
             env=None, cwd=None, dryrun=False):
