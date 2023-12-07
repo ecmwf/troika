@@ -98,8 +98,8 @@ class DirectExecSite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute(["ps", "-lyfp", str(jid)], stdout=outf,
-            dryrun=dryrun)
+        conn = self._connection.get_parent()
+        conn.execute(["ps", "-lyfp", str(jid)], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
