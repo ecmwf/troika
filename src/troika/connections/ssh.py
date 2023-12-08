@@ -22,14 +22,18 @@ class SSHConnection(Connection):
         self.ssh = config.get('ssh_command', 'ssh')
         self.scp = config.get('scp_command', 'scp')
         self.ssh_options = config.get('ssh_options', [])
+        self.scp_options = config.get('scp_options', self.ssh_options.copy())
         if parse_bool(config.get('ssh_verbose', False)):
             self.ssh_options.append('-v')
+            self.scp_options.append('-v')
         strict_host_key_checking = parse_bool(config.get('ssh_strict_host_key_checking', False))
         if strict_host_key_checking is not None:
             self.ssh_options.append(f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}')
+            self.scp_options.append(f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}')
         connect_timeout = config.get('ssh_connect_timeout', None)
         if connect_timeout is not None:
             self.ssh_options.append(f'-oConnectTimeout={connect_timeout}')
+            self.scp_options.append(f'-oConnectTimeout={connect_timeout}')
         self.host = config['host']
         if self.user is None:
             self.user = config.get('user', None)
@@ -75,7 +79,7 @@ class SSHConnection(Connection):
         if self.remote_cwd:
             # If dst is relative, treat it relative to configured cwd
             dst = self.remote_cwd / dst
-        scp_args = [self.scp] + self.ssh_options + [src]
+        scp_args = [self.scp] + self.scp_options + [src]
         if self.user is None:
             scp_args.append(f"{self.host}:{dst}")
         else:
@@ -105,7 +109,7 @@ class SSHConnection(Connection):
         if self.parent.local_cwd is not None:
             # dst is always relative to Troika process, not underlying LocalConnection
             dst = pathlib.Path(dst).absolute()
-        scp_args = [self.scp] + self.ssh_options
+        scp_args = [self.scp] + self.scp_options
         if self.user is None:
             scp_args.append(f"{self.host}:{src}")
         else:
