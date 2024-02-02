@@ -93,6 +93,7 @@ Directive                  PBS translation           Slurm translation          
 ``distribution``                                     ``--distribution=<value>``
 ``enable_hyperthreading``                            ``--hint=[no]multithread``      [1]_
 ``error_file``             ``-e <value>``            ``--error=<value>``
+``exclusive``                                        ``--exclusive[=<value>]``       [2]_
 ``export_vars``            ``-v <value>`` or ``-V``  ``--export=<value>``            [1]_
 ``join_output_error``      ``-j oe``                 Ignored
 ``licenses``                                         ``--licenses=<value>``
@@ -118,6 +119,10 @@ Directive                  PBS translation           Slurm translation          
 .. rubric:: Notes
 
 .. [1] The value will be translated to match the site's requirements.
+
+.. [2] If the value is a boolean (yes/no, on/off, 0/1, true/false), the
+   directive is set if true. An empty value is interpreted as true. Any other
+   value is passed along.
 
 The following aliases are also defined for convenience:
 
