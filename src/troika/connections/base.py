@@ -31,6 +31,19 @@ class Connection:
         """
         return False
 
+    def get_parent(self):
+        """Get the parent connection
+
+        The parent connection can be used to interact with processes that have
+        been created through the current connection.
+
+        Returns
+        -------
+        Connection
+            The parent connection
+        """
+        raise NotImplementedError
+
     def execute(self, command, stdin=None, stdout=None, stderr=None, text=False,
             encoding=None, errors=None, detach=False, env=None, cwd=None,
             dryrun=False):

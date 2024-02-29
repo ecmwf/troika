@@ -3,7 +3,7 @@
 import logging
 import pathlib
 
-from .. import InvocationError
+from .. import InvocationError, RunError
 from ..connection import PIPE
 from ..connections.local import LocalConnection
 from ..connections.local import LocalConnection

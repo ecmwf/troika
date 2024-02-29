@@ -1,8 +1,14 @@
 """Base site class"""
 
+import logging
+import pathlib
+
 from .. import ConfigurationError
 from .. import generator
-from ..utils import normalise_signal
+from ..connection import PIPE
+from ..utils import check_retcode, command_as_list, normalise_signal
+
+_logger = logging.getLogger(__name__)
 
 
 class Site:
@@ -145,6 +151,37 @@ class Site:
             True if the connection is able to execute commands
         """
         return self._connection.checkstatus(timeout=timeout, dryrun=dryrun)
+
+    def create_output_dir(self, output, dryrun=False):
+        """Create the output directory for a job to be submitted
+
+        Parameters
+        ----------
+        output: path-like
+            Path to the output file
+        dryrun: bool
+            If True, do not do anything but print the command that would be
+            executed
+
+        Returns
+        -------
+        :py:class:`pathlib.PurePath`
+            Path to the newly created directory
+        """
+        out_dir = pathlib.PurePath(output).parent
+        pmkdir_command = command_as_list(self.config.get('pmkdir_command', ['mkdir', '-p']))
+        proc = self._connection.execute(pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
+        if dryrun:
+            return out_dir
+        proc_stdout, proc_stderr = proc.communicate()
+        if proc.returncode != 0:
+            if proc_stdout: _logger.error("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+            if proc_stderr: _logger.error("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
+            check_retcode(proc.returncode, what="Output directory creation")
+        else:
+            if proc_stdout: _logger.debug("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+            if proc_stderr: _logger.debug("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
+        return out_dir
 
     def get_native_parser(self):
         """Create a :py:class:`troika.parser.Parser` for native directives

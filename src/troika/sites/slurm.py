@@ -78,6 +78,19 @@ class SlurmDirectiveParser(BaseParser):
         return True
 
 
+def _translate_exclusive(value):
+    if value == () or value == b"":
+        value = True
+    else:
+        value = parse_bool(value, default=value)
+    if not value:
+        return None
+    elif isinstance(value, bool):  # value is True
+        return b"--exclusive"
+    else:
+        return b"--exclusive=%s" % value
+
+
 def _translate_export_vars(value):
     if value in (b"all", b"none"):
         value = value.upper()
@@ -117,6 +130,7 @@ class SlurmSite(Site):
         "distribution": b"--distribution=%s",
         "enable_hyperthreading": _translate_hyperthreading,
         "error_file": b"--error=%s",
+        "exclusive": _translate_exclusive,
         "export_vars": _translate_export_vars,
         "join_output_error": generator.ignore,
         "licenses": b"--licenses=%s",
@@ -200,7 +214,7 @@ class SlurmSite(Site):
                 return None
         else:
             if proc_stderr:
-                _logger.debug("squeue error output: %s", jid, proc_stderr)
+                _logger.debug("squeue error output: %s", proc_stderr)
             if strict and not proc_stdout:
                 raise RunError(f"Get State for job {jid} produced no output")
         if proc_stdout: return proc_stdout.decode("ascii")

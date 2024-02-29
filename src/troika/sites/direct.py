@@ -51,6 +51,7 @@ class DirectExecSite(Site):
             inpf = script.open(mode="rb")
 
         output = pathlib.Path(output)
+        self.create_output_dir(output, dryrun=dryrun)
         if output.exists():
             _logger.warning("Output file %r already exists, overwriting",
                 str(output))
@@ -98,8 +99,8 @@ class DirectExecSite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute(["ps", "-lyfp", str(jid)], stdout=outf,
-            dryrun=dryrun)
+        conn = self._connection.get_parent()
+        conn.execute(["ps", "-lyfp", str(jid)], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
@@ -146,6 +147,16 @@ class DirectExecSite(Site):
                 cancel_status = 'TERMINATED'
 
         return (jid, cancel_status)
+
+    def create_output_dir(self, output, dryrun=False):
+        """See `troika.sites.base.Site.create_output_dir`"""
+        out_dir = pathlib.Path(output).parent
+        if dryrun:
+            _logger.info("Ensuring directory %r exists", str(out_dir))
+        else:
+            _logger.debug("Ensuring directory %r exists", str(out_dir))
+            out_dir.mkdir(parents=True, exist_ok=True)
+        return out_dir
 
     def _parse_jidfile(self, script, output=None, dryrun=False):
         script = pathlib.Path(script)

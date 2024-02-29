@@ -1,12 +1,16 @@
 """SSH connection class"""
 
+import logging
 import pathlib
 import shlex
 
 from .base import Connection
 from .local import LocalConnection
 
+from ..connection import PIPE
 from ..utils import check_retcode, parse_bool
+
+_logger = logging.getLogger(__name__)
 
 
 class SSHConnection(Connection):
@@ -18,14 +22,18 @@ class SSHConnection(Connection):
         self.ssh = config.get('ssh_command', 'ssh')
         self.scp = config.get('scp_command', 'scp')
         self.ssh_options = config.get('ssh_options', [])
+        self.scp_options = config.get('scp_options', self.ssh_options.copy())
         if parse_bool(config.get('ssh_verbose', False)):
             self.ssh_options.append('-v')
+            self.scp_options.append('-v')
         strict_host_key_checking = parse_bool(config.get('ssh_strict_host_key_checking', False))
         if strict_host_key_checking is not None:
             self.ssh_options.append(f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}')
+            self.scp_options.append(f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}')
         connect_timeout = config.get('ssh_connect_timeout', None)
         if connect_timeout is not None:
             self.ssh_options.append(f'-oConnectTimeout={connect_timeout}')
+            self.scp_options.append(f'-oConnectTimeout={connect_timeout}')
         self.host = config['host']
         if self.user is None:
             self.user = config.get('user', None)
@@ -35,6 +43,10 @@ class SSHConnection(Connection):
 
     def __repr__(self):
         return f"{self.__class__.__name__}(host={self.host!r}, user={self.user!r})"
+
+    def get_parent(self):
+        """See `Connection.get_parent`"""
+        return self.parent
 
     def execute(self, command, stdin=None, stdout=None, stderr=None,
             text=False, encoding=None, errors=None, detach=False,
@@ -67,15 +79,26 @@ class SSHConnection(Connection):
         if self.remote_cwd:
             # If dst is relative, treat it relative to configured cwd
             dst = self.remote_cwd / dst
-        scp_args = [self.scp] + self.ssh_options + [src]
+        scp_args = [self.scp] + self.scp_options + [src]
         if self.user is None:
             scp_args.append(f"{self.host}:{dst}")
         else:
             scp_args.append(f"{self.user}@{self.host}:{dst}")
-        proc = self.parent.execute(scp_args, dryrun=dryrun)
+        proc = self.parent.execute(scp_args, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
+        proc_stdout, proc_stderr = proc.communicate()
+        proc_stdout = proc_stdout.strip()
+        proc_stderr = proc_stderr.strip()
         retcode = proc.wait()
+        if proc_stdout:
+            _logger.debug("scp output: %s", proc_stdout)
+        if retcode != 0:
+            if proc_stderr:
+                _logger.error("scp error: %s", proc_stderr)
+        else:
+            if proc_stderr:
+                _logger.debug("scp error output: %s", proc_stderr)
         check_retcode(retcode, what="Copy")
 
     def getfile(self, src, dst, dryrun=False):
@@ -86,14 +109,25 @@ class SSHConnection(Connection):
         if self.parent.local_cwd is not None:
             # dst is always relative to Troika process, not underlying LocalConnection
             dst = pathlib.Path(dst).absolute()
-        scp_args = [self.scp] + self.ssh_options
+        scp_args = [self.scp] + self.scp_options
         if self.user is None:
             scp_args.append(f"{self.host}:{src}")
         else:
             scp_args.append(f"{self.user}@{self.host}:{src}")
         scp_args.append(dst)
-        proc = self.parent.execute(scp_args, dryrun=dryrun)
+        proc = self.parent.execute(scp_args, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
+        proc_stdout, proc_stderr = proc.communicate()
+        proc_stdout = proc_stdout.strip()
+        proc_stderr = proc_stderr.strip()
         retcode = proc.wait()
+        if proc_stdout:
+            _logger.debug("scp output: %s", proc_stdout)
+        if retcode != 0:
+            if proc_stderr:
+                _logger.error("scp error: %s", proc_stderr)
+        else:
+            if proc_stderr:
+                _logger.debug("scp error output: %s", proc_stderr)
         check_retcode(retcode, what="Copy")

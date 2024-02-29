@@ -28,6 +28,10 @@ class LocalConnection(Connection):
         """See `Connection.is_local`"""
         return True
 
+    def get_parent(self):
+        """See `Connection.get_parent`"""
+        return self
+
     def execute(self, command, stdin=None, stdout=None, stderr=None,
             text=False, encoding=None, errors=None, detach=False,
             env=None, cwd=None, dryrun=False):
