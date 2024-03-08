@@ -300,6 +300,7 @@ class Controller:
         directive_prefix, directive_translate = self.site.get_directive_translation()
         generator = Generator(directive_prefix, directive_translate, self.unknown_directive)
         self.script_data['directives']['output_file'] = os.fsencode(output)
+        self.script_data['directives']['error_file'] = os.fsencode(output)
         self.script_data = translators(self.script_data, self.config, self.site)
         return self.run_generator(script, generator)
 
