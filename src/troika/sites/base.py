@@ -1,5 +1,6 @@
 """Base site class"""
 
+import os
 import logging
 import pathlib
 
@@ -168,6 +169,8 @@ class Site:
         :py:class:`pathlib.PurePath`
             Path to the newly created directory
         """
+        if os.path.exists(output):
+            os.remove(output)
         out_dir = pathlib.PurePath(output).parent
         pmkdir_command = command_as_list(self.config.get('pmkdir_command', ['mkdir', '-p']))
         proc = self._connection.execute(pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
