@@ -38,6 +38,7 @@ class DirectExecSite(Site):
         script_remote = script
         if self._copy_script and not self._connection.is_local():
             script_remote = pathlib.PurePath(output).parent / script.name
+            super().create_output_dir(script_remote, dryrun=dryrun)
             self._connection.sendfile(script, script_remote, dryrun=dryrun)
 
         args = []
