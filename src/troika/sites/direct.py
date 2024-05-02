@@ -186,4 +186,9 @@ class DirectExecSite(Site):
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(connection={self._connection!r}, use_shell={self._use_shell}, shell={self._shell!r})"
+        return (
+            f"{self.__class__.__name__}("
+            f"connection={self._connection!r}, "
+            f"use_shell={self._use_shell}, "
+            f"shell={self._shell!r})"
+        )

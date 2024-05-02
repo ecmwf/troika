@@ -1,6 +1,5 @@
 """Various utilities"""
 
-import getpass
 import logging
 import signal
 
@@ -81,7 +80,7 @@ def check_retcode(retcode, what="Command", suffix=""):
         raise RunError(msg)
 
 
-def first_not_none(l):
+def first_not_none(lst):
     """Return the first element in `l` that is not None, if any
 
     >>> first_not_none(['a', 'b', 'c'])
@@ -93,7 +92,7 @@ def first_not_none(l):
     >>> first_not_none([None, None])
     >>> first_not_none([])
     """
-    for x in l:
+    for x in lst:
         if x is not None:
             return x
     return None

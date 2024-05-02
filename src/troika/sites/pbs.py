@@ -10,7 +10,7 @@ from collections import OrderedDict
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
-from ..parser import BaseParser, ParseError
+from ..parser import BaseParser
 from ..utils import check_retcode, command_as_list
 from .base import Site
 

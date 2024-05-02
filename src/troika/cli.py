@@ -59,7 +59,7 @@ class Action:
         except RunError as e:
             _logger.critical("%s", e)
             return 1
-        except:
+        except Exception:
             _logger.exception("Unhandled exception")
             return 1
 

@@ -85,7 +85,6 @@ def abort_on_ecflow(site, script, output, jid, cancel_status, dryrun=False):
         return
 
     proc_stdout, proc_stderr = proc.communicate()
-    retcode = proc.returncode
     if proc.returncode != 0:
         if proc_stdout:
             _logger.error(

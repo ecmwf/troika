@@ -55,7 +55,7 @@ from troika.parser import DirectiveParser, ParseError
         # TROIKA name=unknown name
         text="Hello, World!"
         echo $text
-        """,
+        """,  # noqa: W291
             {"spaces": b"yes", "name": b"unknown name"},
             id="spaces",
         ),
