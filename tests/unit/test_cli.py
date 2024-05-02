@@ -1,10 +1,10 @@
 
 import argparse
-import pytest
 
+import pytest
 import troika.cli
-from troika.config import Config
 import troika.controller
+from troika.config import Config
 from troika.controllers.base import Controller
 from troika.sites.base import Site
 

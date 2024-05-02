@@ -1,14 +1,13 @@
 """Slurm-managed site"""
 
-from collections import OrderedDict
 import logging
 import pathlib
 import re
 import signal
 import time
+from collections import OrderedDict
 
-from .. import InvocationError, RunError
-from .. import generator
+from .. import InvocationError, RunError, generator
 from ..connection import PIPE
 from ..parser import BaseParser, ParseError
 from ..utils import check_retcode, command_as_list, parse_bool

@@ -6,11 +6,10 @@ import pathlib
 import shutil
 import tempfile
 
-from .. import hook, ConfigurationError, InvocationError, RunError
+from .. import ConfigurationError, InvocationError, RunError, hook, site
 from ..directives import ALIASES, translators
 from ..generator import Generator
 from ..parser import DirectiveParser, MultiParser, ParseError, ShebangParser
-from .. import site
 
 _logger = logging.getLogger(__name__)
 

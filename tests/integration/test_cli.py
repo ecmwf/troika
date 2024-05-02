@@ -2,8 +2,8 @@
 import logging
 import os
 import textwrap
-import pytest
 
+import pytest
 import troika.cli
 
 

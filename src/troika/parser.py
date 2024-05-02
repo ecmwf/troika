@@ -11,8 +11,8 @@ and underscores, and do not start with a number. Whitespace is removed around
 the equals sign and at the end the value.
 """
 
-from collections import OrderedDict
 import re
+from collections import OrderedDict
 
 from . import InvocationError, RunError
 

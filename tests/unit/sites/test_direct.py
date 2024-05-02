@@ -1,7 +1,7 @@
 
 import signal
-import pytest
 
+import pytest
 import troika
 from troika.config import Config
 from troika.connections.local import LocalConnection

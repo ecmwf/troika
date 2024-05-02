@@ -1,7 +1,7 @@
 """Abstraction of the way to connect to a host"""
 
 import logging
-from subprocess import DEVNULL, STDOUT, PIPE  # export for convenience
+from subprocess import DEVNULL, PIPE, STDOUT  # export for convenience
 
 from . import ConfigurationError
 from .components import get_entrypoint

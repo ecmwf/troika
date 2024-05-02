@@ -6,7 +6,6 @@ import pathlib
 from .. import InvocationError, RunError
 from ..connection import PIPE
 from ..connections.local import LocalConnection
-from ..connections.local import LocalConnection
 from ..parser import DirectiveParser
 from ..utils import check_retcode
 

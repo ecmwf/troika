@@ -1,8 +1,9 @@
 """Configuration file handling"""
 
-from collections import UserDict
 import logging
 import os
+from collections import UserDict
+
 import yaml
 
 from . import ConfigurationError, InvocationError

@@ -4,11 +4,10 @@ import logging
 import pathlib
 import shlex
 
-from .base import Connection
-from .local import LocalConnection
-
 from ..connection import PIPE
 from ..utils import check_retcode, parse_bool
+from .base import Connection
+from .local import LocalConnection
 
 _logger = logging.getLogger(__name__)
 

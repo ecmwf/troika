@@ -3,8 +3,7 @@
 import logging
 import pathlib
 
-from .. import ConfigurationError
-from .. import generator
+from .. import ConfigurationError, generator
 from ..connection import PIPE
 from ..utils import check_retcode, command_as_list, normalise_signal
 

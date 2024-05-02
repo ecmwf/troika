@@ -6,8 +6,7 @@ import pathlib
 import sys
 import textwrap
 
-from . import log
-from . import VERSION, ConfigurationError, InvocationError, RunError
+from . import VERSION, ConfigurationError, InvocationError, RunError, log
 from .config import get_config
 from .controller import get_controller
 

@@ -1,12 +1,12 @@
 """PBS-managed site"""
 
-from collections import OrderedDict
 import locale
 import logging
 import pathlib
 import re
 import signal
 import time
+from collections import OrderedDict
 
 from .. import InvocationError, RunError
 from ..connection import PIPE

@@ -1,11 +1,10 @@
 
 import pytest
-
 import troika
+import troika.sites.base
 from troika.config import Config
 from troika.site import get_site
 from troika.sites.base import Site
-import troika.sites.base
 
 
 class DummySite(Site):

@@ -3,8 +3,8 @@
 import logging
 
 from .. import RunError
-from .base import Site
 from ..site import get_site
+from .base import Site
 
 _logger = logging.getLogger(__name__)
 
