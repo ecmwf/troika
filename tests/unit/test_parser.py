@@ -1,6 +1,7 @@
 import textwrap
 
 import pytest
+
 from troika import InvocationError
 from troika.parser import DirectiveParser, ParseError
 

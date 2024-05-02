@@ -1,6 +1,7 @@
 import argparse
 
 import pytest
+
 import troika.cli
 import troika.controller
 from troika.config import Config
