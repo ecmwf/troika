@@ -1,4 +1,3 @@
-
 import textwrap
 
 import pytest
@@ -6,19 +5,22 @@ from troika import InvocationError
 from troika.parser import DirectiveParser, ParseError
 
 
-@pytest.mark.parametrize("script, expect", [
-    pytest.param(
-        """\
+@pytest.mark.parametrize(
+    "script, expect",
+    [
+        pytest.param(
+            """\
         #!/usr/bin/env bash
 
         # Hello
         text="Hello, World!"
         echo $text
         """,
-        {},
-        id="nodir"),
-    pytest.param(
-        """\
+            {},
+            id="nodir",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #TROIKA foo=bar
 
@@ -26,10 +28,11 @@ from troika.parser import DirectiveParser, ParseError
         text="Hello, World!"
         echo $text
         """,
-        {"foo": b"bar"},
-        id="onedir"),
-    pytest.param(
-        """\
+            {"foo": b"bar"},
+            id="onedir",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #TROIKA foo=bar
         #TROIKA empty=
@@ -39,10 +42,11 @@ from troika.parser import DirectiveParser, ParseError
         text="Hello, World!"
         echo $text
         """,
-        {"foo": b"bar", "empty": b"", "name": b"unknown name"},
-        id="multi"),
-    pytest.param(
-        """\
+            {"foo": b"bar", "empty": b"", "name": b"unknown name"},
+            id="multi",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #  TROIKA spaces = yes 
 
@@ -51,10 +55,11 @@ from troika.parser import DirectiveParser, ParseError
         text="Hello, World!"
         echo $text
         """,
-        {"spaces": b"yes", "name": b"unknown name"},
-        id="spaces"),
-    pytest.param(
-        """\
+            {"spaces": b"yes", "name": b"unknown name"},
+            id="spaces",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #TROIKA foo=bar
         #TROIKA spam=eggs
@@ -64,11 +69,13 @@ from troika.parser import DirectiveParser, ParseError
         text="Hello, World!"
         echo $text
         """,
-        {"foo": b"bar", "spam": b"beans"},
-        id="duplicate"),
-])
+            {"foo": b"bar", "spam": b"beans"},
+            id="duplicate",
+        ),
+    ],
+)
 def test_parse(script, expect):
-    lines = textwrap.dedent(script).encode('ascii').splitlines()
+    lines = textwrap.dedent(script).encode("ascii").splitlines()
     parser = DirectiveParser()
     for line in lines:
         parser.feed(line)
@@ -76,9 +83,11 @@ def test_parse(script, expect):
     assert params == expect
 
 
-@pytest.mark.parametrize("script, errline", [
-    pytest.param(
-        """\
+@pytest.mark.parametrize(
+    "script, errline",
+    [
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #TROIKA help
 
@@ -86,11 +95,11 @@ def test_parse(script, expect):
         text="Hello, World!"
         echo $text
         """,
-        2,
-        id="noval"),
-
-    pytest.param(
-        """\
+            2,
+            id="noval",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #TROIKA foo=bar
         #TROIKA 123=456
@@ -99,14 +108,15 @@ def test_parse(script, expect):
         text="Hello, World!"
         echo $text
         """,
-        3,
-        id="badkey"),
-])
+            3,
+            id="badkey",
+        ),
+    ],
+)
 def test_parse_error(script, errline):
-    lines = textwrap.dedent(script).encode('ascii').splitlines()
+    lines = textwrap.dedent(script).encode("ascii").splitlines()
     parser = DirectiveParser()
-    with pytest.raises(ParseError,
-            match="Invalid key-value pair:.*"):
+    with pytest.raises(ParseError, match="Invalid key-value pair:.*"):
         for lno, line in enumerate(lines, start=1):
             parser.feed(line)
     assert lno == errline
@@ -127,26 +137,29 @@ def test_directive_define():
     assert directives == expected
 
 
-@pytest.mark.parametrize("defines, wrong", [
-    pytest.param(
-        [
-            "help",
-            "name=hello",
-        ],
-        0,
-        id="noval"),
-
-    pytest.param(
-        [
-            "foo=bar",
-            "123=456",
-        ],
-        1,
-        id="badkey"),
-])
+@pytest.mark.parametrize(
+    "defines, wrong",
+    [
+        pytest.param(
+            [
+                "help",
+                "name=hello",
+            ],
+            0,
+            id="noval",
+        ),
+        pytest.param(
+            [
+                "foo=bar",
+                "123=456",
+            ],
+            1,
+            id="badkey",
+        ),
+    ],
+)
 def test_directive_define_error(defines, wrong):
     parser = DirectiveParser()
     wrongdir = defines[wrong].encode("ascii")
-    with pytest.raises(InvocationError,
-            match=f"Invalid key-value pair: {wrongdir!r}"):
+    with pytest.raises(InvocationError, match=f"Invalid key-value pair: {wrongdir!r}"):
         parser.parse_directive_args(defines)

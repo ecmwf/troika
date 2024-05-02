@@ -1,4 +1,3 @@
-
 import argparse
 
 import pytest
@@ -16,13 +15,17 @@ def dummy_site():
             self.submit_called = False
             self.monitor_called = False
             self.kill_called = False
+
         def submit(self, script, user, output, dryrun=False):
             self.submit_called = True
+
         def monitor(self, script, user, output=None, jid=None, dryrun=False):
             self.monitor_called = True
+
         def kill(self, script, user, output=None, jid=None, dryrun=False):
             self.kill_called = True
-            return jid, 'KILLED'
+            return jid, "KILLED"
+
     dummy = DummySite({}, None, Config({}))
     return dummy
 
@@ -41,6 +44,7 @@ def dummy_controller(dummy_site):
 
         def teardown(self, sts=0):
             pass
+
     return DummyController
 
 
@@ -55,6 +59,7 @@ def dummy_actions(monkeypatch, dummy_controller):
                 DummyAction.called = True
                 DummyAction.args = self.args
                 return 0
+
         DummyAction.called = False
         DummyAction.args = None
         return DummyAction
@@ -105,15 +110,20 @@ def test_main_kill(dummy_actions, dummy_site):
 
 
 def make_test_args(**kwargs):
-    args = dict(logfile="/dev/null", append_log=True, verbose=0, quiet=0,
-        define=[])
+    args = dict(logfile="/dev/null", append_log=True, verbose=0, quiet=0, define=[])
     args.update(kwargs)
     return argparse.Namespace(**args)
 
 
 def test_submit(dummy_controller, dummy_site):
-    args = make_test_args(action="submit", site="dummy", script="script",
-        user="user", output="output", dryrun=True)
+    args = make_test_args(
+        action="submit",
+        site="dummy",
+        script="script",
+        user="user",
+        output="output",
+        dryrun=True,
+    )
     cfg = Config({})
     ctl = dummy_controller(cfg, args, None)
     act = troika.cli.SubmitAction(args)
@@ -123,8 +133,15 @@ def test_submit(dummy_controller, dummy_site):
 
 
 def test_monitor(dummy_controller, dummy_site):
-    args = make_test_args(action="monitor", site="dummy", script="script",
-        user="user", output="output", jobid="1234", dryrun=True)
+    args = make_test_args(
+        action="monitor",
+        site="dummy",
+        script="script",
+        user="user",
+        output="output",
+        jobid="1234",
+        dryrun=True,
+    )
     cfg = Config({})
     ctl = dummy_controller(cfg, args, None)
     act = troika.cli.MonitorAction(args)
@@ -134,8 +151,15 @@ def test_monitor(dummy_controller, dummy_site):
 
 
 def test_kill(dummy_controller, dummy_site):
-    args = make_test_args(action="kill", site="dummy", script="script",
-        user="user", jobid="1234", output=None, dryrun=True)
+    args = make_test_args(
+        action="kill",
+        site="dummy",
+        script="script",
+        user="user",
+        jobid="1234",
+        output=None,
+        dryrun=True,
+    )
     cfg = Config({})
     ctl = dummy_controller(cfg, args, None)
     act = troika.cli.KillAction(args)

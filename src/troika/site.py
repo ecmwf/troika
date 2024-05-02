@@ -18,7 +18,7 @@ def get_site(config, name, user):
         raise InvocationError(f"Unknown site {name!r}")
 
     try:
-        tp = site_config['type']
+        tp = site_config["type"]
     except KeyError:
         raise ConfigurationError(f"Site {name!r} has no 'type'")
 
@@ -28,7 +28,7 @@ def get_site(config, name, user):
         raise ConfigurationError(f"Site {name!r} has unknown type {tp!r}")
 
     try:
-        conn_name = site_config['connection']
+        conn_name = site_config["connection"]
     except KeyError:
         raise ConfigurationError(f"Site {name!r} has no 'connection'")
 
@@ -51,17 +51,17 @@ def list_sites(config):
     ``(name, type, connection)``
     """
     try:
-        sites = config['sites']
+        sites = config["sites"]
     except KeyError:
         raise ConfigurationError("No 'sites' defined in configuration")
 
     for name, site in sites.items():
         try:
-            tp = site['type']
+            tp = site["type"]
         except KeyError:
             raise ConfigurationError(f"Site {name!r} has no 'type'")
         try:
-            conn = site['connection']
+            conn = site["connection"]
         except KeyError:
             raise ConfigurationError(f"Site {name!r} has no 'connection'")
         yield name, tp, conn

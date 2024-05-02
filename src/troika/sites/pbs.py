@@ -102,7 +102,6 @@ def _translate_mail_type(value):
 class PBSSite(Site):
     """Site managed using PBS"""
 
-
     directive_prefix = b"#PBS "
     directive_translate = {
         "billing_account": b"-A %s",
@@ -118,15 +117,14 @@ class PBSSite(Site):
         "walltime": b"-l walltime=%s",
     }
 
-
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
-        self._qsub = command_as_list(config.get('qsub_command', 'qsub'))
-        self._qdel = command_as_list(config.get('qdel_command', 'qdel'))
-        self._qsig = command_as_list(config.get('qsig_command', 'qsig'))
-        self._qstat = command_as_list(config.get('qstat_command', 'qstat'))
-        self._copy_script = config.get('copy_script', False)
-        self._copy_jid = config.get('copy_jid', False)
+        self._qsub = command_as_list(config.get("qsub_command", "qsub"))
+        self._qdel = command_as_list(config.get("qdel_command", "qdel"))
+        self._qsig = command_as_list(config.get("qsig_command", "qsig"))
+        self._qstat = command_as_list(config.get("qstat_command", "qstat"))
+        self._copy_script = config.get("copy_script", False)
+        self._copy_jid = config.get("copy_jid", False)
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
@@ -144,26 +142,42 @@ class PBSSite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
+        proc = self._connection.execute(
+            cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun
+        )
         if dryrun:
             return
 
         proc_stdout, proc_stderr = proc.communicate()
         if proc.returncode != 0:
-            if proc_stdout: _logger.error("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
-            if proc_stderr: _logger.error("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
+            if proc_stdout:
+                _logger.error(
+                    "qsub stdout for script %s:\n%s", script, proc_stdout.strip()
+                )
+            if proc_stderr:
+                _logger.error(
+                    "qsub stderr for script %s:\n%s", script, proc_stderr.strip()
+                )
             check_retcode(proc.returncode, what="Submission")
         else:
-            if proc_stdout: _logger.debug("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
-            if proc_stderr: _logger.debug("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
+            if proc_stdout:
+                _logger.debug(
+                    "qsub stdout for script %s:\n%s", script, proc_stdout.strip()
+                )
+            if proc_stderr:
+                _logger.debug(
+                    "qsub stderr for script %s:\n%s", script, proc_stderr.strip()
+                )
 
         jobid = proc_stdout.decode(locale.getpreferredencoding()).strip()
         _logger.debug("PBS job ID: %s", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
         if jid_output.exists():
-            _logger.warning("Job ID output file %r already exists, " +
-                "overwriting", str(jid_output))
+            _logger.warning(
+                "Job ID output file %r already exists, " + "overwriting",
+                str(jid_output),
+            )
         jid_output.write_text(str(jobid) + "\n")
 
         if self._copy_jid:
@@ -185,8 +199,9 @@ class PBSSite(Site):
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
-            _logger.warning("Status file %r already exists, overwriting",
-                str(stat_output))
+            _logger.warning(
+                "Status file %r already exists, overwriting", str(stat_output)
+            )
         outf = None
         if not dryrun:
             outf = stat_output.open(mode="wb")
@@ -232,15 +247,15 @@ class PBSSite(Site):
                     break
 
             if sig is None or sig == signal.SIGKILL:
-                cancel_status = 'KILLED'
+                cancel_status = "KILLED"
             elif cancel_status is None:
-                cancel_status = 'TERMINATED'
+                cancel_status = "TERMINATED"
 
         return (jid, cancel_status)
 
     def get_native_parser(self):
         """See `troika.sites.Site.get_native_parser`"""
-        return PBSDirectiveParser(drop_keys=[b'-o', b'-e', b'-j'])
+        return PBSDirectiveParser(drop_keys=[b"-o", b"-e", b"-j"])
 
     def _parse_jidfile(self, script, output=None, dryrun=False):
         script = pathlib.Path(script)
@@ -252,11 +267,15 @@ class PBSSite(Site):
                 jid_remote = pathlib.PurePath(output).parent / jid_output.name
                 try:
                     self._connection.getfile(jid_remote, jid_output, dryrun=dryrun)
-                    _logger.debug("Job ID file copied back from output directory: %s", jid_remote)
+                    _logger.debug(
+                        "Job ID file copied back from output directory: %s", jid_remote
+                    )
                     if not dryrun:
                         return jid_output.read_text().strip()
                 except (IOError, RunError) as e2:
-                    raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
+                    raise RunError(
+                        f"Could not read the job id: {e!s} or copy it back {e2!s}"
+                    )
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):

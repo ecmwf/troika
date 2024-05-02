@@ -1,4 +1,3 @@
-
 import pytest
 from troika import ConfigurationError, InvocationError
 from troika.config import Config, get_config

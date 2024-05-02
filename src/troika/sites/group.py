@@ -8,6 +8,7 @@ from .base import Site
 
 _logger = logging.getLogger(__name__)
 
+
 class SiteGroup(Site):
     """Site group: choose the first site available"""
 
@@ -44,7 +45,9 @@ class SiteGroup(Site):
 
     def monitor(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.base.Site.monitor`"""
-        return self._selected.monitor(script, user, output=output, jid=jid, dryrun=dryrun)
+        return self._selected.monitor(
+            script, user, output=output, jid=jid, dryrun=dryrun
+        )
 
     def kill(self, script, user, output=None, jid=None, dryrun=False):
         """See `troika.sites.base.Site.kill`"""

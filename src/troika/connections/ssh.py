@@ -18,25 +18,31 @@ class SSHConnection(Connection):
     def __init__(self, config, user):
         super().__init__(config, user)
         self.parent = LocalConnection(config, user)
-        self.ssh = config.get('ssh_command', 'ssh')
-        self.scp = config.get('scp_command', 'scp')
-        self.ssh_options = config.get('ssh_options', [])
-        self.scp_options = config.get('scp_options', self.ssh_options.copy())
-        if parse_bool(config.get('ssh_verbose', False)):
-            self.ssh_options.append('-v')
-            self.scp_options.append('-v')
-        strict_host_key_checking = parse_bool(config.get('ssh_strict_host_key_checking', False))
+        self.ssh = config.get("ssh_command", "ssh")
+        self.scp = config.get("scp_command", "scp")
+        self.ssh_options = config.get("ssh_options", [])
+        self.scp_options = config.get("scp_options", self.ssh_options.copy())
+        if parse_bool(config.get("ssh_verbose", False)):
+            self.ssh_options.append("-v")
+            self.scp_options.append("-v")
+        strict_host_key_checking = parse_bool(
+            config.get("ssh_strict_host_key_checking", False)
+        )
         if strict_host_key_checking is not None:
-            self.ssh_options.append(f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}')
-            self.scp_options.append(f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}')
-        connect_timeout = config.get('ssh_connect_timeout', None)
+            self.ssh_options.append(
+                f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}'
+            )
+            self.scp_options.append(
+                f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}'
+            )
+        connect_timeout = config.get("ssh_connect_timeout", None)
         if connect_timeout is not None:
-            self.ssh_options.append(f'-oConnectTimeout={connect_timeout}')
-            self.scp_options.append(f'-oConnectTimeout={connect_timeout}')
-        self.host = config['host']
+            self.ssh_options.append(f"-oConnectTimeout={connect_timeout}")
+            self.scp_options.append(f"-oConnectTimeout={connect_timeout}")
+        self.host = config["host"]
         if self.user is None:
-            self.user = config.get('user', None)
-        self.remote_cwd = config.get('remote_cwd', None)
+            self.user = config.get("user", None)
+        self.remote_cwd = config.get("remote_cwd", None)
         if self.remote_cwd:
             self.remote_cwd = pathlib.PurePath(self.remote_cwd)
 
@@ -47,9 +53,20 @@ class SSHConnection(Connection):
         """See `Connection.get_parent`"""
         return self.parent
 
-    def execute(self, command, stdin=None, stdout=None, stderr=None,
-            text=False, encoding=None, errors=None, detach=False,
-            env=None, cwd=None, dryrun=False):
+    def execute(
+        self,
+        command,
+        stdin=None,
+        stdout=None,
+        stderr=None,
+        text=False,
+        encoding=None,
+        errors=None,
+        detach=False,
+        env=None,
+        cwd=None,
+        dryrun=False,
+    ):
         """See `Connection.execute`"""
         args = [self.ssh] + self.ssh_options
         if self.user is None:
@@ -62,13 +79,21 @@ class SSHConnection(Connection):
             # Treat cwd relative to default if present
             cwd = self.remote_cwd / cwd
         if cwd is not None:
-            args += [ 'cd', shlex.quote(str(cwd)), '&&' ]
+            args += ["cd", shlex.quote(str(cwd)), "&&"]
         if env is not None:
-            args += [ f'{shlex.quote(k)}={shlex.quote(v)}' for k,v in env.items() ]
-        args += [ shlex.quote(str(arg)) for arg in command ]
-        return self.parent.execute(args, stdin=stdin, stdout=stdout,
-            stderr=stderr, text=text, encoding=encoding, errors=errors,
-            detach=detach, dryrun=dryrun)
+            args += [f"{shlex.quote(k)}={shlex.quote(v)}" for k, v in env.items()]
+        args += [shlex.quote(str(arg)) for arg in command]
+        return self.parent.execute(
+            args,
+            stdin=stdin,
+            stdout=stdout,
+            stderr=stderr,
+            text=text,
+            encoding=encoding,
+            errors=errors,
+            detach=detach,
+            dryrun=dryrun,
+        )
 
     def sendfile(self, src, dst, dryrun=False):
         """See `Connection.sendfile`"""

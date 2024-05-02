@@ -100,6 +100,8 @@ def first_not_none(l):
 
 
 _parse_bool_sentinel = object()
+
+
 def parse_bool(x, default=_parse_bool_sentinel):
     """Parse a boolean value
 

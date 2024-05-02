@@ -1,4 +1,3 @@
-
 import signal
 
 import pytest
@@ -26,22 +25,25 @@ def dummy_direct_site(dummy_direct_conf):
     return direct.DirectExecSite(dummy_direct_conf, conn, Config({}))
 
 
-@pytest.mark.parametrize('seq', [
-    pytest.param(None, id='invalid_type'),
-    pytest.param([2, 15, 9], id='not_tuples'),
-    pytest.param([(0, 2), (5, -3), (10, 9)], id='invalid_number'),
-    pytest.param([(0, 'XXXINVALID'), (5, 15), (10, 9)], id='invalid_name'),
-])
+@pytest.mark.parametrize(
+    "seq",
+    [
+        pytest.param(None, id="invalid_type"),
+        pytest.param([2, 15, 9], id="not_tuples"),
+        pytest.param([(0, 2), (5, -3), (10, 9)], id="invalid_number"),
+        pytest.param([(0, "XXXINVALID"), (5, 15), (10, 9)], id="invalid_name"),
+    ],
+)
 def test_invalid_killseq(seq, dummy_direct_conf):
     cfg = dummy_direct_conf.copy()
     cfg["kill_sequence"] = seq
     conn = LocalConnection(dummy_direct_conf, "user")
-    with pytest.raises(troika.ConfigurationError, match='Invalid kill sequence'):
+    with pytest.raises(troika.ConfigurationError, match="Invalid kill sequence"):
         direct.DirectExecSite(cfg, conn, Config({}))
 
 
 def test_valid_killseq(dummy_direct_conf):
-    seq = [(0, 2), (5, 'TERM'), (10, 'SIGKILL')]
+    seq = [(0, 2), (5, "TERM"), (10, "SIGKILL")]
     exp = [(0, signal.SIGINT), (5, signal.SIGTERM), (10, signal.SIGKILL)]
     cfg = dummy_direct_conf.copy()
     cfg["kill_sequence"] = seq

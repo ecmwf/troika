@@ -1,4 +1,3 @@
-
 import pytest
 import troika
 from troika import connection
@@ -14,11 +13,13 @@ class DummyConnection(Connection):
 @pytest.fixture
 def dummy_connections(monkeypatch):
     fake_connections = {"dummy": DummyConnection}
+
     def fake_get_entrypoint(group, name):
         try:
             return fake_connections[name]
         except KeyError:
             raise ValueError(name)
+
     monkeypatch.setattr("troika.connection.get_entrypoint", fake_get_entrypoint)
 
 

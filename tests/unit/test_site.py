@@ -1,4 +1,3 @@
-
 import pytest
 import troika
 import troika.sites.base
@@ -14,11 +13,13 @@ class DummySite(Site):
 @pytest.fixture
 def dummy_sites(monkeypatch):
     fake_sites = {"dummy": DummySite}
+
     def fake_get_entrypoint(group, name):
         try:
             return fake_sites[name]
         except KeyError:
             raise ValueError(name)
+
     monkeypatch.setattr("troika.site.get_entrypoint", fake_get_entrypoint)
 
 
