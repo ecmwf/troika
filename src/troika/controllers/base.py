@@ -268,7 +268,7 @@ class Controller:
         """
         script = pathlib.Path(script)
         stmp = tempfile.SpooledTemporaryFile(
-            max_size=1024 ** 3, mode="w+b", dir=script.parent, prefix=script.name
+            max_size=1024**3, mode="w+b", dir=script.parent, prefix=script.name
         )
         with open(script, "rb") as sin:
             try:
