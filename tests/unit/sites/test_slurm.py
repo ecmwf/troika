@@ -38,23 +38,6 @@ def test_invalid_script(dummy_slurm_site, tmp_path):
 
 
 @pytest.fixture
-def sample_script(tmp_path):
-    script_path = tmp_path / "script.sh"
-    script_path.write_text(
-        textwrap.dedent(
-            """\
-        #!/usr/bin/env bash
-        echo "Script called!"
-        """
-        )
-    )
-    script_path.chmod(
-        script_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-    )
-    return script_path
-
-
-@pytest.fixture
 def dummy_controller(dummy_slurm_site):
     controller = Controller(Config({}), None, None)
     controller.site = dummy_slurm_site
