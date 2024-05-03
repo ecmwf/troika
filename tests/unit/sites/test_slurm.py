@@ -1,4 +1,3 @@
-import stat
 import textwrap
 
 import pytest
