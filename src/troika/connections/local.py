@@ -17,7 +17,7 @@ class LocalConnection(Connection):
 
     def __init__(self, config, user):
         super().__init__(config, user)
-        self.local_cwd = config.get('local_cwd', None)
+        self.local_cwd = config.get("local_cwd", None)
         if self.local_cwd:
             self.local_cwd = pathlib.PurePath(self.local_cwd)
 
@@ -32,9 +32,20 @@ class LocalConnection(Connection):
         """See `Connection.get_parent`"""
         return self
 
-    def execute(self, command, stdin=None, stdout=None, stderr=None,
-            text=False, encoding=None, errors=None, detach=False,
-            env=None, cwd=None, dryrun=False):
+    def execute(
+        self,
+        command,
+        stdin=None,
+        stdout=None,
+        stderr=None,
+        text=False,
+        encoding=None,
+        errors=None,
+        detach=False,
+        env=None,
+        cwd=None,
+        dryrun=False,
+    ):
         """See `Connection.execute`"""
         if dryrun:
             _logger.info("Execute: %s", " ".join(repr(str(arg)) for arg in command))
@@ -51,11 +62,18 @@ class LocalConnection(Connection):
             # Treat cwd relative to default if present
             cwd = self.local_cwd / cwd
         _logger.debug("Executing %s", " ".join(repr(str(arg)) for arg in command))
-        proc = subprocess.Popen(command, stdin=stdin, stdout=stdout,
-            stderr=stderr, text=text, encoding=encoding, errors=errors,
+        proc = subprocess.Popen(
+            command,
+            stdin=stdin,
+            stdout=stdout,
+            stderr=stderr,
+            text=text,
+            encoding=encoding,
+            errors=errors,
             start_new_session=detach,
             env=({**os.environ, **env} if env is not None else None),
-            cwd=cwd)
+            cwd=cwd,
+        )
         _logger.debug("Child PID: %d", proc.pid)
         return proc
 

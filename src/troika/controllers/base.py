@@ -6,11 +6,10 @@ import pathlib
 import shutil
 import tempfile
 
-from .. import hook, ConfigurationError, InvocationError, RunError
+from .. import ConfigurationError, InvocationError, RunError, hook, site
 from ..directives import ALIASES, translators
 from ..generator import Generator
 from ..parser import DirectiveParser, MultiParser, ParseError, ShebangParser
-from .. import site
 
 _logger = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ class Controller:
         self.logfile = logfile
         self.site = None
         self.default_shebang = None
-        self.unknown_directive = 'warn'
+        self.unknown_directive = "warn"
         self.script_data = {}
 
     def __repr__(self):
@@ -146,7 +145,8 @@ class Controller:
         """
         with self.action_context() as context:
             working = self.site.check_connection(timeout=timeout, dryrun=dryrun)
-            if not working: context.status = 1
+            if not working:
+                context.status = 1
         return context.status == 0
 
     def list_sites(self):
@@ -182,7 +182,9 @@ class Controller:
                 elif isinstance(exc, RunError):
                     _logger.critical("%s", exc)
                 else:
-                    _logger.error("Unhandled exception", exc_info=(exc_type, exc, traceback))
+                    _logger.error(
+                        "Unhandled exception", exc_info=(exc_type, exc, traceback)
+                    )
                 swallow = True
             try:
                 self._controller.teardown(self.status)
@@ -214,8 +216,8 @@ class Controller:
         res = hook.at_startup(self.args.action, self.site, self.args)
         if any(res):
             raise SystemExit(1)
-        self.default_shebang = self.site.config.get('default_shebang', None)
-        self.unknown_directive = self.site.config.get('unknown_directive', 'warn')
+        self.default_shebang = self.site.config.get("default_shebang", None)
+        self.unknown_directive = self.site.config.get("unknown_directive", "warn")
 
     def teardown(self, sts=0):
         """Tear down the controller
@@ -236,18 +238,18 @@ class Controller:
             Script to parse
         """
         dir_parser = DirectiveParser(aliases=ALIASES)
-        parsers = [('directives', dir_parser)]
+        parsers = [("directives", dir_parser)]
         native = self.site.get_native_parser()
         if native is not None:
-            parsers.append(('native', native))
-        parsers.append(('shebang', ShebangParser()))
+            parsers.append(("native", native))
+        parsers.append(("shebang", ShebangParser()))
         parser = MultiParser(parsers)
         body = self.run_parser(script, parser)
         self.script_data.update(parser.data)
-        self.script_data['body'] = body
+        self.script_data["body"] = body
         dir_defines = getattr(self.args, "define", [])
         dir_overrides = dir_parser.parse_directive_args(dir_defines)
-        self.script_data['directives'].update(dir_overrides)
+        self.script_data["directives"].update(dir_overrides)
 
     def run_parser(self, script, parser):
         """Run the parser on the script
@@ -265,9 +267,10 @@ class Controller:
             Script body
         """
         script = pathlib.Path(script)
-        stmp = tempfile.SpooledTemporaryFile(max_size=1024**3, mode='w+b',
-            dir=script.parent, prefix=script.name)
-        with open(script, 'rb') as sin:
+        stmp = tempfile.SpooledTemporaryFile(
+            max_size=1024**3, mode="w+b", dir=script.parent, prefix=script.name
+        )
+        with open(script, "rb") as sin:
             try:
                 for lineno, line in enumerate(sin, start=1):
                     drop = parser.feed(line)
@@ -295,11 +298,16 @@ class Controller:
         path-like
             Path to the post-processed script
         """
-        if self.default_shebang is not None and self.script_data.get('shebang', None) is None:
-            self.script_data['shebang'] = self.default_shebang.encode('utf-8')
+        if (
+            self.default_shebang is not None
+            and self.script_data.get("shebang", None) is None
+        ):
+            self.script_data["shebang"] = self.default_shebang.encode("utf-8")
         directive_prefix, directive_translate = self.site.get_directive_translation()
-        generator = Generator(directive_prefix, directive_translate, self.unknown_directive)
-        self.script_data['directives']['output_file'] = os.fsencode(output)
+        generator = Generator(
+            directive_prefix, directive_translate, self.unknown_directive
+        )
+        self.script_data["directives"]["output_file"] = os.fsencode(output)
         self.script_data = translators(self.script_data, self.config, self.site)
         return self.run_generator(script, generator)
 
@@ -321,19 +329,21 @@ class Controller:
         script = pathlib.Path(script)
         orig_script = script.with_suffix(script.suffix + ".orig")
         if orig_script.exists():
-            _logger.warning("Backup script file %r already exists, " +
-                "overwriting", str(orig_script))
-        with tempfile.NamedTemporaryFile(mode='w+b', delete=False,
-                    dir=script.parent, prefix=script.name) as sout:
+            _logger.warning(
+                "Backup script file %r already exists, " + "overwriting",
+                str(orig_script),
+            )
+        with tempfile.NamedTemporaryFile(
+            mode="w+b", delete=False, dir=script.parent, prefix=script.name
+        ) as sout:
             sout.writelines(generator.generate(self.script_data))
-            for line in self.script_data['body']:
+            for line in self.script_data["body"]:
                 sout.write(line)
             new_script = pathlib.Path(sout.name)
         shutil.copymode(script, new_script)
         shutil.copy2(script, orig_script)
         new_script.replace(script)
-        _logger.debug("Script generated. Original script saved to %r",
-            str(orig_script))
+        _logger.debug("Script generated. Original script saved to %r", str(orig_script))
         return script
 
     def _get_site(self):

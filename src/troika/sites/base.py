@@ -3,8 +3,7 @@
 import logging
 import pathlib
 
-from .. import ConfigurationError
-from .. import generator
+from .. import ConfigurationError, generator
 from ..connection import PIPE
 from ..utils import check_retcode, command_as_list, normalise_signal
 
@@ -32,7 +31,6 @@ class Site:
     #: becomes ``foo``.
     __type_name__ = None
 
-
     #: Prefix for the generated directives, e.g. ``b"#SBATCH "``. If ``None``,
     #: no directives will be generated
     directive_prefix = None
@@ -41,14 +39,13 @@ class Site:
     #: using the ``%`` operator
     directive_translate = {}
 
-
     def __init__(self, config, connection, global_config):
         self.config = config
         self._connection = connection
         try:
             self._kill_sequence = [
                 (wait, normalise_signal(sig))
-                for wait, sig in config.get('kill_sequence', [])
+                for wait, sig in config.get("kill_sequence", [])
             ]
         except (TypeError, ValueError) as e:
             raise ConfigurationError(f"Invalid kill sequence: {e!s}")
@@ -169,18 +166,26 @@ class Site:
             Path to the newly created directory
         """
         out_dir = pathlib.PurePath(output).parent
-        pmkdir_command = command_as_list(self.config.get('pmkdir_command', ['mkdir', '-p']))
-        proc = self._connection.execute(pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
+        pmkdir_command = command_as_list(
+            self.config.get("pmkdir_command", ["mkdir", "-p"])
+        )
+        proc = self._connection.execute(
+            pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun
+        )
         if dryrun:
             return out_dir
         proc_stdout, proc_stderr = proc.communicate()
         if proc.returncode != 0:
-            if proc_stdout: _logger.error("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
-            if proc_stderr: _logger.error("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
+            if proc_stdout:
+                _logger.error("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+            if proc_stderr:
+                _logger.error("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
             check_retcode(proc.returncode, what="Output directory creation")
         else:
-            if proc_stdout: _logger.debug("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
-            if proc_stderr: _logger.debug("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
+            if proc_stdout:
+                _logger.debug("%s stdout:\n%s", pmkdir_command[0], proc_stdout.strip())
+            if proc_stderr:
+                _logger.debug("%s stderr:\n%s", pmkdir_command[0], proc_stderr.strip())
         return out_dir
 
     def get_native_parser(self):
