@@ -117,6 +117,7 @@ class SGESite(Site):
         "walltime": b"-l walltime=%s",
     }
 
+    SUBMIT_RE = re.compile("(Your job )?(\d+)")
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
@@ -126,6 +127,13 @@ class SGESite(Site):
         self._qstat = command_as_list(config.get('qstat_command', 'qstat'))
         self._copy_script = config.get('copy_script', False)
         self._copy_jid = config.get('copy_jid', False)
+
+    def _parse_submit_output(self, out):
+        match = self.SUBMIT_RE.search(out)
+        if match is None:
+            _logger.warn("Could not parse SGE output %r", out)
+            return None
+        return int(match.group(2))
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
@@ -156,7 +164,7 @@ class SGESite(Site):
             if proc_stdout: _logger.debug("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
             if proc_stderr: _logger.debug("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
 
-        jobid = proc_stdout.decode(locale.getpreferredencoding()).strip()
+        jobid =  self._parse_submit_output(proc_stdout.decode(locale.getpreferredencoding()).strip())
         _logger.debug("SGE job ID: %s", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
@@ -204,17 +212,13 @@ class SGESite(Site):
         else:
             _logger.debug(f"Using specified job id {jid!r}")
 
-        seq = self._kill_sequence
-        if not seq:
-            seq = [(0, None)]
+        seq = [(0, None)]
 
         cancel_status = None
         for wait, sig in seq:
             time.sleep(wait)
 
             cmd = self._qdel + [jid]
-            if sig is not None:
-                cmd = self._qsig + ["-s", str(sig.value), jid]
             proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
             if dryrun:
@@ -224,10 +228,10 @@ class SGESite(Site):
             retcode = proc.returncode
             if retcode != 0:
                 if cancel_status is None:
-                    _logger.error("qdel/qsig output: %s", proc_stdout)
+                    _logger.error("qdel output: %s", proc_stdout)
                     check_retcode(retcode, what="Kill")
                 else:
-                    _logger.debug("qdel/qsig output: %s", proc_stdout)
+                    _logger.debug("qdel output: %s", proc_stdout)
                     break
 
             if sig is None or sig == signal.SIGKILL:
