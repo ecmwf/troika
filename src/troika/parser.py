@@ -11,14 +11,15 @@ and underscores, and do not start with a number. Whitespace is removed around
 the equals sign and at the end the value.
 """
 
-from collections import OrderedDict
 import re
+from collections import OrderedDict
 
 from . import InvocationError, RunError
 
 
 class ParseError(RunError):
     """Exception raised during script parsing"""
+
     pass
 
 
@@ -94,7 +95,7 @@ class DirectiveParser(BaseParser):
             raise ParseError(f"Invalid key-value pair: {kv}")
 
         key, value = kvm.groups()
-        key = key.decode('ascii')
+        key = key.decode("ascii")
         key = self.aliases.get(key, key)
         self.data[key] = value
 
@@ -109,7 +110,7 @@ class DirectiveParser(BaseParser):
             if m is None:
                 raise InvocationError(f"Invalid key-value pair: {arg!r}")
             key, value = m.groups()
-            key = key.decode('ascii')
+            key = key.decode("ascii")
             key = self.aliases.get(key, key)
             data[key] = value
         return data
@@ -141,7 +142,7 @@ class ShebangParser(BaseParser):
         if line.isspace():
             return False
         self.done = True
-        if line.startswith(b'#!'):
+        if line.startswith(b"#!"):
             self.data = line
             return True
         return False

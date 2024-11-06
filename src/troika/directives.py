@@ -1,6 +1,6 @@
 """Directive handling"""
 
-from .translators.base import translators  # re-export
+from .translators.base import translators  # noqa
 
 #: Directive aliases. A directive named `dir` found in the script will be
 #: converted to `ALIASES[dir]`, if present

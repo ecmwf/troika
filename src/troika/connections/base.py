@@ -6,6 +6,7 @@ from ..connection import PIPE
 
 _logger = logging.getLogger(__name__)
 
+
 class Connection:
     """Base connection class
 
@@ -44,9 +45,20 @@ class Connection:
         """
         raise NotImplementedError
 
-    def execute(self, command, stdin=None, stdout=None, stderr=None, text=False,
-            encoding=None, errors=None, detach=False, env=None, cwd=None,
-            dryrun=False):
+    def execute(
+        self,
+        command,
+        stdin=None,
+        stdout=None,
+        stderr=None,
+        text=False,
+        encoding=None,
+        errors=None,
+        detach=False,
+        env=None,
+        cwd=None,
+        dryrun=False,
+    ):
         """Execute the given command on the host
 
         Parameters
@@ -130,7 +142,9 @@ class Connection:
         bool
             True if the connection is able to execute commands
         """
-        proc = self.execute(["true"], stdout=PIPE, stderr=PIPE, detach=False, dryrun=dryrun)
+        proc = self.execute(
+            ["true"], stdout=PIPE, stderr=PIPE, detach=False, dryrun=dryrun
+        )
         if dryrun:
             return True
         proc_stdout, proc_stderr = proc.communicate()
@@ -139,6 +153,8 @@ class Connection:
             log = _logger.debug
         else:
             log = _logger.error
-        if proc_stdout: log("stdout checking connection:\n%s", proc_stdout.strip())
-        if proc_stderr: log("stderr checking connection:\n%s", proc_stderr.strip())
+        if proc_stdout:
+            log("stdout checking connection:\n%s", proc_stdout.strip())
+        if proc_stderr:
+            log("stderr checking connection:\n%s", proc_stderr.strip())
         return retcode == 0
