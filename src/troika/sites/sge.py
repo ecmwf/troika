@@ -114,7 +114,7 @@ class SGESite(Site):
         "output_file": b"-o %s",
         "priority": b"-p %s",
         "queue": b"-q %s",
-        "walltime": b"-l walltime=%s",
+        "walltime": b"-l h_rt=%s",
     }
 
     SUBMIT_RE = re.compile("(Your job )?(\d+)")
@@ -123,7 +123,6 @@ class SGESite(Site):
         super().__init__(config, connection, global_config)
         self._qsub = command_as_list(config.get('qsub_command', 'qsub'))
         self._qdel = command_as_list(config.get('qdel_command', 'qdel'))
-        self._qsig = command_as_list(config.get('qsig_command', 'qsig'))
         self._qstat = command_as_list(config.get('qstat_command', 'qstat'))
         self._copy_script = config.get('copy_script', False)
         self._copy_jid = config.get('copy_jid', False)
@@ -139,7 +138,7 @@ class SGESite(Site):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
 
-        cmd = self._qsub.copy()
+        cmd = self._qsub.copy() + ["-notify"]
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
@@ -198,7 +197,7 @@ class SGESite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute(self._qstat + [jid], stdout=outf, dryrun=dryrun)
+        self._connection.execute(self._qstat + ["-j", jid], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
@@ -212,34 +211,20 @@ class SGESite(Site):
         else:
             _logger.debug(f"Using specified job id {jid!r}")
 
-        seq = [(0, None)]
 
-        cancel_status = None
-        for wait, sig in seq:
-            time.sleep(wait)
+        cmd = self._qdel + [jid]
+        proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
-            cmd = self._qdel + [jid]
-            proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
+        if dryrun:
+            return (jid, 'KILLED')
 
-            if dryrun:
-                continue
+        proc_stdout, _ = proc.communicate()
+        retcode = proc.returncode
+        if retcode != 0:
+            _logger.error("qdel output: %s", proc_stdout)
+            check_retcode(retcode, what="Kill")
 
-            proc_stdout, _ = proc.communicate()
-            retcode = proc.returncode
-            if retcode != 0:
-                if cancel_status is None:
-                    _logger.error("qdel output: %s", proc_stdout)
-                    check_retcode(retcode, what="Kill")
-                else:
-                    _logger.debug("qdel output: %s", proc_stdout)
-                    break
-
-            if sig is None or sig == signal.SIGKILL:
-                cancel_status = 'KILLED'
-            elif cancel_status is None:
-                cancel_status = 'TERMINATED'
-
-        return (jid, cancel_status)
+        return (jid, 'KILLED')
 
     def get_native_parser(self):
         """See `troika.sites.Site.get_native_parser`"""

@@ -11,6 +11,11 @@ def ensure_output_dir(site, output, dryrun=False):
     return site.create_output_dir(output, dryrun=dryrun)
 
 
+def remove_previous_output(site, script, output, dryrun=False):
+    """Pre-submit hook to potentially previous output"""
+    return site.remove_previous_output(output, dryrun=dryrun)
+
+
 def check_connection(action, site, args):
     """Startup hook to check the connection works before doing anything"""
     working = site.check_connection(dryrun=args.dryrun)
