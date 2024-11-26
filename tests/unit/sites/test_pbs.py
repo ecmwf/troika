@@ -1,6 +1,6 @@
-
 import stat
 import textwrap
+
 import pytest
 
 import troika
@@ -16,7 +16,7 @@ def dummy_pbs_conf(tmp_path):
     return {
         "type": "pbs",
         "connection": "local",
-        "preprocess": ["remove_top_blank_lines", "pbs_add_output", "pbs_bubble"]
+        "preprocess": ["remove_top_blank_lines", "pbs_add_output", "pbs_bubble"],
     }
 
 
@@ -41,12 +41,17 @@ def test_invalid_script(dummy_pbs_site, tmp_path):
 @pytest.fixture
 def sample_script(tmp_path):
     script_path = tmp_path / "script.sh"
-    script_path.write_text(textwrap.dedent("""\
+    script_path.write_text(
+        textwrap.dedent(
+            """\
         #!/usr/bin/env bash
         echo "Script called!"
-        """))
-    script_path.chmod(script_path.stat().st_mode
-                      | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        """
+        )
+    )
+    script_path.chmod(
+        script_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    )
     return script_path
 
 
@@ -57,20 +62,23 @@ def dummy_controller(dummy_pbs_site):
     return controller
 
 
-@pytest.mark.parametrize("sin, sexp", [
-    pytest.param(
-        """\
+@pytest.mark.parametrize(
+    "sin, sexp",
+    [
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         echo "Hello, World!"
         """,
-        """\
+            """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
         echo "Hello, World!"
         """,
-        id="add_output"),
-    pytest.param(
-        """\
+            id="add_output",
+        ),
+        pytest.param(
+            """\
         #PBS -q test
 
         set +x
@@ -79,30 +87,7 @@ def dummy_controller(dummy_pbs_site):
 
         echo "Hello, World!"
         """,
-        """\
-        #PBS -o @OUTPUT@
-        #PBS -q test
-        #PBS -N hello
-
-        set +x
-
-
-        echo "Hello, World!"
-        """,
-        id="bubble"),
-    pytest.param(
-        """\
-        #!/usr/bin/env bash
-        #PBS -q test
-
-        set +x
-
-        #PBS -N hello
-
-        echo "Hello, World!"
-        """,
-        """\
-        #!/usr/bin/env bash
+            """\
         #PBS -o @OUTPUT@
         #PBS -q test
         #PBS -N hello
@@ -112,9 +97,34 @@ def dummy_controller(dummy_pbs_site):
 
         echo "Hello, World!"
         """,
-        id="bubble_shebang"),
-    pytest.param(
-        """\
+            id="bubble",
+        ),
+        pytest.param(
+            """\
+        #!/usr/bin/env bash
+        #PBS -q test
+
+        set +x
+
+        #PBS -N hello
+
+        echo "Hello, World!"
+        """,
+            """\
+        #!/usr/bin/env bash
+        #PBS -o @OUTPUT@
+        #PBS -q test
+        #PBS -N hello
+
+        set +x
+
+
+        echo "Hello, World!"
+        """,
+            id="bubble_shebang",
+        ),
+        pytest.param(
+            """\
         #PBS -q test
 
         #!/usr/bin/env bash
@@ -125,7 +135,7 @@ def dummy_controller(dummy_pbs_site):
 
         echo "Hello, World!"
         """,
-        """\
+            """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
         #PBS -q test
@@ -137,25 +147,27 @@ def dummy_controller(dummy_pbs_site):
 
         echo "Hello, World!"
         """,
-        id="bubble_shebang_blank"),
-    pytest.param(
-        """\
+            id="bubble_shebang_blank",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #PBS -N hello
         #PBS -e foo
 
         echo "Hello, World!"
         """,
-        """\
+            """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
         #PBS -N hello
 
         echo "Hello, World!"
         """,
-        id="drop_error"),
-    pytest.param(
-        """\
+            id="drop_error",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #PBS -N hello
         #PBS -j n
@@ -164,46 +176,50 @@ def dummy_controller(dummy_pbs_site):
 
         echo "Hello, World!"
         """,
-        """\
+            """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
         #PBS -N hello
 
         echo "Hello, World!"
         """,
-        id="drop_join"),
-    pytest.param(
-        """\
+            id="drop_join",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #PBS -N hello
         #PBS -o foo
 
         echo "Hello, World!"
         """,
-        """\
+            """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
         #PBS -N hello
 
         echo "Hello, World!"
         """,
-        id="drop_output"),
-    pytest.param(
-        """\
+            id="drop_output",
+        ),
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #PBS -N hello
 
         echo "\xfc\xaa"
         """,
-        """\
+            """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
         #PBS -N hello
 
         echo "\xfc\xaa"
         """,
-        id="invalid_utf8"),
-])
+            id="invalid_utf8",
+        ),
+    ],
+)
 def test_preprocess(sin, sexp, dummy_controller, tmp_path):
     script = tmp_path / "script.sh"
     orig_script = tmp_path / "script.sh.orig"
@@ -219,32 +235,36 @@ def test_preprocess(sin, sexp, dummy_controller, tmp_path):
     assert orig_script.read_text() == sin
 
 
-@pytest.mark.parametrize("sin, sexp, garbage", [
-    pytest.param(
-        """\
+@pytest.mark.parametrize(
+    "sin, sexp, garbage",
+    [
+        pytest.param(
+            """\
         #!/usr/bin/env bash
         #PBS -N hello
 
         echo "@GARBAGE@"
         """,
-        """\
+            """\
         #!/usr/bin/env bash
         #PBS -o @OUTPUT@
         #PBS -N hello
 
         echo "@GARBAGE@"
         """,
-        b"\xfc\xaa",
-        id="invalid_utf8"),
-])
+            b"\xfc\xaa",
+            id="invalid_utf8",
+        ),
+    ],
+)
 def test_preprocess_bin(sin, sexp, garbage, dummy_controller, tmp_path):
     script = tmp_path / "script.sh"
     orig_script = tmp_path / "script.sh.orig"
     output = tmp_path / "output.log"
-    sin = textwrap.dedent(sin).encode('utf-8').replace(b"@GARBAGE@", garbage)
+    sin = textwrap.dedent(sin).encode("utf-8").replace(b"@GARBAGE@", garbage)
     script.write_bytes(sin)
     sexp = textwrap.dedent(sexp).replace("@OUTPUT@", str(output.resolve()))
-    sexp = sexp.encode('utf-8').replace(b"@GARBAGE@", garbage)
+    sexp = sexp.encode("utf-8").replace(b"@GARBAGE@", garbage)
     dummy_controller.parse_script(script)
     pp_script = dummy_controller.generate_script(script, "user", output)
     assert pp_script == script
@@ -260,11 +280,14 @@ def test_submit_dryrun(dummy_pbs_site, sample_script, tmp_path):
     assert not output.exists()
 
 
-@pytest.mark.parametrize("path_type", [
-    pytest.param((lambda x: x), id="path"),
-    pytest.param(str, id="str"),
-    pytest.param(bytes, id="bytes"),
-])
+@pytest.mark.parametrize(
+    "path_type",
+    [
+        pytest.param((lambda x: x), id="path"),
+        pytest.param(str, id="str"),
+        pytest.param(bytes, id="bytes"),
+    ],
+)
 def test_output_path_type(path_type, dummy_controller, sample_script, tmp_path):
     output = path_type(tmp_path / "output.log")
     dummy_controller.parse_script(sample_script)

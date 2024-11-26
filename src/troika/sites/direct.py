@@ -19,15 +19,17 @@ class DirectExecSite(Site):
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
-        self._copy_script = config.get('copy_script', False)
-        self._copy_jid = config.get('copy_jid', False)
-        self._shell = config.get('shell',
-            ['bash'] if self._copy_script else ['bash', '-s'])
-        self._use_shell = config.get('use_shell', not connection.is_local())
+        self._copy_script = config.get("copy_script", False)
+        self._copy_jid = config.get("copy_jid", False)
+        self._shell = config.get(
+            "shell", ["bash"] if self._copy_script else ["bash", "-s"]
+        )
+        self._use_shell = config.get("use_shell", not connection.is_local())
 
         if not (connection.is_local() or self._copy_script or self._use_shell):
             raise ConfigurationError(
-                "copy_script and use_shell cannot both be False for a remote site")
+                "copy_script and use_shell cannot both be False for a remote site"
+            )
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.base.Site.submit`"""
@@ -38,6 +40,7 @@ class DirectExecSite(Site):
         script_remote = script
         if self._copy_script and not self._connection.is_local():
             script_remote = pathlib.PurePath(output).parent / script.name
+            super().create_output_dir(script_remote, dryrun=dryrun)
             self._connection.sendfile(script, script_remote, dryrun=dryrun)
 
         args = []
@@ -53,21 +56,23 @@ class DirectExecSite(Site):
         output = pathlib.Path(output)
         self.create_output_dir(output, dryrun=dryrun)
         if output.exists():
-            _logger.warning("Output file %r already exists, overwriting",
-                str(output))
+            _logger.warning("Output file %r already exists, overwriting", str(output))
         outf = None
         if not dryrun:
             outf = output.open(mode="wb")
-        proc = self._connection.execute(args, stdin=inpf, stdout=outf, detach=True,
-            dryrun=dryrun)
+        proc = self._connection.execute(
+            args, stdin=inpf, stdout=outf, detach=True, dryrun=dryrun
+        )
 
         if dryrun:
             return
 
         jid_output = script.with_suffix(script.suffix + ".jid")
         if jid_output.exists():
-            _logger.warning("Job ID output file %r already exists, " +
-                "overwriting", str(jid_output))
+            _logger.warning(
+                "Job ID output file %r already exists, " + "overwriting",
+                str(jid_output),
+            )
         jid_output.write_text(str(proc.pid) + "\n")
 
         if self._copy_jid:
@@ -93,8 +98,9 @@ class DirectExecSite(Site):
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
-            _logger.warning("Status file %r already exists, overwriting",
-                str(stat_output))
+            _logger.warning(
+                "Status file %r already exists, overwriting", str(stat_output)
+            )
         outf = None
         if not dryrun:
             outf = stat_output.open(mode="wb")
@@ -142,9 +148,9 @@ class DirectExecSite(Site):
                     break
 
             if sig == signal.SIGKILL:
-                cancel_status = 'KILLED'
+                cancel_status = "KILLED"
             else:
-                cancel_status = 'TERMINATED'
+                cancel_status = "TERMINATED"
 
         return (jid, cancel_status)
 
@@ -168,12 +174,21 @@ class DirectExecSite(Site):
                 jid_remote = pathlib.PurePath(output).parent / jid_output.name
                 try:
                     self._connection.getfile(jid_remote, jid_output, dryrun=dryrun)
-                    _logger.debug("Job ID file copied back from output directory: %s", jid_remote)
+                    _logger.debug(
+                        "Job ID file copied back from output directory: %s", jid_remote
+                    )
                     if not dryrun:
                         return jid_output.read_text().strip()
                 except (IOError, RunError) as e2:
-                    raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
+                    raise RunError(
+                        f"Could not read the job id: {e!s} or copy it back {e2!s}"
+                    )
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(connection={self._connection!r}, use_shell={self._use_shell}, shell={self._shell!r})"
+        return (
+            f"{self.__class__.__name__}("
+            f"connection={self._connection!r}, "
+            f"use_shell={self._use_shell}, "
+            f"shell={self._shell!r})"
+        )

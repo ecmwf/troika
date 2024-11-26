@@ -1,8 +1,7 @@
-
 import pytest
 
 from troika import ConfigurationError, InvocationError
-from troika.config import get_config, Config
+from troika.config import Config, get_config
 
 
 def test_get_site_nosites():
