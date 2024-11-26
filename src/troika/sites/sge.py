@@ -53,7 +53,7 @@ class SGEDirectiveParser(BaseParser):
         the line terminator.
     """
 
-    DIRECTIVE_RE = re.compile(rb"^#\s*$\s+(.+)$")
+    DIRECTIVE_RE = re.compile(rb"^#\s*\$\s+(.+)$")
 
     def __init__(self, drop_keys=None):
         super().__init__()
@@ -139,7 +139,7 @@ class SGESite(Site):
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
 
-        cmd = self._qsub.copy() + ["-notify"]
+        cmd = self._qsub.copy()
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
