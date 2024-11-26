@@ -109,6 +109,7 @@ class SGESite(Site):
         "error_file": b"-e %s",
         "export_vars": _translate_export_vars,
         "mail_type": _translate_mail_type,
+        "join_output_error": b"-j y",  # TODO: make that automatic
         "mail_user": b"-M %s",
         "name": b"-N %s",
         "output_file": b"-o %s",
