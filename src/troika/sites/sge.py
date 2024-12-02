@@ -1,16 +1,14 @@
 """SGE-managed site"""
 
-from collections import OrderedDict
 import locale
 import logging
 import pathlib
 import re
-import signal
-import time
+from collections import OrderedDict
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
-from ..parser import BaseParser, ParseError
+from ..parser import BaseParser
 from ..utils import check_retcode, command_as_list
 from .base import Site
 
@@ -102,7 +100,6 @@ def _translate_mail_type(value):
 class SGESite(Site):
     """Site managed using SGE"""
 
-
     directive_prefix = b"#$ "
     directive_translate = {
         "billing_account": b"-A %s",
@@ -118,15 +115,15 @@ class SGESite(Site):
         "walltime": b"-l h_rt=%s",
     }
 
-    SUBMIT_RE = re.compile("(Your job )?(\d+)")
+    SUBMIT_RE = re.compile(r"(Your job )?(\d+)")
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
-        self._qsub = command_as_list(config.get('qsub_command', 'qsub'))
-        self._qdel = command_as_list(config.get('qdel_command', 'qdel'))
-        self._qstat = command_as_list(config.get('qstat_command', 'qstat'))
-        self._copy_script = config.get('copy_script', False)
-        self._copy_jid = config.get('copy_jid', False)
+        self._qsub = command_as_list(config.get("qsub_command", "qsub"))
+        self._qdel = command_as_list(config.get("qdel_command", "qdel"))
+        self._qstat = command_as_list(config.get("qstat_command", "qstat"))
+        self._copy_script = config.get("copy_script", False)
+        self._copy_jid = config.get("copy_jid", False)
 
     def _parse_submit_output(self, out):
         match = self.SUBMIT_RE.search(out)
@@ -151,26 +148,44 @@ class SGESite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
+        proc = self._connection.execute(
+            cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun
+        )
         if dryrun:
             return
 
         proc_stdout, proc_stderr = proc.communicate()
         if proc.returncode != 0:
-            if proc_stdout: _logger.error("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
-            if proc_stderr: _logger.error("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
+            if proc_stdout:
+                _logger.error(
+                    "qsub stdout for script %s:\n%s", script, proc_stdout.strip()
+                )
+            if proc_stderr:
+                _logger.error(
+                    "qsub stderr for script %s:\n%s", script, proc_stderr.strip()
+                )
             check_retcode(proc.returncode, what="Submission")
         else:
-            if proc_stdout: _logger.debug("qsub stdout for script %s:\n%s", script, proc_stdout.strip())
-            if proc_stderr: _logger.debug("qsub stderr for script %s:\n%s", script, proc_stderr.strip())
+            if proc_stdout:
+                _logger.debug(
+                    "qsub stdout for script %s:\n%s", script, proc_stdout.strip()
+                )
+            if proc_stderr:
+                _logger.debug(
+                    "qsub stderr for script %s:\n%s", script, proc_stderr.strip()
+                )
 
-        jobid =  self._parse_submit_output(proc_stdout.decode(locale.getpreferredencoding()).strip())
+        jobid = self._parse_submit_output(
+            proc_stdout.decode(locale.getpreferredencoding()).strip()
+        )
         _logger.debug("SGE job ID: %s", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
         if jid_output.exists():
-            _logger.warning("Job ID output file %r already exists, " +
-                "overwriting", str(jid_output))
+            _logger.warning(
+                "Job ID output file %r already exists, " + "overwriting",
+                str(jid_output),
+            )
         jid_output.write_text(str(jobid) + "\n")
 
         if self._copy_jid:
@@ -192,8 +207,9 @@ class SGESite(Site):
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
-            _logger.warning("Status file %r already exists, overwriting",
-                str(stat_output))
+            _logger.warning(
+                "Status file %r already exists, overwriting", str(stat_output)
+            )
         outf = None
         if not dryrun:
             outf = stat_output.open(mode="wb")
@@ -212,12 +228,11 @@ class SGESite(Site):
         else:
             _logger.debug(f"Using specified job id {jid!r}")
 
-
         cmd = self._qdel + [jid]
         proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
         if dryrun:
-            return (jid, 'KILLED')
+            return (jid, "KILLED")
 
         proc_stdout, _ = proc.communicate()
         retcode = proc.returncode
@@ -225,11 +240,11 @@ class SGESite(Site):
             _logger.error("qdel output: %s", proc_stdout)
             check_retcode(retcode, what="Kill")
 
-        return (jid, 'KILLED')
+        return (jid, "KILLED")
 
     def get_native_parser(self):
         """See `troika.sites.Site.get_native_parser`"""
-        return SGEDirectiveParser(drop_keys=[b'-o', b'-e', b'-j'])
+        return SGEDirectiveParser(drop_keys=[b"-o", b"-e", b"-j"])
 
     def _parse_jidfile(self, script, output=None, dryrun=False):
         script = pathlib.Path(script)
@@ -241,11 +256,15 @@ class SGESite(Site):
                 jid_remote = pathlib.PurePath(output).parent / jid_output.name
                 try:
                     self._connection.getfile(jid_remote, jid_output, dryrun=dryrun)
-                    _logger.debug("Job ID file copied back from output directory: %s", jid_remote)
+                    _logger.debug(
+                        "Job ID file copied back from output directory: %s", jid_remote
+                    )
                     if not dryrun:
                         return jid_output.read_text().strip()
                 except (IOError, RunError) as e2:
-                    raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
+                    raise RunError(
+                        f"Could not read the job id: {e!s} or copy it back {e2!s}"
+                    )
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):

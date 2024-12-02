@@ -1,7 +1,7 @@
 """Base site class"""
 
-import os
 import logging
+import os
 import pathlib
 
 from .. import ConfigurationError, generator
@@ -234,4 +234,3 @@ class Site:
                 _logger.info("removing:\n%s", output)
             else:
                 os.remove(output)
-
