@@ -1,5 +1,6 @@
 """Base site class"""
 
+import os
 import logging
 import pathlib
 
@@ -215,3 +216,22 @@ class Site:
             else:
                 translate[name] = fmt.encode("utf-8")
         return (prefix, translate)
+
+    def remove_previous_output(self, output, dryrun=False):
+        """Remove previous output file if existing.
+
+        Parameters
+        ----------
+        output: path-like
+            Path to the output file
+        dryrun: bool
+            If True, do not do anything but print the command that would be
+            executed
+
+        """
+        if os.path.exists(output):
+            if dryrun:
+                _logger.info("removing:\n%s", output)
+            else:
+                os.remove(output)
+
