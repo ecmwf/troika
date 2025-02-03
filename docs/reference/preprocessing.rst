@@ -95,6 +95,8 @@ Directive                  PBS translation           Slurm translation          
 ``error_file``             ``-e <value>``            ``--error=<value>``
 ``exclusive``                                        ``--exclusive[=<value>]``       [2]_
 ``export_vars``            ``-v <value>`` or ``-V``  ``--export=<value>``            [1]_
+``gpus_per_node``                                    ``--gpus-per-node=<value>``
+``gpus_per_task``                                    ``--gpus-per-task=<value>``
 ``join_output_error``      ``-j oe``                 Ignored
 ``licenses``                                         ``--licenses=<value>``
 ``mail_type``              ``-m <value>``            ``--mail-type=<value>``         [1]_
@@ -109,6 +111,7 @@ Directive                  PBS translation           Slurm translation          
 ``tasks_per_node``                                   ``--ntasks-per-node=<value>``
 ``threads_per_core``                                 ``--threads-per-core=<value>``
 ``tmpdir_size``                                      ``--tmp=<value>``
+``total_gpus``                                       ``--gpus=<value>``
 ``total_nodes``                                      ``--nodes=<value>``
 ``total_tasks``                                      ``--ntasks=<value>``
 ``queue``                  ``-q <value>``            ``--qos=<value>``

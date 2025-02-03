@@ -74,7 +74,7 @@ class Generator:
                     continue
                 directives = None
                 if isinstance(fmt, bytes):
-                    directives = [(fmt % arg)]
+                    directives = [fmt % arg]
                 else:
                     directives = fmt(arg)
                     if directives is None:
