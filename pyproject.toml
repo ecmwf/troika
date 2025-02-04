@@ -2,13 +2,81 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+dynamic = ["version"]
+name = "troika"
+description = "Submit, monitor and kill jobs on remote systems"
+readme = "README.md"
+authors = [{ name = "Olivier Iffrig", email = "software.support@ecmwf.int" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3.8",
+    "Topic :: System :: Distributed Computing",
+]
+license = { text = "Apache Software License 2.0" }
+requires-python = ">= 3.8"
+dependencies = ["pyyaml"]
+
+[project.entry-points."troika.connections"]
+local = "troika.connections.local:LocalConnection"
+ssh = "troika.connections.ssh:SSHConnection"
+
+[project.entry-points."troika.controllers"]
+base = "troika.controllers.base:Controller"
+
+[project.entry-points."troika.hooks.at_startup"]
+check_connection = "troika.hooks.common:check_connection"
+
+[project.entry-points."troika.hooks.pre_submit"]
+create_output_dir = "troika.hooks.common:create_output_dir"
+copy_orig_script = "troika.hooks.common:copy_orig_script"
+remove_previous_output = "troika.hooks.common:remove_previous_output"
+
+[project.entry-points."troika.hooks.post_kill"]
+abort_on_ecflow = "troika.hooks.ecflow:abort_on_ecflow"
+
+[project.entry-points."troika.hooks.at_exit"]
+copy_submit_logfile = "troika.hooks.common:copy_submit_logfile"
+copy_kill_logfile = "troika.hooks.common:copy_kill_logfile"
+
+[project.entry-points."troika.translators"]
+enable_hyperthreading = "troika.translators.resources:enable_hyperthreading"
+extra_directives = "troika.translators.common:extra_directives"
+join_output_error = "troika.translators.common:join_output_error"
+
+[project.entry-points."troika.sites"]
+direct = "troika.sites.direct:DirectExecSite"
+group = "troika.sites.group:SiteGroup"
+pbs = "troika.sites.pbs:PBSSite"
+slurm = "troika.sites.slurm:SlurmSite"
+sge = "troika.sites.sge:SGESite"
+
+[project.optional-dependencies]
+docs = [
+    "Sphinx",
+]
+tests = [
+    "pytest",
+]
+
+[project.scripts]
+troika = "troika.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/ecmwf/troika"
+
 [tool.isort]
 profile = "black"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--doctest-modules"
-testpaths = [
-    "src",
-    "tests",
-]
+testpaths = ["src", "tests"]
+
+[tool.setuptools.dynamic]
+version = { attr = "troika.VERSION" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
