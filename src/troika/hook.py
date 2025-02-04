@@ -2,8 +2,7 @@
 
 import logging
 
-from .hooks.base import Hook
-from .hooks.base import at_startup, pre_submit, post_kill, at_exit  # re-export
+from .hooks.base import Hook, at_exit, at_startup, post_kill, pre_submit  # noqa
 
 _logger = logging.getLogger(__name__)
 

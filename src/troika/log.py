@@ -8,7 +8,8 @@ LOGLEVELS = [
     logging.ERROR,
     logging.WARNING,
     logging.INFO,
-    logging.DEBUG]
+    logging.DEBUG,
+]
 
 _logger = logging.getLogger(__name__)
 
@@ -42,7 +43,7 @@ def get_logfile_path(action, script=None):
     return base.with_suffix(base.suffix + f".{action}log")
 
 
-def config(verbose=0, logfile=None, logmode='a'):
+def config(verbose=0, logfile=None, logmode="a"):
     """Configure logging
 
     Parameters
@@ -58,7 +59,7 @@ def config(verbose=0, logfile=None, logmode='a'):
     default_log = LOGLEVELS.index(logging.WARNING)
     loglevel = LOGLEVELS[max(0, min(len(LOGLEVELS) - 1, default_log + verbose))]
 
-    log_format = '%(asctime)s; %(name)s; %(levelname)s; %(message)s'
+    log_format = "%(asctime)s; %(name)s; %(levelname)s; %(message)s"
 
     logging.basicConfig(format=log_format, level=loglevel)
 

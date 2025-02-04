@@ -1,11 +1,9 @@
-"""PBS-managed site"""
+"""SGE-managed site"""
 
 import locale
 import logging
 import pathlib
 import re
-import signal
-import time
 from collections import OrderedDict
 
 from .. import InvocationError, RunError
@@ -17,14 +15,14 @@ from .base import Site
 _logger = logging.getLogger(__name__)
 
 
-def _split_pbs_directive(arg):
-    """Split the argument of a PBS directive
+def _split_sge_directive(arg):
+    """Split the argument of a SGE directive
 
-    >>> _split_pbs_directive(b"-o foo")
+    >>> _split_sge_directive(b"-o foo")
     (b'-o', b'foo')
-    >>> _split_pbs_directive(b"-N job")
+    >>> _split_sge_directive(b"-N job")
     (b'-N', b'job')
-    >>> _split_pbs_directive(b"-V")
+    >>> _split_sge_directive(b"-V")
     (b'-V', None)
     """
     m = re.match(rb"(\S+)(\s+)?(.*)?$", arg)
@@ -37,8 +35,8 @@ def _split_pbs_directive(arg):
     return key, val
 
 
-class PBSDirectiveParser(BaseParser):
-    """Parser that processes a script to extract PBS directives
+class SGEDirectiveParser(BaseParser):
+    """Parser that processes a script to extract SGE directives
 
     Parameters
     ----------
@@ -53,7 +51,7 @@ class PBSDirectiveParser(BaseParser):
         the line terminator.
     """
 
-    DIRECTIVE_RE = re.compile(rb"^#\s*PBS\s+(.+)$")
+    DIRECTIVE_RE = re.compile(rb"^#\s*\$\s+(.+)$")
 
     def __init__(self, drop_keys=None):
         super().__init__()
@@ -71,7 +69,7 @@ class PBSDirectiveParser(BaseParser):
         if m is None:
             return False
 
-        key, value = _split_pbs_directive(m.group(1))
+        key, value = _split_sge_directive(m.group(1))
         if key not in self.drop_keys:
             self.data[key] = (value, line)
 
@@ -99,32 +97,40 @@ def _translate_mail_type(value):
     return b"-m %s" % b"".join(newvals)
 
 
-class PBSSite(Site):
-    """Site managed using PBS"""
+class SGESite(Site):
+    """Site managed using SGE"""
 
-    directive_prefix = b"#PBS "
+    directive_prefix = b"#$ "
     directive_translate = {
         "billing_account": b"-A %s",
         "error_file": b"-e %s",
         "export_vars": _translate_export_vars,
-        "join_output_error": b"-j oe",  # TODO: make that automatic
         "mail_type": _translate_mail_type,
+        "join_output_error": b"-j y",  # TODO: make that automatic
         "mail_user": b"-M %s",
         "name": b"-N %s",
         "output_file": b"-o %s",
         "priority": b"-p %s",
         "queue": b"-q %s",
-        "walltime": b"-l walltime=%s",
+        "walltime": b"-l h_rt=%s",
     }
+
+    SUBMIT_RE = re.compile(r"(Your job )?(\d+)")
 
     def __init__(self, config, connection, global_config):
         super().__init__(config, connection, global_config)
         self._qsub = command_as_list(config.get("qsub_command", "qsub"))
         self._qdel = command_as_list(config.get("qdel_command", "qdel"))
-        self._qsig = command_as_list(config.get("qsig_command", "qsig"))
         self._qstat = command_as_list(config.get("qstat_command", "qstat"))
         self._copy_script = config.get("copy_script", False)
         self._copy_jid = config.get("copy_jid", False)
+
+    def _parse_submit_output(self, out):
+        match = self.SUBMIT_RE.search(out)
+        if match is None:
+            _logger.warn("Could not parse SGE output %r", out)
+            return None
+        return int(match.group(2))
 
     def submit(self, script, user, output, dryrun=False):
         """See `troika.sites.Site.submit`"""
@@ -169,8 +175,10 @@ class PBSSite(Site):
                     "qsub stderr for script %s:\n%s", script, proc_stderr.strip()
                 )
 
-        jobid = proc_stdout.decode(locale.getpreferredencoding()).strip()
-        _logger.debug("PBS job ID: %s", jobid)
+        jobid = self._parse_submit_output(
+            proc_stdout.decode(locale.getpreferredencoding()).strip()
+        )
+        _logger.debug("SGE job ID: %s", jobid)
 
         jid_output = script.with_suffix(script.suffix + ".jid")
         if jid_output.exists():
@@ -206,7 +214,7 @@ class PBSSite(Site):
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute(self._qstat + [jid], stdout=outf, dryrun=dryrun)
+        self._connection.execute(self._qstat + ["-j", jid], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
@@ -220,42 +228,23 @@ class PBSSite(Site):
         else:
             _logger.debug(f"Using specified job id {jid!r}")
 
-        seq = self._kill_sequence
-        if not seq:
-            seq = [(0, None)]
+        cmd = self._qdel + [jid]
+        proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
 
-        cancel_status = None
-        for wait, sig in seq:
-            time.sleep(wait)
+        if dryrun:
+            return (jid, "KILLED")
 
-            cmd = self._qdel + [jid]
-            if sig is not None:
-                cmd = self._qsig + ["-s", str(sig.value), jid]
-            proc = self._connection.execute(cmd, stdout=PIPE, dryrun=dryrun)
+        proc_stdout, _ = proc.communicate()
+        retcode = proc.returncode
+        if retcode != 0:
+            _logger.error("qdel output: %s", proc_stdout)
+            check_retcode(retcode, what="Kill")
 
-            if dryrun:
-                continue
-
-            proc_stdout, _ = proc.communicate()
-            retcode = proc.returncode
-            if retcode != 0:
-                if cancel_status is None:
-                    _logger.error("qdel/qsig output: %s", proc_stdout)
-                    check_retcode(retcode, what="Kill")
-                else:
-                    _logger.debug("qdel/qsig output: %s", proc_stdout)
-                    break
-
-            if sig is None or sig == signal.SIGKILL:
-                cancel_status = "KILLED"
-            elif cancel_status is None:
-                cancel_status = "TERMINATED"
-
-        return (jid, cancel_status)
+        return (jid, "KILLED")
 
     def get_native_parser(self):
         """See `troika.sites.Site.get_native_parser`"""
-        return PBSDirectiveParser(drop_keys=[b"-o", b"-e", b"-j"])
+        return SGEDirectiveParser(drop_keys=[b"-o", b"-e", b"-j"])
 
     def _parse_jidfile(self, script, output=None, dryrun=False):
         script = pathlib.Path(script)

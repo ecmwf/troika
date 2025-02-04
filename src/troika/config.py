@@ -1,8 +1,9 @@
 """Configuration file handling"""
 
-from collections import UserDict
 import logging
 import os
+from collections import UserDict
+
 import yaml
 
 from . import ConfigurationError, InvocationError
@@ -30,7 +31,7 @@ class Config(UserDict):
             if the requested site is not defined
         """
         try:
-            sites = self.data['sites']
+            sites = self.data["sites"]
         except KeyError:
             raise ConfigurationError("No 'sites' defined in configuration")
 
@@ -55,24 +56,24 @@ def get_config(configfile=None, guesses=[]):
     `Config`
     """
 
-    configfile = first_not_none([
-        configfile,
-        os.environ.get("TROIKA_CONFIG_FILE"),
-    ] + [
-        guess for guess in guesses if os.path.exists(guess)
-    ])
+    configfile = first_not_none(
+        [
+            configfile,
+            os.environ.get("TROIKA_CONFIG_FILE"),
+        ]
+        + [guess for guess in guesses if os.path.exists(guess)]
+    )
     if configfile is None:
         raise InvocationError("No configuration file found")
 
     try:
         path = os.fspath(configfile)
-    except TypeError: # not path-like
+    except TypeError:  # not path-like
         pass
     else:
         configfile = open(path, "r")
 
-    config_fname = configfile.name if hasattr(configfile, 'name') \
-                                   else repr(configfile)
+    config_fname = configfile.name if hasattr(configfile, "name") else repr(configfile)
     _logger.debug("Using configuration file %s", config_fname)
 
     try:
