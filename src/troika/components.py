@@ -25,8 +25,15 @@ def get_entrypoint(group, name):
     ValueError
         If `name` is not found in `group`
     """
-    components = entry_points()[group]
-    found = [comp for comp in components if comp.name == name]
-    if not found:
+    eps = entry_points()
+    if hasattr(eps, "select"):  # Python >=3.10
+        if group not in eps.groups:
+            raise KeyError(group)
+        found = eps.select(group=group, name=name)
+    else:
+        found = [comp for comp in eps[group] if comp.name == name]
+
+    component = next(iter(found), None)
+    if component is None:
         raise ValueError(f"Component {name!r} not found in group {group!r}")
-    return found[0].load()
+    return component.load()
