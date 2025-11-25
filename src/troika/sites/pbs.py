@@ -115,6 +115,10 @@ class PBSSite(Site):
         "priority": b"-p %s",
         "queue": b"-q %s",
         "walltime": b"-l walltime=%s",
+        "memsz_prc": b"-l memsz_prc=%s",
+        "vmemsz_prc": b"-l vmemsz_prc=%s",
+        "memsz_job": b"-l memsz_job=%s",
+        "vmemsz_job": b"-l vmemsz_job=%s",
     }
 
     def __init__(self, config, connection, global_config):
