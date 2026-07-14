@@ -128,7 +128,7 @@ class Site(ABC):
         output: StrPath | None = None,
         jid: str | None = None,
         dryrun: bool = False,
-    ) -> tuple[int, str | None]:
+    ) -> tuple[int | str, str | None]:
         """Kill a submitted or running job
 
         The script and job ID are interpreted according to the site.

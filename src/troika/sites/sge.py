@@ -1,10 +1,13 @@
 """SGE-managed site"""
 
+from __future__ import annotations
+
 import locale
 import logging
 import pathlib
 import re
 from collections import OrderedDict
+from typing import IO, TYPE_CHECKING, Any
 
 from .. import InvocationError, RunError
 from ..connection import PIPE
@@ -12,10 +15,17 @@ from ..parser import BaseParser
 from ..utils import check_retcode, command_as_list
 from .base import Site
 
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping
+
+    from ..config import Config
+    from ..connections.base import Connection
+    from .base import StrPath
+
 _logger = logging.getLogger(__name__)
 
 
-def _split_sge_directive(arg):
+def _split_sge_directive(arg: bytes) -> tuple[bytes, bytes | None]:
     """Split the argument of a SGE directive
 
     >>> _split_sge_directive(b"-o foo")
@@ -53,14 +63,14 @@ class SGEDirectiveParser(BaseParser):
 
     DIRECTIVE_RE = re.compile(rb"^#\s*\$\s+(.+)$")
 
-    def __init__(self, drop_keys=None):
+    def __init__(self, drop_keys: Iterable[bytes] | None = None) -> None:
         super().__init__()
-        self.data = OrderedDict()
+        self.data: OrderedDict[bytes, tuple[bytes | None, bytes]] = OrderedDict()
         if drop_keys is None:
             drop_keys = []
         self.drop_keys = set(drop_keys)
 
-    def feed(self, line):
+    def feed(self, line: bytes) -> bool:
         """Process the given line
 
         See ``BaseParser.feed``
@@ -76,15 +86,15 @@ class SGEDirectiveParser(BaseParser):
         return True
 
 
-def _translate_export_vars(value):
+def _translate_export_vars(value: Any) -> bytes | None:
     if value == b"all":
         return b"-V"
     if value == b"none":
-        return
+        return None
     return b"-v %s" % value
 
 
-def _translate_mail_type(value):
+def _translate_mail_type(value: bytes) -> bytes:
     trans = {b"none": b"n", b"begin": b"b", b"end": b"e", b"fail": b"a"}
     vals = value.split(b",")
     newvals = []
@@ -117,7 +127,7 @@ class SGESite(Site):
 
     SUBMIT_RE = re.compile(r"(Your job )?(\d+)")
 
-    def __init__(self, config, connection, global_config):
+    def __init__(self, config: Mapping[str, Any], connection: Connection, global_config: Config) -> None:
         super().__init__(config, connection, global_config)
         self._qsub = command_as_list(config.get("qsub_command", "qsub"))
         self._qdel = command_as_list(config.get("qdel_command", "qdel"))
@@ -125,14 +135,14 @@ class SGESite(Site):
         self._copy_script = config.get("copy_script", False)
         self._copy_jid = config.get("copy_jid", False)
 
-    def _parse_submit_output(self, out):
+    def _parse_submit_output(self, out: str) -> int | None:
         match = self.SUBMIT_RE.search(out)
         if match is None:
             _logger.warn("Could not parse SGE output %r", out)
             return None
         return int(match.group(2))
 
-    def submit(self, script, user, output, dryrun=False):
+    def submit(self, script: StrPath, user: str | None, output: StrPath, dryrun: bool = False) -> int | None:
         """See `troika.sites.Site.submit`"""
         script = pathlib.Path(script)
 
@@ -140,7 +150,7 @@ class SGESite(Site):
 
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
-        inpf = None
+        inpf: IO[bytes] | None = None
         if self._copy_script:
             script_remote = pathlib.PurePath(output).parent / script.name
             self._connection.sendfile(script, script_remote, dryrun=dryrun)
@@ -150,8 +160,9 @@ class SGESite(Site):
 
         proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
-            return
+            return None
 
+        assert proc is not None  # execute only returns None when dryrun is True
         proc_stdout, proc_stderr = proc.communicate()
         if proc.returncode != 0:
             if proc_stdout:
@@ -183,7 +194,14 @@ class SGESite(Site):
 
         return jobid
 
-    def monitor(self, script, user, output=None, jid=None, dryrun=False):
+    def monitor(
+        self,
+        script: StrPath,
+        user: str | None,
+        output: StrPath | None = None,
+        jid: str | None = None,
+        dryrun: bool = False,
+    ) -> None:
         """See `troika.sites.Site.monitor`"""
         script = pathlib.Path(script)
 
@@ -196,7 +214,7 @@ class SGESite(Site):
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
             _logger.warning("Status file %r already exists, overwriting", str(stat_output))
-        outf = None
+        outf: IO[bytes] | None = None
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
@@ -204,7 +222,14 @@ class SGESite(Site):
 
         _logger.info("Output written to %r", str(stat_output))
 
-    def kill(self, script, user, output=None, jid=None, dryrun=False):
+    def kill(
+        self,
+        script: StrPath,
+        user: str | None,
+        output: StrPath | None = None,
+        jid: str | None = None,
+        dryrun: bool = False,
+    ) -> tuple[str, str]:
         """See `troika.sites.Site.kill`"""
         script = pathlib.Path(script)
 
@@ -220,6 +245,7 @@ class SGESite(Site):
         if dryrun:
             return (jid, "KILLED")
 
+        assert proc is not None  # execute only returns None when dryrun is True
         proc_stdout, _ = proc.communicate()
         retcode = proc.returncode
         if retcode != 0:
@@ -228,11 +254,11 @@ class SGESite(Site):
 
         return (jid, "KILLED")
 
-    def get_native_parser(self):
+    def get_native_parser(self) -> BaseParser:
         """See `troika.sites.Site.get_native_parser`"""
         return SGEDirectiveParser(drop_keys=[b"-o", b"-e", b"-j"])
 
-    def _parse_jidfile(self, script, output=None, dryrun=False):
+    def _parse_jidfile(self, script: StrPath, output: StrPath | None = None, dryrun: bool = False) -> str:
         script = pathlib.Path(script)
         jid_output = script.with_suffix(script.suffix + ".jid")
         try:
@@ -249,5 +275,5 @@ class SGESite(Site):
                     raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
             raise RunError(f"Could not read the job id: {e!s}")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(connection={self._connection!r}, qsub_command={self._qsub[0]!r})"

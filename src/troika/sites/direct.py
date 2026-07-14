@@ -1,13 +1,24 @@
 """Direct execution site"""
 
+from __future__ import annotations
+
 import logging
 import os
 import pathlib
 import signal
 import time
+from typing import IO, TYPE_CHECKING, Any
 
 from .. import ConfigurationError, InvocationError, RunError
 from .base import Site
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from subprocess import Popen
+
+    from ..config import Config
+    from ..connections.base import Connection
+    from .base import StrPath
 
 _logger = logging.getLogger(__name__)
 
@@ -17,7 +28,7 @@ class DirectExecSite(Site):
 
     __type_name__ = "direct"
 
-    def __init__(self, config, connection, global_config):
+    def __init__(self, config: Mapping[str, Any], connection: Connection, global_config: Config) -> None:
         super().__init__(config, connection, global_config)
         self._copy_script = config.get("copy_script", False)
         self._copy_jid = config.get("copy_jid", False)
@@ -27,25 +38,25 @@ class DirectExecSite(Site):
         if not (connection.is_local() or self._copy_script or self._use_shell):
             raise ConfigurationError("copy_script and use_shell cannot both be False for a remote site")
 
-    def submit(self, script, user, output, dryrun=False):
+    def submit(self, script: StrPath, user: str | None, output: StrPath, dryrun: bool = False) -> Popen[Any] | None:
         """See `troika.sites.base.Site.submit`"""
         script = pathlib.Path(script).resolve()
         if not script.exists():
             raise InvocationError(f"Script file {str(script)!r} does not exist")
 
-        script_remote = script
+        script_remote: pathlib.PurePath = script
         if self._copy_script and not self._connection.is_local():
             script_remote = pathlib.PurePath(output).parent / script.name
             super().create_output_dir(script_remote, dryrun=dryrun)
             self._connection.sendfile(script, script_remote, dryrun=dryrun)
 
-        args = []
+        args: list[str] = []
         if self._use_shell:
             args.extend(self._shell)
         if self._copy_script or (self._connection.is_local() and not self._use_shell):
-            args.append(script_remote)
+            args.append(str(script_remote))
 
-        inpf = None
+        inpf: IO[bytes] | None = None
         if self._use_shell and not self._copy_script:
             inpf = script.open(mode="rb")
 
@@ -53,14 +64,15 @@ class DirectExecSite(Site):
         self.create_output_dir(output, dryrun=dryrun)
         if output.exists():
             _logger.warning("Output file %r already exists, overwriting", str(output))
-        outf = None
+        outf: IO[bytes] | None = None
         if not dryrun:
             outf = output.open(mode="wb")
         proc = self._connection.execute(args, stdin=inpf, stdout=outf, detach=True, dryrun=dryrun)
 
         if dryrun:
-            return
+            return None
 
+        assert proc is not None  # execute only returns None when dryrun is True
         jid_output = script.with_suffix(script.suffix + ".jid")
         if jid_output.exists():
             _logger.warning(
@@ -76,7 +88,14 @@ class DirectExecSite(Site):
 
         return proc
 
-    def monitor(self, script, user, output=None, jid=None, dryrun=False):
+    def monitor(
+        self,
+        script: StrPath,
+        user: str | None,
+        output: StrPath | None = None,
+        jid: str | None = None,
+        dryrun: bool = False,
+    ) -> None:
         """See `troika.sites.base.Site.monitor`"""
         script = pathlib.Path(script)
 
@@ -86,23 +105,30 @@ class DirectExecSite(Site):
         else:
             _logger.debug(f"Using specified job id {jid!r}")
         try:
-            jid = int(jid)
+            jid_num = int(jid)
         except ValueError:
             raise RunError(f"Invalid job id: {jid!r}")
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
             _logger.warning("Status file %r already exists, overwriting", str(stat_output))
-        outf = None
+        outf: IO[bytes] | None = None
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
         conn = self._connection.get_parent()
-        conn.execute(["ps", "-lyfp", str(jid)], stdout=outf, dryrun=dryrun)
+        conn.execute(["ps", "-lyfp", str(jid_num)], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
-    def kill(self, script, user, output=None, jid=None, dryrun=False):
+    def kill(
+        self,
+        script: StrPath,
+        user: str | None,
+        output: StrPath | None = None,
+        jid: str | None = None,
+        dryrun: bool = False,
+    ) -> tuple[int, str | None]:
         """See `troika.sites.base.Site.kill`"""
         script = pathlib.Path(script)
 
@@ -112,7 +138,7 @@ class DirectExecSite(Site):
         else:
             _logger.debug(f"Using specified job id {jid!r}")
         try:
-            jid = int(jid)
+            jid_num = int(jid)
         except ValueError:
             raise RunError(f"Invalid job id: {jid!r}")
 
@@ -120,22 +146,22 @@ class DirectExecSite(Site):
         if not seq:
             seq = [(0, signal.SIGTERM)]
 
-        cancel_status = None
+        cancel_status: str | None = None
         for wait, sig in seq:
             time.sleep(wait)
             if sig is None:
                 sig = signal.SIGTERM
 
             if dryrun:
-                _logger.info(f"Sending {sig.name} to process {jid}")
+                _logger.info(f"Sending {sig.name} to process {jid_num}")
                 continue
 
-            _logger.debug(f"Sending {sig.name} to process {jid}")
+            _logger.debug(f"Sending {sig.name} to process {jid_num}")
             try:
-                os.kill(jid, sig.value)
+                os.kill(jid_num, sig.value)
             except ProcessLookupError:
                 if cancel_status is None:
-                    raise RunError(f"Process ID {jid} not found")
+                    raise RunError(f"Process ID {jid_num} not found")
                 else:
                     break
 
@@ -144,9 +170,9 @@ class DirectExecSite(Site):
             else:
                 cancel_status = "TERMINATED"
 
-        return (jid, cancel_status)
+        return (jid_num, cancel_status)
 
-    def create_output_dir(self, output, dryrun=False):
+    def create_output_dir(self, output: StrPath, dryrun: bool = False) -> pathlib.Path:
         """See `troika.sites.base.Site.create_output_dir`"""
         out_dir = pathlib.Path(output).parent
         if dryrun:
@@ -156,7 +182,7 @@ class DirectExecSite(Site):
             out_dir.mkdir(parents=True, exist_ok=True)
         return out_dir
 
-    def _parse_jidfile(self, script, output=None, dryrun=False):
+    def _parse_jidfile(self, script: StrPath, output: StrPath | None = None, dryrun: bool = False) -> str:
         script = pathlib.Path(script)
         jid_output = script.with_suffix(script.suffix + ".jid")
         try:
@@ -173,7 +199,7 @@ class DirectExecSite(Site):
                     raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
             raise RunError(f"Could not read the job id: {e!s}")
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return (
             f"{self.__class__.__name__}("
             f"connection={self._connection!r}, "
