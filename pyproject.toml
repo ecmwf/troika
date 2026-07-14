@@ -60,6 +60,7 @@ docs = [
 tests = [
     "pytest",
     "mypy",
+    "types-PyYAML",
 ]
 
 [project.scripts]
