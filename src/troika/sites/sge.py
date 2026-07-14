@@ -7,10 +7,10 @@ import logging
 import pathlib
 import re
 from collections import OrderedDict
+from subprocess import PIPE
 from typing import IO, TYPE_CHECKING, Any
 
 from .. import InvocationError, RunError
-from ..connection import PIPE
 from ..parser import BaseParser
 from ..utils import check_retcode, command_as_list
 from .base import Site

@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from subprocess import PIPE
 from typing import IO, TYPE_CHECKING, Any, ClassVar
-
-from ..connection import PIPE
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence

@@ -8,10 +8,10 @@ import re
 import signal
 import time
 from collections import OrderedDict
+from subprocess import PIPE
 from typing import IO, TYPE_CHECKING, Any
 
 from .. import InvocationError, RunError, generator
-from ..connection import PIPE
 from ..parser import BaseParser, ParseError
 from ..utils import check_retcode, command_as_list, parse_bool
 from .base import Site

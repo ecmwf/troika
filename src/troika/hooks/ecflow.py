@@ -2,9 +2,9 @@
 
 import logging
 import pathlib
+from subprocess import PIPE
 
 from .. import InvocationError, RunError
-from ..connection import PIPE
 from ..connections.local import LocalConnection
 from ..parser import DirectiveParser
 from ..utils import check_retcode

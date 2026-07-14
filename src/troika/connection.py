@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from subprocess import DEVNULL, PIPE, STDOUT  # noqa
 from typing import TYPE_CHECKING, Any
 
 from . import ConfigurationError

@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 import pathlib
 import shlex
+from subprocess import PIPE
 from typing import TYPE_CHECKING, Any
 
-from ..connection import PIPE
 from ..utils import check_retcode, parse_bool
 from .base import Connection
 from .local import LocalConnection

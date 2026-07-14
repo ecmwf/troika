@@ -6,10 +6,10 @@ import logging
 import os
 import pathlib
 from abc import ABC, abstractmethod
+from subprocess import PIPE
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from .. import ConfigurationError, generator
-from ..connection import PIPE
 from ..utils import check_retcode, command_as_list, normalise_signal
 
 if TYPE_CHECKING:
