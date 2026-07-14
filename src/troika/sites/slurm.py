@@ -207,9 +207,7 @@ class SlurmSite(Site):
         if retcode != 0:
             _logger.error("squeue error: %s", proc_stderr)
             # An intermediary (e.g. ecsbatch) may shift the error message to stdout rather than stderr
-            if strict or all(
-                b"Invalid job id specified" not in x for x in (proc_stdout, proc_stderr)
-            ):
+            if strict or all(b"Invalid job id specified" not in x for x in (proc_stdout, proc_stderr)):
                 check_retcode(retcode, what="Get State")
             else:
                 return None
@@ -237,32 +235,22 @@ class SlurmSite(Site):
         else:
             inpf = script.open(mode="rb")
 
-        proc = self._connection.execute(
-            cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun
-        )
+        proc = self._connection.execute(cmd, stdin=inpf, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
 
         proc_stdout, proc_stderr = proc.communicate()
         if proc.returncode != 0:
             if proc_stdout:
-                _logger.error(
-                    "sbatch stdout for script %s:\n%s", script, proc_stdout.strip()
-                )
+                _logger.error("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
             if proc_stderr:
-                _logger.error(
-                    "sbatch stderr for script %s:\n%s", script, proc_stderr.strip()
-                )
+                _logger.error("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
             check_retcode(proc.returncode, what="submission")
         else:
             if proc_stdout:
-                _logger.debug(
-                    "sbatch stdout for script %s:\n%s", script, proc_stdout.strip()
-                )
+                _logger.debug("sbatch stdout for script %s:\n%s", script, proc_stdout.strip())
             if proc_stderr:
-                _logger.debug(
-                    "sbatch stderr for script %s:\n%s", script, proc_stderr.strip()
-                )
+                _logger.debug("sbatch stderr for script %s:\n%s", script, proc_stderr.strip())
 
         jobid = self._parse_submit_output(proc_stdout)
         _logger.debug("Slurm job ID: %d", jobid)
@@ -301,16 +289,12 @@ class SlurmSite(Site):
 
         stat_output = script.with_suffix(script.suffix + ".stat")
         if stat_output.exists():
-            _logger.warning(
-                "Status file %r already exists, overwriting", str(stat_output)
-            )
+            _logger.warning("Status file %r already exists, overwriting", str(stat_output))
         outf = None
         if not dryrun:
             outf = stat_output.open(mode="wb")
 
-        self._connection.execute(
-            self._squeue + ["-u", user, "-j", str(jid)], stdout=outf, dryrun=dryrun
-        )
+        self._connection.execute(self._squeue + ["-u", user, "-j", str(jid)], stdout=outf, dryrun=dryrun)
 
         _logger.info("Output written to %r", str(stat_output))
 
@@ -415,20 +399,16 @@ class SlurmSite(Site):
         jid_output = script.with_suffix(script.suffix + ".jid")
         try:
             return jid_output.read_text().strip()
-        except IOError as e:
+        except OSError as e:
             if self._copy_jid and output is not None:
                 jid_remote = pathlib.PurePath(output).parent / jid_output.name
                 try:
                     self._connection.getfile(jid_remote, jid_output, dryrun=dryrun)
-                    _logger.debug(
-                        "Job ID file copied back from output directory: %s", jid_remote
-                    )
+                    _logger.debug("Job ID file copied back from output directory: %s", jid_remote)
                     if not dryrun:
                         return jid_output.read_text().strip()
-                except (IOError, RunError) as e2:
-                    raise RunError(
-                        f"Could not read the job id: {e!s} or copy it back {e2!s}"
-                    )
+                except (OSError, RunError) as e2:
+                    raise RunError(f"Could not read the job id: {e!s} or copy it back {e2!s}")
             raise RunError(f"Could not read the job id: {e!s}")
 
     def __repr__(self):

@@ -1,13 +1,22 @@
 """SSH connection class"""
 
+from __future__ import annotations
+
 import logging
 import pathlib
 import shlex
+from typing import TYPE_CHECKING, Any
 
 from ..connection import PIPE
 from ..utils import check_retcode, parse_bool
 from .base import Connection
 from .local import LocalConnection
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+    from subprocess import Popen
+
+    from .base import Redirect, StrPath
 
 _logger = logging.getLogger(__name__)
 
@@ -15,7 +24,7 @@ _logger = logging.getLogger(__name__)
 class SSHConnection(Connection):
     """Connection to a remote host via SSH"""
 
-    def __init__(self, config, user):
+    def __init__(self, config: Mapping[str, Any], user: str | None) -> None:
         super().__init__(config, user)
         self.parent = LocalConnection(config, user)
         self.ssh = config.get("ssh_command", "ssh")
@@ -25,16 +34,10 @@ class SSHConnection(Connection):
         if parse_bool(config.get("ssh_verbose", False)):
             self.ssh_options.append("-v")
             self.scp_options.append("-v")
-        strict_host_key_checking = parse_bool(
-            config.get("ssh_strict_host_key_checking", False)
-        )
+        strict_host_key_checking = parse_bool(config.get("ssh_strict_host_key_checking", False))
         if strict_host_key_checking is not None:
-            self.ssh_options.append(
-                f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}'
-            )
-            self.scp_options.append(
-                f'-oStrictHostKeyChecking={"yes" if strict_host_key_checking else "no"}'
-            )
+            self.ssh_options.append(f"-oStrictHostKeyChecking={'yes' if strict_host_key_checking else 'no'}")
+            self.scp_options.append(f"-oStrictHostKeyChecking={'yes' if strict_host_key_checking else 'no'}")
         connect_timeout = config.get("ssh_connect_timeout", None)
         if connect_timeout is not None:
             self.ssh_options.append(f"-oConnectTimeout={connect_timeout}")
@@ -46,27 +49,27 @@ class SSHConnection(Connection):
         if self.remote_cwd:
             self.remote_cwd = pathlib.PurePath(self.remote_cwd)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}(host={self.host!r}, user={self.user!r})"
 
-    def get_parent(self):
+    def get_parent(self) -> Connection:
         """See `Connection.get_parent`"""
         return self.parent
 
     def execute(
         self,
-        command,
-        stdin=None,
-        stdout=None,
-        stderr=None,
-        text=False,
-        encoding=None,
-        errors=None,
-        detach=False,
-        env=None,
-        cwd=None,
-        dryrun=False,
-    ):
+        command: Sequence[str],
+        stdin: Redirect = None,
+        stdout: Redirect = None,
+        stderr: Redirect = None,
+        text: bool = False,
+        encoding: str | None = None,
+        errors: str | None = None,
+        detach: bool = False,
+        env: Mapping[str, str] | None = None,
+        cwd: StrPath | None = None,
+        dryrun: bool = False,
+    ) -> Popen[Any] | None:
         """See `Connection.execute`"""
         args = [self.ssh] + self.ssh_options
         if self.user is None:
@@ -95,7 +98,7 @@ class SSHConnection(Connection):
             dryrun=dryrun,
         )
 
-    def sendfile(self, src, dst, dryrun=False):
+    def sendfile(self, src: StrPath, dst: StrPath, dryrun: bool = False) -> None:
         """See `Connection.sendfile`"""
         if self.parent.local_cwd is not None:
             # src is always relative to Troika process, not underlying LocalConnection
@@ -103,7 +106,7 @@ class SSHConnection(Connection):
         if self.remote_cwd:
             # If dst is relative, treat it relative to configured cwd
             dst = self.remote_cwd / dst
-        scp_args = [self.scp] + self.scp_options + [src]
+        scp_args = [self.scp, *self.scp_options, str(src)]
         if self.user is None:
             scp_args.append(f"{self.host}:{dst}")
         else:
@@ -111,6 +114,7 @@ class SSHConnection(Connection):
         proc = self.parent.execute(scp_args, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
+        assert proc is not None  # execute only returns None when dryrun is True
         proc_stdout, proc_stderr = proc.communicate()
         proc_stdout = proc_stdout.strip()
         proc_stderr = proc_stderr.strip()
@@ -125,7 +129,7 @@ class SSHConnection(Connection):
                 _logger.debug("scp error output: %s", proc_stderr)
         check_retcode(retcode, what="Copy")
 
-    def getfile(self, src, dst, dryrun=False):
+    def getfile(self, src: StrPath, dst: StrPath, dryrun: bool = False) -> None:
         """See `Connection.getfile`"""
         if self.remote_cwd:
             # If src is relative, treat it relative to configured cwd
@@ -138,10 +142,11 @@ class SSHConnection(Connection):
             scp_args.append(f"{self.host}:{src}")
         else:
             scp_args.append(f"{self.user}@{self.host}:{src}")
-        scp_args.append(dst)
+        scp_args.append(str(dst))
         proc = self.parent.execute(scp_args, stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return
+        assert proc is not None  # execute only returns None when dryrun is True
         proc_stdout, proc_stderr = proc.communicate()
         proc_stdout = proc_stdout.strip()
         proc_stderr = proc_stderr.strip()

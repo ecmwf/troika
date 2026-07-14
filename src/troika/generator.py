@@ -39,8 +39,7 @@ class Generator:
         self.dir_translate = directive_translate
         if unknown_directive not in ("fail", "warn", "ignore"):
             raise ConfigurationError(
-                f"Invalid unknown directive behaviour: {unknown_directive!r},"
-                + "should be 'fail', 'warn', or 'ignore'"
+                f"Invalid unknown directive behaviour: {unknown_directive!r}," + "should be 'fail', 'warn', or 'ignore'"
             )
         self.unknown = unknown_directive
 
@@ -81,9 +80,7 @@ class Generator:
                         directives = []
                     elif isinstance(directives, bytes):
                         directives = [directives]
-                header.extend(
-                    self.dir_prefix + directive + b"\n" for directive in directives
-                )
+                header.extend(self.dir_prefix + directive + b"\n" for directive in directives)
 
         native = script_data.get("native")
         if native is not None:

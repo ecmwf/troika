@@ -1,13 +1,27 @@
 """Base connection class"""
 
+from __future__ import annotations
+
 import logging
+from abc import ABC, abstractmethod
+from typing import IO, TYPE_CHECKING, Any, ClassVar, Union
 
 from ..connection import PIPE
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+    from os import PathLike
+    from subprocess import Popen
+
+    #: Something that can be interpreted as a filesystem path.
+    StrPath = Union[str, "PathLike[str]"]
+    #: A redirection target accepted by :py:class:`subprocess.Popen`.
+    Redirect = Union[int, IO[Any], None]
 
 _logger = logging.getLogger(__name__)
 
 
-class Connection:
+class Connection(ABC):
     """Base connection class
 
     Parameters
@@ -20,19 +34,20 @@ class Connection:
     #: If None, the name will be computed by turning the class name to
     #: lowercase and removing a trailing "connection" if present, e.g.
     #: ``FooConnection`` becomes ``foo``.
-    __type_name__ = None
+    __type_name__: ClassVar[str | None] = None
 
-    def __init__(self, config, user):
+    def __init__(self, config: Mapping[str, Any], user: str | None) -> None:
         self.user = user
 
-    def is_local(self):
+    def is_local(self) -> bool:
         """Check whether the connection is local
 
         If the connection is local, local paths are valid through the connection
         """
         return False
 
-    def get_parent(self):
+    @abstractmethod
+    def get_parent(self) -> Connection:
         """Get the parent connection
 
         The parent connection can be used to interact with processes that have
@@ -45,20 +60,21 @@ class Connection:
         """
         raise NotImplementedError
 
+    @abstractmethod
     def execute(
         self,
-        command,
-        stdin=None,
-        stdout=None,
-        stderr=None,
-        text=False,
-        encoding=None,
-        errors=None,
-        detach=False,
-        env=None,
-        cwd=None,
-        dryrun=False,
-    ):
+        command: Sequence[str],
+        stdin: Redirect = None,
+        stdout: Redirect = None,
+        stderr: Redirect = None,
+        text: bool = False,
+        encoding: str | None = None,
+        errors: str | None = None,
+        detach: bool = False,
+        env: Mapping[str, str] | None = None,
+        cwd: StrPath | None = None,
+        dryrun: bool = False,
+    ) -> Popen[Any] | None:
         """Execute the given command on the host
 
         Parameters
@@ -95,7 +111,8 @@ class Connection:
         """
         raise NotImplementedError
 
-    def sendfile(self, src, dst, dryrun=False):
+    @abstractmethod
+    def sendfile(self, src: StrPath, dst: StrPath, dryrun: bool = False) -> None:
         """Copy the given file to the remote host
 
         Parameters
@@ -110,7 +127,8 @@ class Connection:
         """
         raise NotImplementedError
 
-    def getfile(self, src, dst, dryrun=False):
+    @abstractmethod
+    def getfile(self, src: StrPath, dst: StrPath, dryrun: bool = False) -> None:
         """Get the given file from the remote host
 
         Parameters
@@ -125,7 +143,7 @@ class Connection:
         """
         raise NotImplementedError
 
-    def checkstatus(self, timeout=None, dryrun=False):
+    def checkstatus(self, timeout: int | None = None, dryrun: bool = False) -> bool:
         """Check whether the connection is working
 
         Parameters
@@ -142,11 +160,10 @@ class Connection:
         bool
             True if the connection is able to execute commands
         """
-        proc = self.execute(
-            ["true"], stdout=PIPE, stderr=PIPE, detach=False, dryrun=dryrun
-        )
+        proc = self.execute(["true"], stdout=PIPE, stderr=PIPE, detach=False, dryrun=dryrun)
         if dryrun:
             return True
+        assert proc is not None  # execute only returns None when dryrun is True
         proc_stdout, proc_stderr = proc.communicate()
         retcode = proc.returncode
         if proc.returncode == 0:

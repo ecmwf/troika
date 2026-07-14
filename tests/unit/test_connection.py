@@ -8,7 +8,17 @@ from troika.connections.ssh import SSHConnection
 
 
 class DummyConnection(Connection):
-    pass
+    def get_parent(self):
+        return self
+
+    def execute(self, command, **kwargs):
+        return None
+
+    def sendfile(self, src, dst, dryrun=False):
+        pass
+
+    def getfile(self, src, dst, dryrun=False):
+        pass
 
 
 @pytest.fixture

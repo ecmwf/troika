@@ -24,9 +24,7 @@ def abort_on_ecflow(site, script, output, jid, cancel_status, dryrun=False):
     elif cancel_status == "TERMINATED":
         return
     else:
-        raise InvocationError(
-            f'abort_on_ecflow: unknown cancel status "{cancel_status}"'
-        )
+        raise InvocationError(f'abort_on_ecflow: unknown cancel status "{cancel_status}"')
 
     script = pathlib.Path(script)
     orig_script = script.with_suffix(script.suffix + ".orig")
@@ -36,10 +34,8 @@ def abort_on_ecflow(site, script, output, jid, cancel_status, dryrun=False):
         if output is not None:
             try:
                 site._connection.getfile(orig_script_copy, orig_script, dryrun=dryrun)
-                _logger.debug(
-                    f"Original script copied back from output directory: {orig_script_copy!r}"
-                )
-            except (IOError, RunError) as e:
+                _logger.debug(f"Original script copied back from output directory: {orig_script_copy!r}")
+            except (OSError, RunError) as e:
                 raise RunError(f"Could not copy back original script {e!s}")
 
     parser = DirectiveParser()
@@ -57,27 +53,19 @@ def abort_on_ecflow(site, script, output, jid, cancel_status, dryrun=False):
             env[var] = parser.data[directive].decode("ascii")
         except KeyError:
             if required:
-                _logger.error(
-                    f"abort_on_ecflow could not find {directive} defined in script {script}"
-                )
+                _logger.error(f"abort_on_ecflow could not find {directive} defined in script {script}")
                 raise
 
     cmd = [parser.data.get("ecflow_client", "ecflow_client"), f"--abort={msg}"]
 
     if site._connection.is_local():
-        _logger.debug(
-            f'abort_on_ecflow running {" ".join(cmd)} on local site with env {env!r}'
-        )
+        _logger.debug(f"abort_on_ecflow running {' '.join(cmd)} on local site with env {env!r}")
         connection = site._connection
     elif "ecflow_host" in env:
-        _logger.debug(
-            f'abort_on_ecflow running {" ".join(cmd)} on remote site with env {env!r}'
-        )
+        _logger.debug(f"abort_on_ecflow running {' '.join(cmd)} on remote site with env {env!r}")
         connection = site._connection
     else:
-        _logger.debug(
-            f'abort_on_ecflow running {" ".join(cmd)} locally with env {env!r}'
-        )
+        _logger.debug(f"abort_on_ecflow running {' '.join(cmd)} locally with env {env!r}")
         connection = LocalConnection({}, site._connection.user)
 
     proc = connection.execute(cmd, stdout=PIPE, stderr=PIPE, env=env, dryrun=dryrun)
@@ -87,20 +75,12 @@ def abort_on_ecflow(site, script, output, jid, cancel_status, dryrun=False):
     proc_stdout, proc_stderr = proc.communicate()
     if proc.returncode != 0:
         if proc_stdout:
-            _logger.error(
-                "ecflow_client stdout for script %s:\n%s", script, proc_stdout.strip()
-            )
+            _logger.error("ecflow_client stdout for script %s:\n%s", script, proc_stdout.strip())
         if proc_stderr:
-            _logger.error(
-                "ecflow_client stderr for script %s:\n%s", script, proc_stderr.strip()
-            )
+            _logger.error("ecflow_client stderr for script %s:\n%s", script, proc_stderr.strip())
         check_retcode(proc.returncode, what="Abort")
     else:
         if proc_stdout:
-            _logger.debug(
-                "ecflow_client stdout for script %s:\n%s", script, proc_stdout.strip()
-            )
+            _logger.debug("ecflow_client stdout for script %s:\n%s", script, proc_stdout.strip())
         if proc_stderr:
-            _logger.debug(
-                "ecflow_client stderr for script %s:\n%s", script, proc_stderr.strip()
-            )
+            _logger.debug("ecflow_client stderr for script %s:\n%s", script, proc_stderr.strip())

@@ -182,9 +182,7 @@ class Controller:
                 elif isinstance(exc, RunError):
                     _logger.critical("%s", exc)
                 else:
-                    _logger.error(
-                        "Unhandled exception", exc_info=(exc_type, exc, traceback)
-                    )
+                    _logger.error("Unhandled exception", exc_info=(exc_type, exc, traceback))
                 swallow = True
             try:
                 self._controller.teardown(self.status)
@@ -267,9 +265,7 @@ class Controller:
             Script body
         """
         script = pathlib.Path(script)
-        stmp = tempfile.SpooledTemporaryFile(
-            max_size=1024**3, mode="w+b", dir=script.parent, prefix=script.name
-        )
+        stmp = tempfile.SpooledTemporaryFile(max_size=1024**3, mode="w+b", dir=script.parent, prefix=script.name)
         with open(script, "rb") as sin:
             try:
                 for lineno, line in enumerate(sin, start=1):
@@ -298,15 +294,10 @@ class Controller:
         path-like
             Path to the post-processed script
         """
-        if (
-            self.default_shebang is not None
-            and self.script_data.get("shebang", None) is None
-        ):
+        if self.default_shebang is not None and self.script_data.get("shebang", None) is None:
             self.script_data["shebang"] = self.default_shebang.encode("utf-8")
         directive_prefix, directive_translate = self.site.get_directive_translation()
-        generator = Generator(
-            directive_prefix, directive_translate, self.unknown_directive
-        )
+        generator = Generator(directive_prefix, directive_translate, self.unknown_directive)
         self.script_data["directives"]["output_file"] = os.fsencode(output)
         self.script_data = translators(self.script_data, self.config, self.site)
         return self.run_generator(script, generator)
@@ -333,9 +324,7 @@ class Controller:
                 "Backup script file %r already exists, " + "overwriting",
                 str(orig_script),
             )
-        with tempfile.NamedTemporaryFile(
-            mode="w+b", delete=False, dir=script.parent, prefix=script.name
-        ) as sout:
+        with tempfile.NamedTemporaryFile(mode="w+b", delete=False, dir=script.parent, prefix=script.name) as sout:
             sout.writelines(generator.generate(self.script_data))
             for line in self.script_data["body"]:
                 sout.write(line)

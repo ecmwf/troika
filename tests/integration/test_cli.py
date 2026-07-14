@@ -59,11 +59,7 @@ def test_submit(tmp_path, config_file, sample_script, caplog):
     with caplog.at_level(logging.DEBUG):
         sts = troika.cli.main(args=args)
     assert sts == 0
-    pid_rec = [
-        rec
-        for rec in caplog.records
-        if rec.levelname == "DEBUG" and rec.msg == "Child PID: %d"
-    ]
+    pid_rec = [rec for rec in caplog.records if rec.levelname == "DEBUG" and rec.msg == "Child PID: %d"]
     assert len(pid_rec) == 1
     pid = pid_rec[0].args[0]
     _, sts = os.waitpid(pid, 0)

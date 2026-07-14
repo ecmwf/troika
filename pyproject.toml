@@ -59,6 +59,7 @@ docs = [
 ]
 tests = [
     "pytest",
+    "mypy",
 ]
 
 [project.scripts]
@@ -67,13 +68,30 @@ troika = "troika.cli:main"
 [project.urls]
 Homepage = "https://github.com/ecmwf/troika"
 
-[tool.isort]
-profile = "black"
-
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "--doctest-modules"
 testpaths = ["src", "tests"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+# E/F: pycodestyle + pyflakes, I: isort, UP: pyupgrade
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+# The connection abstraction is fully typed; hold it to strict checks so it
+# stays that way. The rest of the code base is still being annotated gradually.
+[[tool.mypy.overrides]]
+module = ["troika.connection", "troika.connections.*"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
 
 [tool.setuptools.dynamic]
 version = { attr = "troika.VERSION" }

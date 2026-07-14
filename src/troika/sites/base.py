@@ -44,10 +44,7 @@ class Site:
         self.config = config
         self._connection = connection
         try:
-            self._kill_sequence = [
-                (wait, normalise_signal(sig))
-                for wait, sig in config.get("kill_sequence", [])
-            ]
+            self._kill_sequence = [(wait, normalise_signal(sig)) for wait, sig in config.get("kill_sequence", [])]
         except (TypeError, ValueError) as e:
             raise ConfigurationError(f"Invalid kill sequence: {e!s}")
 
@@ -167,12 +164,8 @@ class Site:
             Path to the newly created directory
         """
         out_dir = pathlib.PurePath(output).parent
-        pmkdir_command = command_as_list(
-            self.config.get("pmkdir_command", ["mkdir", "-p"])
-        )
-        proc = self._connection.execute(
-            pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun
-        )
+        pmkdir_command = command_as_list(self.config.get("pmkdir_command", ["mkdir", "-p"]))
+        proc = self._connection.execute(pmkdir_command + [out_dir], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
         if dryrun:
             return out_dir
         proc_stdout, proc_stderr = proc.communicate()

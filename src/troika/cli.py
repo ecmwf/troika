@@ -35,9 +35,7 @@ class Action:
     def __init__(self, args):
         self.logfile = None
         if self.save_log:
-            self.logfile = log.get_logfile_path(
-                args.action, getattr(args, "script", None)
-            )
+            self.logfile = log.get_logfile_path(args.action, getattr(args, "script", None))
         if args.logfile is not None:
             self.logfile = args.logfile
         self.logmode = "a" if args.append_log else "w"
@@ -92,9 +90,7 @@ class MonitorAction(Action):
 
     def run(self, config, controller):
         args = self.args
-        return controller.monitor(
-            args.script, args.user, args.output, args.jobid, args.dryrun
-        )
+        return controller.monitor(args.script, args.user, args.output, args.jobid, args.dryrun)
 
 
 class KillAction(Action):
@@ -102,9 +98,7 @@ class KillAction(Action):
 
     def run(self, config, controller):
         args = self.args
-        return controller.kill(
-            args.script, args.user, args.output, args.jobid, args.dryrun
-        )
+        return controller.kill(args.script, args.user, args.output, args.jobid, args.dryrun)
 
 
 class CheckConnectionAction(Action):
@@ -129,11 +123,7 @@ class ListSitesAction(Action):
 
     def run(self, config, controller):
         print("Available sites:")
-        print(
-            "{name:<28s} {tp:<15s} {conn:<15s}".format(
-                name="Name", tp="Type", conn="Connection"
-            )
-        )
+        print("{name:<28s} {tp:<15s} {conn:<15s}".format(name="Name", tp="Type", conn="Connection"))
         print("-" * 60)
         for name, tp, conn in controller.list_sites():
             print(f"{name:<28s} {tp:<15s} {conn:<15s}")
@@ -170,9 +160,7 @@ def main(args=None, prog=None):
         epilog=epilog,
     )
 
-    parser.add_argument(
-        "-V", "--version", action="version", version=("%(prog)s " + VERSION)
-    )
+    parser.add_argument("-V", "--version", action="version", version=("%(prog)s " + VERSION))
 
     parser.add_argument(
         "-v",
@@ -188,9 +176,7 @@ def main(args=None, prog=None):
         default=0,
         help="decrease verbosity level (can be repeated)",
     )
-    parser.add_argument(
-        "-l", "--logfile", default=None, help="save log output to this file"
-    )
+    parser.add_argument("-l", "--logfile", default=None, help="save log output to this file")
     parser.add_argument(
         "-A",
         "--append-log",
@@ -240,9 +226,7 @@ def main(args=None, prog=None):
     parser_monitor.add_argument("site", help="target site")
     parser_monitor.add_argument("script", help="job script")
     parser_monitor.add_argument("-u", "--user", default=None, help="remote user")
-    parser_monitor.add_argument(
-        "-o", "--output", required=False, help="job output file"
-    )
+    parser_monitor.add_argument("-o", "--output", required=False, help="job output file")
     parser_monitor.add_argument(
         "-j",
         "--jobid",
@@ -265,9 +249,7 @@ def main(args=None, prog=None):
         help="remote job ID",
     )
 
-    parser_checkconn = subparsers.add_parser(
-        "check-connection", help="check whether the connection works"
-    )
+    parser_checkconn = subparsers.add_parser("check-connection", help="check whether the connection works")
     parser_checkconn.set_defaults(act=CheckConnectionAction)
     parser_checkconn.add_argument("site", help="target site")
     parser_checkconn.add_argument("-u", "--user", default=None, help="remote user")
