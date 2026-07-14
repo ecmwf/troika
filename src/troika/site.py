@@ -1,15 +1,24 @@
 """Sites handling"""
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, Any
 
 from . import ConfigurationError, InvocationError
 from .components import get_entrypoint
 from .connection import get_connection
 
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from .config import Config
+    from .sites.base import Site
+
 _logger = logging.getLogger(__name__)
 
 
-def get_site(config, name, user):
+def get_site(config: Config, name: str, user: str | None) -> Site:
     """Create a `troika.site.Site` object from configuration"""
 
     try:
@@ -38,7 +47,7 @@ def get_site(config, name, user):
     return site
 
 
-def list_sites(config):
+def list_sites(config: Config) -> Iterator[tuple[str, Any, Any]]:
     """List available sites
 
     Parameters

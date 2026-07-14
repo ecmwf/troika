@@ -85,10 +85,16 @@ select = ["E", "F", "I", "UP"]
 warn_redundant_casts = true
 warn_unused_ignores = true
 
-# The connection abstraction is fully typed; hold it to strict checks so it
-# stays that way. The rest of the code base is still being annotated gradually.
+# The connection and site abstractions are fully typed; hold them to strict
+# checks so they stay that way. The concrete site backends (slurm, pbs, sge,
+# direct, group) are still being annotated gradually.
 [[tool.mypy.overrides]]
-module = ["troika.connection", "troika.connections.*"]
+module = [
+    "troika.connection",
+    "troika.connections.*",
+    "troika.site",
+    "troika.sites.base",
+]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 check_untyped_defs = true
