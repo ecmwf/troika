@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import IO, TYPE_CHECKING, Any, ClassVar, Union
+from typing import IO, TYPE_CHECKING, Any, ClassVar
 
 from ..connection import PIPE
 
@@ -14,9 +14,10 @@ if TYPE_CHECKING:
     from subprocess import Popen
 
     #: Something that can be interpreted as a filesystem path.
-    StrPath = Union[str, "PathLike[str]"]
-    #: A redirection target accepted by :py:class:`subprocess.Popen`.
-    Redirect = Union[int, IO[Any], None]
+    StrPath = str | PathLike[str]
+    #: A concrete redirection target accepted by :py:class:`subprocess.Popen`
+    #: (``None`` -- the default -- is spelled ``Redirect | None`` at each use).
+    Redirect = int | IO[Any]
 
 _logger = logging.getLogger(__name__)
 
@@ -64,9 +65,9 @@ class Connection(ABC):
     def execute(
         self,
         command: Sequence[str],
-        stdin: Redirect = None,
-        stdout: Redirect = None,
-        stderr: Redirect = None,
+        stdin: Redirect | None = None,
+        stdout: Redirect | None = None,
+        stderr: Redirect | None = None,
         text: bool = False,
         encoding: str | None = None,
         errors: str | None = None,

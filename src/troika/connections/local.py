@@ -44,9 +44,9 @@ class LocalConnection(Connection):
     def execute(
         self,
         command: Sequence[str],
-        stdin: Redirect = None,
-        stdout: Redirect = None,
-        stderr: Redirect = None,
+        stdin: Redirect | None = None,
+        stdout: Redirect | None = None,
+        stderr: Redirect | None = None,
         text: bool = False,
         encoding: str | None = None,
         errors: str | None = None,

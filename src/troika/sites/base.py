@@ -6,7 +6,7 @@ import logging
 import os
 import pathlib
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from .. import ConfigurationError, generator
 from ..connection import PIPE
@@ -20,11 +20,11 @@ if TYPE_CHECKING:
     from ..parser import BaseParser
 
     #: Something that can be interpreted as a filesystem path.
-    StrPath = Union[str, "os.PathLike[str]"]
+    StrPath = str | os.PathLike[str]
     #: A directive value is either a printf-style format applied to the raw
     #: value with ``%``, or a callable turning it into the final directive.
-    DirectiveTranslator = Callable[[Any], Optional[bytes]]
-    DirectiveValue = Union[bytes, DirectiveTranslator]
+    DirectiveTranslator = Callable[[Any], bytes | None]
+    DirectiveValue = bytes | DirectiveTranslator
 
 _logger = logging.getLogger(__name__)
 
