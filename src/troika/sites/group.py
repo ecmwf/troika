@@ -44,11 +44,6 @@ class SiteGroup(Site):
         """Check whether a given site is suitable"""
         return site.check_connection()
 
-    def preprocess(self, script: StrPath, user: str | None, output: StrPath) -> Any:
-        """See `troika.sites.base.Site.preprocess`"""
-        # NOTE: no Site class defines `preprocess` -- see latent_bugs.md (#1).
-        return self._selected.preprocess(script, user, output)  # type: ignore[attr-defined]
-
     def submit(self, script: StrPath, user: str | None, output: StrPath, dryrun: bool = False) -> Any:
         """See `troika.sites.base.Site.submit`"""
         return self._selected.submit(script, user, output, dryrun=dryrun)
