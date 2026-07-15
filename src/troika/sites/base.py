@@ -100,7 +100,7 @@ class Site(ABC):
         jid: str | None = None,
         dryrun: bool = False,
     ) -> None:
-        """Kill a submitted job
+        """Monitor a submitted job
 
         The script and job ID are interpreted according to the site.
         If no job ID is provided, it will be inferred.
