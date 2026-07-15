@@ -14,7 +14,7 @@ from typing import IO, TYPE_CHECKING, Any
 from .. import InvocationError, RunError, generator
 from ..parser import BaseParser, ParseError
 from ..utils import check_retcode, command_as_list, parse_bool
-from .base import Site
+from .base import BaseSite
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -128,7 +128,7 @@ def _translate_mail_type(value: bytes) -> bytes:
     return b"--mail-type=%s" % b",".join(newvals)
 
 
-class SlurmSite(Site):
+class SlurmSite(BaseSite):
     """Site managed using Slurm"""
 
     directive_prefix = b"#SBATCH "

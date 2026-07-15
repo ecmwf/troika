@@ -10,35 +10,42 @@ from ..site import get_site
 from .base import Site
 
 if TYPE_CHECKING:
+    import pathlib
     from collections.abc import Mapping
 
     from ..config import Config
     from ..connections.base import Connection
-    from .base import StrPath
+    from ..parser import BaseParser
+    from .base import DirectiveValue, StrPath
 
 _logger = logging.getLogger(__name__)
 
 
 class SiteGroup(Site):
-    """Site group: choose the first site available"""
+    """Site group: transparently proxy the first available site.
+
+    ``SiteGroup`` implements the :class:`~troika.sites.base.Site` interface by
+    forwarding every operation to a selected backend, so it holds no site state
+    of its own (and does not extend ``BaseSite``). ``config`` and
+    ``_connection`` mirror the selected backend's.
+    """
 
     __type_name__ = "group"
 
     def __init__(self, config: Mapping[str, Any], connection: Connection, global_config: Config) -> None:
-        self._select(config, connection.user, global_config)
+        self._selected = self._select(config, connection.user, global_config)
+        self.config = self._selected.config
         self._connection = self._selected._connection
 
-    def _select(self, config: Mapping[str, Any], user: str | None, global_config: Config) -> None:
+    def _select(self, config: Mapping[str, Any], user: str | None, global_config: Config) -> Site:
         """Find a suitable site"""
         sites = config.get("sites", [])
         for name in sites:
             _logger.debug("Trying site %r", name)
             site = get_site(global_config, name, user)
             if self._check(site):
-                self._selected = site
-                break
-        else:
-            raise RunError("No site available in the group")
+                return site
+        raise RunError("No site available in the group")
 
     def _check(self, site: Site) -> bool:
         """Check whether a given site is suitable"""
@@ -73,3 +80,19 @@ class SiteGroup(Site):
     def check_connection(self, timeout: int | None = None, dryrun: bool = False) -> bool:
         """See `troika.sites.base.Site.check_connection`"""
         return self._selected.check_connection(timeout=timeout, dryrun=dryrun)
+
+    def create_output_dir(self, output: StrPath, dryrun: bool = False) -> pathlib.PurePath:
+        """See `troika.sites.base.Site.create_output_dir`"""
+        return self._selected.create_output_dir(output, dryrun=dryrun)
+
+    def get_native_parser(self) -> BaseParser | None:
+        """See `troika.sites.base.Site.get_native_parser`"""
+        return self._selected.get_native_parser()
+
+    def get_directive_translation(self) -> tuple[bytes | None, dict[str, DirectiveValue]]:
+        """See `troika.sites.base.Site.get_directive_translation`"""
+        return self._selected.get_directive_translation()
+
+    def remove_previous_output(self, output: StrPath, dryrun: bool = False) -> None:
+        """See `troika.sites.base.Site.remove_previous_output`"""
+        return self._selected.remove_previous_output(output, dryrun=dryrun)

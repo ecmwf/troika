@@ -6,12 +6,12 @@ import troika.cli
 import troika.controller
 from troika.config import Config
 from troika.controllers.base import Controller
-from troika.sites.base import Site
+from troika.sites.base import BaseSite
 
 
 @pytest.fixture
 def dummy_site():
-    class DummySite(Site):
+    class DummySite(BaseSite):
         def __init__(self, config, connection, global_config):
             self.submit_called = False
             self.monitor_called = False

@@ -10,7 +10,7 @@ import time
 from typing import IO, TYPE_CHECKING, Any
 
 from .. import ConfigurationError, InvocationError, RunError
-from .base import Site
+from .base import BaseSite
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 _logger = logging.getLogger(__name__)
 
 
-class DirectExecSite(Site):
+class DirectExecSite(BaseSite):
     """Site where jobs are run directly"""
 
     __type_name__ = "direct"
