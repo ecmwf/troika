@@ -39,7 +39,7 @@ class Generator:
         self.dir_translate = directive_translate
         if unknown_directive not in ("fail", "warn", "ignore"):
             raise ConfigurationError(
-                f"Invalid unknown directive behaviour: {unknown_directive!r}," + "should be 'fail', 'warn', or 'ignore'"
+                f"Invalid unknown directive behaviour: {unknown_directive!r}, should be 'fail', 'warn', or 'ignore'"
             )
         self.unknown = unknown_directive
 
