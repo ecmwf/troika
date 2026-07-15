@@ -1,4 +1,12 @@
-"""Base site class"""
+"""Base site classes
+
+:class:`Site` is the interface every site exposes to the rest of Troika.
+:class:`BaseSite` provides the behaviour shared by the concrete backends
+(slurm, pbs, sge, direct); those extend ``BaseSite``. A proxy such as
+:class:`troika.sites.group.SiteGroup` implements :class:`Site` directly by
+delegating to a selected backend, so it deliberately does *not* extend
+``BaseSite``.
+"""
 
 from __future__ import annotations
 
@@ -30,18 +38,9 @@ _logger = logging.getLogger(__name__)
 
 
 class Site(ABC):
-    """Base site class
+    """Interface implemented by every site.
 
-    Parameters
-    ----------
-    config: dict
-        Site configuration
-
-    connection: :py:class:`troika.connections.base.Connection`
-        Connection object to interact with the site
-
-    global_config: :py:class:`troika.config.Config`
-        Global configuration
+    Concrete backends should extend :class:`BaseSite` rather than this class.
     """
 
     #: Value for the 'type' key in the site configuration.
@@ -50,21 +49,13 @@ class Site(ABC):
     #: becomes ``foo``.
     __type_name__: ClassVar[str | None] = None
 
-    #: Prefix for the generated directives, e.g. ``b"#SBATCH "``. If ``None``,
-    #: no directives will be generated
-    directive_prefix: ClassVar[bytes | None] = None
+    #: Site configuration. Concrete backends store their own; a proxy exposes
+    #: the selected backend's.
+    config: Mapping[str, Any]
 
-    #: Directive translation table (``str`` -> ``bytes``). Values are formatted
-    #: using the ``%`` operator
-    directive_translate: ClassVar[Mapping[str, DirectiveValue]] = {}
-
-    def __init__(self, config: Mapping[str, Any], connection: Connection, global_config: Config) -> None:
-        self.config = config
-        self._connection = connection
-        try:
-            self._kill_sequence = [(wait, normalise_signal(sig)) for wait, sig in config.get("kill_sequence", [])]
-        except (TypeError, ValueError) as e:
-            raise ConfigurationError(f"Invalid kill sequence: {e!s}")
+    #: Connection used to reach the site. Some hooks read it directly, so it is
+    #: part of the interface.
+    _connection: Connection
 
     @abstractmethod
     def submit(self, script: StrPath, user: str | None, output: StrPath, dryrun: bool = False) -> Any:
@@ -89,7 +80,6 @@ class Site(ABC):
             Site-specific job handle (e.g. a job ID or process object), or None
             in dry-run mode
         """
-        raise NotImplementedError
 
     @abstractmethod
     def monitor(
@@ -118,7 +108,6 @@ class Site(ABC):
         dryrun: bool
             If True, do not do anything, only report what would be done
         """
-        raise NotImplementedError
 
     @abstractmethod
     def kill(
@@ -167,8 +156,8 @@ class Site(ABC):
                     the job has disappeared so no further attempt
                     could be made to kill it
         """
-        raise NotImplementedError
 
+    @abstractmethod
     def check_connection(self, timeout: int | None = None, dryrun: bool = False) -> bool:
         """Check whether the connection is working
 
@@ -186,8 +175,8 @@ class Site(ABC):
         bool
             True if the connection is able to execute commands
         """
-        return self._connection.checkstatus(timeout=timeout, dryrun=dryrun)
 
+    @abstractmethod
     def create_output_dir(self, output: StrPath, dryrun: bool = False) -> pathlib.PurePath:
         """Create the output directory for a job to be submitted
 
@@ -204,6 +193,83 @@ class Site(ABC):
         :py:class:`pathlib.PurePath`
             Path to the newly created directory
         """
+
+    @abstractmethod
+    def get_native_parser(self) -> BaseParser | None:
+        """Create a :py:class:`troika.parser.Parser` for native directives
+
+        Returns
+        -------
+        :py:class:`troika.parser.Parser` or None
+            Directive parser, if any
+        """
+
+    @abstractmethod
+    def get_directive_translation(self) -> tuple[bytes | None, dict[str, DirectiveValue]]:
+        """Construct the translation params
+
+        Returns
+        -------
+        tuple
+            ``(directive_prefix, directive_translate)``, updated with the
+            configuration overrides
+        """
+
+    @abstractmethod
+    def remove_previous_output(self, output: StrPath, dryrun: bool = False) -> None:
+        """Remove previous output file if existing.
+
+        Parameters
+        ----------
+        output: path-like
+            Path to the output file
+        dryrun: bool
+            If True, do not do anything but print the command that would be
+            executed
+        """
+
+
+class BaseSite(Site):
+    """Shared behaviour for concrete site backends.
+
+    Handles the configuration, connection, output directory and directive
+    translation. Backends must still implement :meth:`submit`, :meth:`monitor`
+    and :meth:`kill`.
+
+    Parameters
+    ----------
+    config: dict
+        Site configuration
+
+    connection: :py:class:`troika.connections.base.Connection`
+        Connection object to interact with the site
+
+    global_config: :py:class:`troika.config.Config`
+        Global configuration
+    """
+
+    #: Prefix for the generated directives, e.g. ``b"#SBATCH "``. If ``None``,
+    #: no directives will be generated
+    directive_prefix: ClassVar[bytes | None] = None
+
+    #: Directive translation table (``str`` -> ``bytes``). Values are formatted
+    #: using the ``%`` operator
+    directive_translate: ClassVar[Mapping[str, DirectiveValue]] = {}
+
+    def __init__(self, config: Mapping[str, Any], connection: Connection, global_config: Config) -> None:
+        self.config = config
+        self._connection = connection
+        try:
+            self._kill_sequence = [(wait, normalise_signal(sig)) for wait, sig in config.get("kill_sequence", [])]
+        except (TypeError, ValueError) as e:
+            raise ConfigurationError(f"Invalid kill sequence: {e!s}")
+
+    def check_connection(self, timeout: int | None = None, dryrun: bool = False) -> bool:
+        """See `troika.sites.base.Site.check_connection`"""
+        return self._connection.checkstatus(timeout=timeout, dryrun=dryrun)
+
+    def create_output_dir(self, output: StrPath, dryrun: bool = False) -> pathlib.PurePath:
+        """See `troika.sites.base.Site.create_output_dir`"""
         out_dir = pathlib.PurePath(output).parent
         pmkdir_command = command_as_list(self.config.get("pmkdir_command", ["mkdir", "-p"]))
         proc = self._connection.execute([*pmkdir_command, str(out_dir)], stdout=PIPE, stderr=PIPE, dryrun=dryrun)
@@ -225,24 +291,11 @@ class Site(ABC):
         return out_dir
 
     def get_native_parser(self) -> BaseParser | None:
-        """Create a :py:class:`troika.parser.Parser` for native directives
-
-        Returns
-        -------
-        :py:class:`troika.parser.Parser` or None
-            Directive parser, if any
-        """
+        """See `troika.sites.base.Site.get_native_parser`"""
         return None
 
     def get_directive_translation(self) -> tuple[bytes | None, dict[str, DirectiveValue]]:
-        """Construct the translation params
-
-        Returns
-        -------
-        tuple
-            ``(directive_prefix, directive_translate)``, updated with the
-            configuration overrides
-        """
+        """See `troika.sites.base.Site.get_directive_translation`"""
         prefix = self.config.get("directive_prefix", self.directive_prefix)
         translate = dict(self.directive_translate)
         for name, fmt in self.config.get("directive_translate", {}).items():
@@ -253,17 +306,7 @@ class Site(ABC):
         return (prefix, translate)
 
     def remove_previous_output(self, output: StrPath, dryrun: bool = False) -> None:
-        """Remove previous output file if existing.
-
-        Parameters
-        ----------
-        output: path-like
-            Path to the output file
-        dryrun: bool
-            If True, do not do anything but print the command that would be
-            executed
-
-        """
+        """See `troika.sites.base.Site.remove_previous_output`"""
         if os.path.exists(output):
             if dryrun:
                 _logger.info("removing:\n%s", output)
