@@ -49,7 +49,7 @@ from troika.parser import DirectiveParser, ParseError
         pytest.param(
             """\
         #!/usr/bin/env bash
-        #  TROIKA spaces = yes
+        #  TROIKA spaces = yes 
 
         # Hello
         # TROIKA name=unknown name
