@@ -175,6 +175,7 @@ class SlurmSite(BaseSite):
         self._copy_jid = config.get("copy_jid", False)
 
     def _parse_submit_output(self, out: bytes) -> int | None:
+        match = self.SUBMIT_RE.search(out)
         if match is None:
             _logger.warning("Could not parse SLURM output %r", out)
             return None
