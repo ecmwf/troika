@@ -101,7 +101,7 @@ def _translate_mail_type(value: bytes) -> bytes:
     for val in vals:
         newval = trans.get(val.lower())
         if newval is None:
-            _logger.warn("Unknown mail_type value %r", val)
+            _logger.warning("Unknown mail_type value %r", val)
             newval = val
         newvals.append(newval)
     return b"-m %s" % b"".join(newvals)
@@ -138,7 +138,7 @@ class SGESite(BaseSite):
     def _parse_submit_output(self, out: str) -> int | None:
         match = self.SUBMIT_RE.search(out)
         if match is None:
-            _logger.warn("Could not parse SGE output %r", out)
+            _logger.warning("Could not parse SGE output %r", out)
             return None
         return int(match.group(2))
 

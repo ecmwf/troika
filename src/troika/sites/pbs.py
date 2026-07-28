@@ -103,7 +103,7 @@ def _translate_mail_type(value: bytes) -> bytes:
     for val in vals:
         newval = trans.get(val.lower())
         if newval is None:
-            _logger.warn("Unknown mail_type value %r", val)
+            _logger.warning("Unknown mail_type value %r", val)
             newval = val
         newvals.append(newval)
     return b"-m %s" % b"".join(newvals)
