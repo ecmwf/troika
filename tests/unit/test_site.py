@@ -8,7 +8,14 @@ from troika.sites.base import Site
 
 
 class DummySite(Site):
-    pass
+    def submit(self, script, user, output, dryrun=False):
+        return None
+
+    def monitor(self, script, user, output=None, jid=None, dryrun=False):
+        return None
+
+    def kill(self, script, user, output=None, jid=None, dryrun=False):
+        return (0, None)
 
 
 @pytest.fixture

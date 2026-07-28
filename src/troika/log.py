@@ -67,7 +67,7 @@ def config(verbose=0, logfile=None, logmode="a"):
         root_logger = logging.getLogger()
         try:
             fh = logging.FileHandler(logfile, mode=logmode)
-        except IOError as e:
+        except OSError as e:
             _logger.error("Cannot open log file: %s", e)
             return
 

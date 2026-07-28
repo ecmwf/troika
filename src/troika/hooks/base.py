@@ -1,7 +1,10 @@
 """Base hook definitions"""
 
+from __future__ import annotations
+
 import functools
 import logging
+from typing import ClassVar
 
 from .. import ConfigurationError
 from ..components import get_entrypoint
@@ -21,7 +24,7 @@ class Hook:
     #: Entrypoint namespace
     _namespace = "troika.hooks"
 
-    registered_hooks = {}
+    registered_hooks: ClassVar[dict[str, Hook]] = {}
 
     @classmethod
     def declare(cls, func, name=None):

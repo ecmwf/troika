@@ -13,6 +13,7 @@ the equals sign and at the end the value.
 
 import re
 from collections import OrderedDict
+from typing import Any
 
 from . import InvocationError, RunError
 
@@ -32,7 +33,8 @@ class BaseParser:
         Output data
     """
 
-    data = None
+    #: Parsed output; the concrete type depends on the parser subclass.
+    data: Any = None
 
     def __init__(self):
         pass

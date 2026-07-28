@@ -71,7 +71,7 @@ def get_config(configfile=None, guesses=[]):
     except TypeError:  # not path-like
         pass
     else:
-        configfile = open(path, "r")
+        configfile = open(path)
 
     config_fname = configfile.name if hasattr(configfile, "name") else repr(configfile)
     _logger.debug("Using configuration file %s", config_fname)

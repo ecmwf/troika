@@ -16,8 +16,6 @@ def extra_directives(script_data, global_config, site):
         if isinstance(val, (int, float)):
             val = str(val)
         if not isinstance(val, str):
-            raise ConfigurationError(
-                f"Invalid value type for directive {name!r}: {val!r}"
-            )
+            raise ConfigurationError(f"Invalid value type for directive {name!r}: {val!r}")
         script_data["directives"].setdefault(name, val.encode("utf-8"))
     return script_data

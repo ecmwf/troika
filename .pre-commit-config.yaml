@@ -1,0 +1,16 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    # whitespace trimming for python files is done by ruff format
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^.*\.py$
+      - id: end-of-file-fixer
+        exclude: ^.*\.py$
+      - id: check-yaml
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.11
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
