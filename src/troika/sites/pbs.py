@@ -15,7 +15,7 @@ from typing import IO, TYPE_CHECKING, Any
 from .. import InvocationError, RunError
 from ..parser import BaseParser
 from ..utils import check_retcode, command_as_list
-from .base import Site
+from .base import BaseSite
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Mapping
@@ -103,13 +103,13 @@ def _translate_mail_type(value: bytes) -> bytes:
     for val in vals:
         newval = trans.get(val.lower())
         if newval is None:
-            _logger.warn("Unknown mail_type value %r", val)
+            _logger.warning("Unknown mail_type value %r", val)
             newval = val
         newvals.append(newval)
     return b"-m %s" % b"".join(newvals)
 
 
-class PBSSite(Site):
+class PBSSite(BaseSite):
     """Site managed using PBS"""
 
     directive_prefix = b"#PBS "

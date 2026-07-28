@@ -27,8 +27,8 @@ jobs:
     uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@main
     with:
       troika: ecmwf/troika@${{ github.event.pull_request.head.sha || github.sha }}
-      codecov_upload: true
-      python_qa: true
+      codecov_upload: false
+      python_qa: false
     secrets: inherit
 
   # Build downstream packages on HPC
@@ -40,11 +40,8 @@ jobs:
       troika: ecmwf/troika@${{ github.event.pull_request.head.sha || github.sha }}
     secrets: inherit
 
-  # Static type checking on a GitHub-hosted runner. Kept out of pre-commit on
-  # purpose: mypy needs the dependencies installed, which is too heavy for a
-  # commit hook, so it runs here instead.
-  mypy:
-    name: mypy
+  mypy_and_linting:
+    name: mypy and linting
     if: github.event_name != 'pull_request_target'
     runs-on: ubuntu-latest
     steps:
@@ -53,6 +50,9 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install package with type-checking dependencies
-        run: python -m pip install -e '.[tests]'
+        run: python -m pip install -e '.[tests]' pre-commit
+      - name: Run pre commit
+        run: |
+          pre-commit run --all-files
       - name: Run mypy
         run: mypy src/troika

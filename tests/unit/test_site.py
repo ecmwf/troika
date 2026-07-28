@@ -4,10 +4,10 @@ import troika
 import troika.sites.base
 from troika.config import Config
 from troika.site import get_site
-from troika.sites.base import Site
+from troika.sites.base import BaseSite
 
 
-class DummySite(Site):
+class DummySite(BaseSite):
     def submit(self, script, user, output, dryrun=False):
         return None
 
