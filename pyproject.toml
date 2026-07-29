@@ -94,6 +94,7 @@ module = [
     "troika.connections.*",
     "troika.site",
     "troika.sites.*",
+    "troika.config",
 ]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

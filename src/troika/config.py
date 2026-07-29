@@ -3,6 +3,7 @@
 import logging
 import os
 from collections import UserDict
+from typing import IO, Any, Sequence
 
 import yaml
 
@@ -15,7 +16,7 @@ _logger = logging.getLogger(__name__)
 class Config(UserDict):
     """Configuration mapping"""
 
-    def get_site_config(self, name):
+    def get_site_config(self, name: str) -> Any:
         """Get the configuration associated with the given site
 
         Parameters
@@ -38,7 +39,10 @@ class Config(UserDict):
         return sites[name]
 
 
-def get_config(configfile=None, guesses=[]):
+def get_config(
+    configfile: "str | os.PathLike[str] | IO[str] | None" = None,
+    guesses: Sequence["str | os.PathLike[str]"] = (),
+) -> Config:
     """Read a configuration file
 
     If configfile is None, the path is read from the ``TROIKA_CONFIG_FILE``
@@ -56,27 +60,27 @@ def get_config(configfile=None, guesses=[]):
     `Config`
     """
 
-    configfile = first_not_none(
+    resolved: Any = first_not_none(
         [
             configfile,
             os.environ.get("TROIKA_CONFIG_FILE"),
         ]
         + [guess for guess in guesses if os.path.exists(guess)]
     )
-    if configfile is None:
+    if resolved is None:
         raise InvocationError("No configuration file found")
 
     try:
-        path = os.fspath(configfile)
+        path = os.fspath(resolved)
     except TypeError:  # not path-like
         pass
     else:
-        configfile = open(path)
+        resolved = open(path)
 
-    config_fname = configfile.name if hasattr(configfile, "name") else repr(configfile)
+    config_fname = resolved.name if hasattr(resolved, "name") else repr(resolved)
     _logger.debug("Using configuration file %s", config_fname)
 
     try:
-        return Config(yaml.safe_load(configfile))
+        return Config(yaml.safe_load(resolved))
     except yaml.YAMLError as e:
         raise ConfigurationError(str(e))
