@@ -67,7 +67,7 @@ def config(verbose=0, logfile=None, logmode="a"):
         logfile = pathlib.Path(logfile)
         try:
             logfile.parent.mkdir(parents=True, exist_ok=True)
-        except IOError as e:
+        except OSError as e:
             _logger.error("Cannot create directory for log file: %s", e)
             return
         root_logger = logging.getLogger()
