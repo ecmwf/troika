@@ -1,4 +1,4 @@
-name: ci
+name: lint
 
 on:
   # Trigger the workflow on push to master or develop, except tag creation
@@ -16,24 +16,6 @@ on:
   workflow_dispatch: ~
 
 jobs:
-  # Run CI including downstream packages on self-hosted runners
-  downstream-ci:
-    name: downstream-ci
-    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci.yml@main
-    with:
-      troika: ecmwf/troika@${{ github.event.pull_request.head.sha || github.sha }}
-      codecov_upload: false
-      python_qa: false
-    secrets: inherit
-
-  # Build downstream packages on HPC
-  downstream-ci-hpc:
-    name: downstream-ci-hpc
-    uses: ecmwf/downstream-ci/.github/workflows/downstream-ci-hpc.yml@main
-    with:
-      troika: ecmwf/troika@${{ github.event.pull_request.head.sha || github.sha }}
-    secrets: inherit
-
   mypy_and_linting:
     name: mypy and linting
     runs-on: ubuntu-latest
